@@ -158,7 +158,7 @@ Currently, overriding `Error.prepareStackTrace` is ignored when the
 
 ### `--experimental-conditional-exports`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Enable experimental support for the `"require"` and `"node"` conditional
@@ -202,7 +202,7 @@ Enable experimental diagnostic report feature.
 
 ### `--experimental-specifier-resolution=mode`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Sets the resolution algorithm for resolving ES module specifiers. Valid options
@@ -223,7 +223,7 @@ Enable experimental ES Module support in the `vm` module.
 
 ### `--experimental-wasi-unstable-preview1`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Enable experimental WebAssembly System Interface (WASI) support.
@@ -440,7 +440,7 @@ Specify the `module` of a custom [experimental ECMAScript Module][] loader.
 
 ### `--insecure-http-parser`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Use an insecure HTTP parser that accepts invalid HTTP headers. This may allow
@@ -717,7 +717,7 @@ with crypto support (default).
 
 ### `--tls-keylog=file`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Log TLS key material to a file. The key material is in NSS `SSLKEYLOGFILE`
@@ -805,7 +805,7 @@ Enables the collection of trace event tracing information.
 
 ### `--trace-exit`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Prints a stack trace whenever an environment is exited proactively,
@@ -829,7 +829,7 @@ connection problems.
 
 ### `--trace-uncaught`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Print stack traces for uncaught exceptions; usually, the stack trace associated
@@ -892,7 +892,7 @@ See `SSL_CERT_DIR` and `SSL_CERT_FILE`.
 
 ### `--use-largepages=mode`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Re-map the Node.js static code to large memory pages at startup. If supported on
@@ -1240,7 +1240,7 @@ to an empty string (`''` or `' '`) disables persistent REPL history.
 
 ### `NODE_REPL_EXTERNAL_MODULE=file`
 <!-- YAML
-added: REPLACEME
+added: v12.15.0
 -->
 
 Path to a Node.js module which will be loaded in place of the built-in REPL.
