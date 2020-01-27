@@ -733,19 +733,14 @@ void SecureContext::SetKey(const FunctionCallbackInfo<Value>& args) {
 
   if (!key) {
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-    if (!err) {
-      return env->ThrowError("PEM_read_bio_PrivateKey");
-    }
-    return ThrowCryptoError(env, err);
+    return ThrowCryptoError(env, err, "PEM_read_bio_PrivateKey");
   }
 
   int rv = SSL_CTX_use_PrivateKey(sc->ctx_.get(), key.get());
 
   if (!rv) {
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-    if (!err)
-      return env->ThrowError("SSL_CTX_use_PrivateKey");
-    return ThrowCryptoError(env, err);
+    return ThrowCryptoError(env, err, "SSL_CTX_use_PrivateKey");
   }
 }
 
@@ -971,10 +966,7 @@ void SecureContext::SetCert(const FunctionCallbackInfo<Value>& args) {
 
   if (!rv) {
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-    if (!err) {
-      return env->ThrowError("SSL_CTX_use_certificate_chain");
-    }
-    return ThrowCryptoError(env, err);
+    return ThrowCryptoError(env, err, "SSL_CTX_use_certificate_chain");
   }
 }
 
@@ -1183,11 +1175,7 @@ void SecureContext::SetCipherSuites(const FunctionCallbackInfo<Value>& args) {
   const node::Utf8Value ciphers(args.GetIsolate(), args[0]);
   if (!SSL_CTX_set_ciphersuites(sc->ctx_.get(), *ciphers)) {
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-    if (!err) {
-      // This would be an OpenSSL bug if it happened.
-      return env->ThrowError("Failed to set ciphers");
-    }
-    return ThrowCryptoError(env, err);
+    return ThrowCryptoError(env, err, "Failed to set ciphers");
   }
 #endif
 }
@@ -1205,10 +1193,6 @@ void SecureContext::SetCiphers(const FunctionCallbackInfo<Value>& args) {
   const node::Utf8Value ciphers(args.GetIsolate(), args[0]);
   if (!SSL_CTX_set_cipher_list(sc->ctx_.get(), *ciphers)) {
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-    if (!err) {
-      // This would be an OpenSSL bug if it happened.
-      return env->ThrowError("Failed to set ciphers");
-    }
 
     if (strlen(*ciphers) == 0 && ERR_GET_REASON(err) == SSL_R_NO_CIPHER_MATCH) {
       // TLS1.2 ciphers were deliberately cleared, so don't consider
@@ -1217,7 +1201,7 @@ void SecureContext::SetCiphers(const FunctionCallbackInfo<Value>& args) {
       // that's actually an error.
       return;
     }
-    return ThrowCryptoError(env, err);
+    return ThrowCryptoError(env, err, "Failed to set ciphers");
   }
 }
 
@@ -3027,9 +3011,7 @@ void SSLWrap<Base>::CertCbDone(const FunctionCallbackInfo<Value>& args) {
       // Not clear why sometimes we throw error, and sometimes we call
       // onerror(). Both cause .destroy(), but onerror does a bit more.
       unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
-      if (!err)
-        return env->ThrowError("CertCbDone");
-      return ThrowCryptoError(env, err);
+      return ThrowCryptoError(env, err, "CertCbDone");
     }
   } else {
     // Failure: incorrect SNI context object
@@ -3549,7 +3531,7 @@ static NonCopyableMaybe<PrivateKeyEncodingConfig> GetPrivateKeyEncodingFromJs(
                                       args[*offset].As<String>());
         result.cipher_ = EVP_get_cipherbyname(*cipher_name);
         if (result.cipher_ == nullptr) {
-          env->ThrowError("Unknown cipher");
+          THROW_ERR_CRYPTO_UNKNOWN_CIPHER(env);
           return NonCopyableMaybe<PrivateKeyEncodingConfig>();
         }
         needs_passphrase = true;
@@ -4055,7 +4037,7 @@ void CipherBase::Init(const char* cipher_type,
 
   const EVP_CIPHER* const cipher = EVP_get_cipherbyname(cipher_type);
   if (cipher == nullptr)
-    return env()->ThrowError("Unknown cipher");
+    return THROW_ERR_CRYPTO_UNKNOWN_CIPHER(env());
 
   unsigned char key[EVP_MAX_KEY_LENGTH];
   unsigned char iv[EVP_MAX_IV_LENGTH];
@@ -4119,7 +4101,7 @@ void CipherBase::InitIv(const char* cipher_type,
 
   const EVP_CIPHER* const cipher = EVP_get_cipherbyname(cipher_type);
   if (cipher == nullptr) {
-    return env()->ThrowError("Unknown cipher");
+    return THROW_ERR_CRYPTO_UNKNOWN_CIPHER(env());
   }
 
   const int expected_iv_len = EVP_CIPHER_iv_length(cipher);
@@ -5697,10 +5679,7 @@ void DiffieHellman::DiffieHellmanGroup(
   Environment* env = Environment::GetCurrent(args);
   DiffieHellman* diffieHellman = new DiffieHellman(env, args.This());
 
-  if (args.Length() != 1) {
-    return THROW_ERR_MISSING_ARGS(env, "Group name argument is mandatory");
-  }
-
+  CHECK_EQ(args.Length(), 1);
   THROW_AND_RETURN_IF_NOT_STRING(env, args[0], "Group name");
 
   bool initialized = false;
@@ -5708,7 +5687,7 @@ void DiffieHellman::DiffieHellmanGroup(
   const node::Utf8Value group_name(env->isolate(), args[0]);
   const modp_group* group = FindDiffieHellmanGroup(*group_name);
   if (group == nullptr)
-    return env->ThrowError("Unknown group");
+    return THROW_ERR_CRYPTO_UNKNOWN_DH_GROUP(env, "Unknown group");
 
   initialized = diffieHellman->Init(group->prime,
                                     group->prime_size,

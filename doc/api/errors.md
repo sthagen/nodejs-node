@@ -831,6 +831,11 @@ A signing `key` was not provided to the [`sign.sign()`][] method.
 [`crypto.timingSafeEqual()`][] was called with `Buffer`, `TypedArray`, or
 `DataView` arguments of different lengths.
 
+<a id="ERR_CRYPTO_UNKNOWN_CIPHER"></a>
+### `ERR_CRYPTO_UNKNOWN_CIPHER`
+
+An unknown cipher was specified.
+
 <a id="ERR_CRYPTO_UNKNOWN_DH_GROUP"></a>
 ### `ERR_CRYPTO_UNKNOWN_DH_GROUP`
 
@@ -2406,6 +2411,12 @@ The `--entry-type=...` flag is not compatible with the Node.js REPL.
 
 Used when an [ES Module][] loader hook specifies `format: 'dynamic'` but does
 not provide a `dynamicInstantiate` hook.
+
+<a id="ERR_FEATURE_UNAVAILABLE_ON_PLATFORM"></a>
+#### `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM`
+
+Used when a feature that is not available
+to the current platform which is running Node.js is used.
 
 <a id="ERR_STREAM_HAS_STRINGDECODER"></a>
 #### `ERR_STREAM_HAS_STRINGDECODER`

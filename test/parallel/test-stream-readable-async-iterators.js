@@ -1,7 +1,13 @@
 'use strict';
 
 const common = require('../common');
-const { Readable, Transform, PassThrough, pipeline } = require('stream');
+const {
+  Stream,
+  Readable,
+  Transform,
+  PassThrough,
+  pipeline
+} = require('stream');
 const assert = require('assert');
 
 async function tests() {
@@ -12,6 +18,61 @@ async function tests() {
     assert.strictEqual(
       Object.getPrototypeOf(Object.getPrototypeOf(rs[Symbol.asyncIterator]())),
       AsyncIteratorPrototype);
+  }
+
+  {
+    // v1 stream
+
+    const stream = new Stream();
+    stream.destroy = common.mustCall();
+    process.nextTick(() => {
+      stream.emit('data', 'hello');
+      stream.emit('data', 'world');
+      stream.emit('end');
+    });
+
+    let res = '';
+    stream[Symbol.asyncIterator] = Readable.prototype[Symbol.asyncIterator];
+    for await (const d of stream) {
+      res += d;
+    }
+    assert.strictEqual(res, 'helloworld');
+  }
+
+  {
+    // v1 stream error
+
+    const stream = new Stream();
+    stream.close = common.mustCall();
+    process.nextTick(() => {
+      stream.emit('data', 0);
+      stream.emit('data', 1);
+      stream.emit('error', new Error('asd'));
+    });
+
+    const iter = Readable.prototype[Symbol.asyncIterator].call(stream);
+    iter.next().catch(common.mustCall((err) => {
+      assert.strictEqual(err.message, 'asd');
+    }));
+  }
+
+  {
+    // Non standard stream cleanup
+
+    const readable = new Readable({ autoDestroy: false, read() {} });
+    readable.push('asd');
+    readable.push('asd');
+    readable.destroy = null;
+    readable.close = common.mustCall(() => {
+      readable.emit('close');
+    });
+
+    await (async () => {
+      for await (const d of readable) {
+        d;
+        return;
+      }
+    })();
   }
 
   {
@@ -219,6 +280,28 @@ async function tests() {
 
     assert.strictEqual(err.message, 'kaboom');
     assert.strictEqual(received, 1);
+  }
+
+  {
+    // Iterator throw.
+
+    const readable = new Readable({
+      objectMode: true,
+      read() {
+        this.push('hello');
+      }
+    });
+
+    readable.on('error', common.mustCall((err) => {
+      assert.strictEqual(err.message, 'kaboom');
+    }));
+
+    const it = readable[Symbol.asyncIterator]();
+    it.throw(new Error('kaboom')).catch(common.mustCall((err) => {
+      assert.strictEqual(err.message, 'kaboom');
+    }));
+
+    assert.strictEqual(readable.destroyed, true);
   }
 
   {

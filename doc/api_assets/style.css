@@ -33,14 +33,12 @@ h3, h3 code,
 h4, h4 code,
 h5, h5 code,
 h6, h6 code {
-  background-color: inherit;
   color: inherit;
   font-family: inherit;
   font-weight: 700;
   line-height: inherit;
   position: relative;
   margin: 1.5rem 0 1rem;
-  padding: inherit;
   text-rendering: optimizeLegibility;
 }
 
