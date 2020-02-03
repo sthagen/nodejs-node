@@ -162,7 +162,7 @@ require(X) from module at path Y
    c. THROW "not found"
 4. LOAD_SELF_REFERENCE(X, dirname(Y))
 5. LOAD_NODE_MODULES(X, dirname(Y))
-7. THROW "not found"
+6. THROW "not found"
 
 LOAD_AS_FILE(X)
 1. If X is a file, load X as JavaScript text.  STOP
@@ -618,10 +618,13 @@ Used to import modules, `JSON`, and local files. Modules can be imported
 from `node_modules`. Local modules and JSON files can be imported using
 a relative path (e.g. `./`, `./foo`, `./bar/baz`, `../foo`) that will be
 resolved against the directory named by [`__dirname`][] (if defined) or
-the current working directory.
+the current working directory. The relative paths of POSIX style are resolved
+in an OS independent fashion, meaning that the examples above will work on
+Windows in the same way they would on Unix systems.
 
 ```js
-// Importing a local module:
+// Importing a local module with a path relative to the `__dirname` or current
+// working directory. (On Windows, this would resolve to .\path\myLocalModule.)
 const myLocalModule = require('./path/myLocalModule');
 
 // Importing a JSON file:
