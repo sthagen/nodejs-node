@@ -205,10 +205,21 @@ inline void FileHandle::Close() {
   // If the close was successful, we still want to emit a process warning
   // to notify that the file descriptor was gc'd. We want to be noisy about
   // this because not explicitly closing the FileHandle is a bug.
+
   env()->SetUnrefImmediate([detail](Environment* env) {
     ProcessEmitWarning(env,
                        "Closing file descriptor %d on garbage collection",
                        detail.fd);
+    if (env->filehandle_close_warning()) {
+      env->set_filehandle_close_warning(false);
+      ProcessEmitDeprecationWarning(
+          env,
+          "Closing a FileHandle object on garbage collection is deprecated. "
+          "Please close FileHandle objects explicitly using "
+          "FileHandle.prototype.close(). In the future, an error will be "
+          "thrown if a file descriptor is closed during garbage collection.",
+          "DEP00XX").IsNothing();
+    }
   });
 }
 
@@ -1278,6 +1289,7 @@ int MKDirpSync(uv_loop_t* loop,
           }
           break;
         case UV_EACCES:
+        case UV_ENOTDIR:
         case UV_EPERM: {
           return err;
         }
@@ -1356,6 +1368,7 @@ int MKDirpAsync(uv_loop_t* loop,
           break;
         }
         case UV_EACCES:
+        case UV_ENOTDIR:
         case UV_EPERM: {
           req_wrap->continuation_data()->Done(err);
           break;
@@ -1398,7 +1411,6 @@ int MKDirpAsync(uv_loop_t* loop,
             }
             // verify that the path pointed to is actually a directory.
             if (err == 0 && !S_ISDIR(req->statbuf.st_mode)) err = UV_EEXIST;
-            uv_fs_req_cleanup(req);
             req_wrap->continuation_data()->Done(err);
           }});
           if (err < 0) req_wrap->continuation_data()->Done(err);

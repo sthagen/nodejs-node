@@ -251,14 +251,6 @@ void Worker::Run() {
       Isolate::DisallowJavascriptExecutionScope disallow_js(isolate_,
           Isolate::DisallowJavascriptExecutionScope::THROW_ON_FAILURE);
 
-      // Grab the parent-to-child channel and render is unusable.
-      MessagePort* child_port;
-      {
-        Mutex::ScopedLock lock(mutex_);
-        child_port = child_port_;
-        child_port_ = nullptr;
-      }
-
       {
         Context::Scope context_scope(env_->context());
         {
@@ -394,13 +386,13 @@ void Worker::CreateEnvMessagePort(Environment* env) {
   HandleScope handle_scope(isolate_);
   Mutex::ScopedLock lock(mutex_);
   // Set up the message channel for receiving messages in the child.
-  child_port_ = MessagePort::New(env,
-                                 env->context(),
-                                 std::move(child_port_data_));
+  MessagePort* child_port = MessagePort::New(env,
+                                             env->context(),
+                                             std::move(child_port_data_));
   // MessagePort::New() may return nullptr if execution is terminated
   // within it.
-  if (child_port_ != nullptr)
-    env->set_message_port(child_port_->object(isolate_));
+  if (child_port != nullptr)
+    env->set_message_port(child_port->object(isolate_));
 }
 
 void Worker::JoinThread() {
@@ -657,6 +649,53 @@ void Worker::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("parent_port", parent_port_);
 }
 
+class WorkerHeapSnapshotTaker : public AsyncWrap {
+ public:
+  WorkerHeapSnapshotTaker(Environment* env, Local<Object> obj)
+    : AsyncWrap(env, obj, AsyncWrap::PROVIDER_WORKERHEAPSNAPSHOT) {}
+
+  SET_NO_MEMORY_INFO()
+  SET_MEMORY_INFO_NAME(WorkerHeapSnapshotTaker)
+  SET_SELF_SIZE(WorkerHeapSnapshotTaker)
+};
+
+void Worker::TakeHeapSnapshot(const FunctionCallbackInfo<Value>& args) {
+  Worker* w;
+  ASSIGN_OR_RETURN_UNWRAP(&w, args.This());
+
+  Debug(w, "Worker %llu taking heap snapshot", w->thread_id_);
+
+  Environment* env = w->env();
+  AsyncHooks::DefaultTriggerAsyncIdScope trigger_id_scope(w);
+  Local<Object> wrap;
+  if (!env->worker_heap_snapshot_taker_template()
+      ->NewInstance(env->context()).ToLocal(&wrap)) {
+    return;
+  }
+  BaseObjectPtr<WorkerHeapSnapshotTaker> taker =
+      MakeDetachedBaseObject<WorkerHeapSnapshotTaker>(env, wrap);
+
+  // Interrupt the worker thread and take a snapshot, then schedule a call
+  // on the parent thread that turns that snapshot into a readable stream.
+  bool scheduled = w->RequestInterrupt([taker, env](Environment* worker_env) {
+    heap::HeapSnapshotPointer snapshot {
+        worker_env->isolate()->GetHeapProfiler()->TakeHeapSnapshot() };
+    CHECK(snapshot);
+    env->SetImmediateThreadsafe(
+        [taker, snapshot = std::move(snapshot)](Environment* env) mutable {
+          HandleScope handle_scope(env->isolate());
+          Context::Scope context_scope(env->context());
+
+          AsyncHooks::DefaultTriggerAsyncIdScope trigger_id_scope(taker.get());
+          BaseObjectPtr<AsyncWrap> stream = heap::CreateHeapSnapshotStream(
+              env, std::move(snapshot));
+          Local<Value> args[] = { stream->object() };
+          taker->MakeCallback(env->ondone_string(), arraysize(args), args);
+        });
+  });
+  args.GetReturnValue().Set(scheduled ? taker->object() : Local<Object>());
+}
+
 namespace {
 
 // Return the MessagePort that is global for this Environment and communicates
@@ -689,6 +728,7 @@ void InitWorker(Local<Object> target,
     env->SetProtoMethod(w, "ref", Worker::Ref);
     env->SetProtoMethod(w, "unref", Worker::Unref);
     env->SetProtoMethod(w, "getResourceLimits", Worker::GetResourceLimits);
+    env->SetProtoMethod(w, "takeHeapSnapshot", Worker::TakeHeapSnapshot);
 
     Local<String> workerString =
         FIXED_ONE_BYTE_STRING(env->isolate(), "Worker");
@@ -696,6 +736,18 @@ void InitWorker(Local<Object> target,
     target->Set(env->context(),
                 workerString,
                 w->GetFunction(env->context()).ToLocalChecked()).Check();
+  }
+
+  {
+    Local<FunctionTemplate> wst = FunctionTemplate::New(env->isolate());
+
+    wst->InstanceTemplate()->SetInternalFieldCount(1);
+    wst->Inherit(AsyncWrap::GetConstructorTemplate(env));
+
+    Local<String> wst_string =
+        FIXED_ONE_BYTE_STRING(env->isolate(), "WorkerHeapSnapshotTaker");
+    wst->SetClassName(wst_string);
+    env->set_worker_heap_snapshot_taker_template(wst->InstanceTemplate());
   }
 
   env->SetMethod(target, "getEnvMessagePort", GetEnvMessagePort);
