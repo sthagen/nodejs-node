@@ -82,6 +82,9 @@ The `_linklist` module is deprecated. Please use a userland alternative.
 ### DEP0003: `_writableState.buffer`
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/31165
+    description: End-of-Life
   - version:
     - v4.8.6
     - v6.12.0
@@ -92,10 +95,10 @@ changes:
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-The `_writableState.buffer` property is deprecated. Use the
-`_writableState.getBuffer()` method instead.
+The `_writableState.buffer` has been removed. Use `_writableState.getBuffer()`
+instead.
 
 <a id="DEP0004"></a>
 ### DEP0004: `CryptoStream.prototype.readyState`
@@ -233,6 +236,9 @@ to the `constants` property exposed by the relevant module. For instance,
 ### DEP0009: `crypto.pbkdf2` without digest
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/31166
+    description: End-of-Life (for `digest === null`)
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/22861
     description: Runtime deprecation (for `digest === null`).
@@ -247,7 +253,7 @@ changes:
     description: Runtime deprecation (for `digest === undefined`).
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Use of the [`crypto.pbkdf2()`][] API without specifying a digest was deprecated
 in Node.js 6.0 because the method defaulted to using the non-recommended
@@ -256,8 +262,10 @@ Node.js 8.0.0, calling `crypto.pbkdf2()` or `crypto.pbkdf2Sync()` with
 `digest` set to `undefined` will throw a `TypeError`.
 
 Beginning in Node.js v11.0.0, calling these functions with `digest` set to
-`null` will print a deprecation warning to align with the behavior when `digest`
+`null` would print a deprecation warning to align with the behavior when `digest`
 is `undefined`.
+
+Now, however, passing either `undefined` or `null` will throw a `TypeError`.
 
 <a id="DEP0010"></a>
 ### DEP0010: `crypto.createCredentials`
@@ -396,6 +404,9 @@ The [`fs.readSync()`][] legacy `String` interface is deprecated. Use the
 ### DEP0016: `GLOBAL`/`root`
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: REPLACEME
+    description: End-of-Life
   - version: v6.12.0
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
@@ -404,10 +415,10 @@ changes:
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-The `GLOBAL` and `root` aliases for the `global` property are deprecated
-and should no longer be used.
+The `GLOBAL` and `root` aliases for the `global` property were deprecated
+in Node.js 6.0.0 and have since been removed.
 
 <a id="DEP0017"></a>
 ### DEP0017: `Intl.v8BreakIterator`
@@ -508,14 +519,18 @@ The `Server.listenFD()` method was deprecated and removed. Please use
 ### DEP0022: `os.tmpDir()`
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: REPLACEME
+    description: End-of-Life.
   - version: v7.0.0
     pr-url: https://github.com/nodejs/node/pull/6739
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-The `os.tmpDir()` API is deprecated. Please use [`os.tmpdir()`][] instead.
+The `os.tmpDir()` API iws deprecated in Node.js 7.0.0 and has since been
+removed. Please use [`os.tmpdir()`][] instead.
 
 <a id="DEP0023"></a>
 ### DEP0023: `os.getNetworkInterfaces()`
