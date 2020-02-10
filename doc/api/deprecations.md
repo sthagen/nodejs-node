@@ -405,7 +405,7 @@ The [`fs.readSync()`][] legacy `String` interface is deprecated. Use the
 <!-- YAML
 changes:
   - version: REPLACEME
-    pr-url: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/31167
     description: End-of-Life
   - version: v6.12.0
     pr-url: https://github.com/nodejs/node/pull/10116
@@ -520,7 +520,7 @@ The `Server.listenFD()` method was deprecated and removed. Please use
 <!-- YAML
 changes:
   - version: REPLACEME
-    pr-url: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/31169
     description: End-of-Life.
   - version: v7.0.0
     pr-url: https://github.com/nodejs/node/pull/6739
@@ -529,7 +529,7 @@ changes:
 
 Type: End-of-Life
 
-The `os.tmpDir()` API iws deprecated in Node.js 7.0.0 and has since been
+The `os.tmpDir()` API was deprecated in Node.js 7.0.0 and has since been
 removed. Please use [`os.tmpdir()`][] instead.
 
 <a id="DEP0023"></a>
@@ -2583,8 +2583,8 @@ accordingly instead to avoid the ambigiuty.
 To maintain existing behaviour `response.finished` should be replaced with
 `response.writableEnded`.
 
-<a id="DEP00XX"></a>
-### DEP00XX: Closing fs.FileHandle on garbage collection
+<a id="DEP0137"></a>
+### DEP0137: Closing fs.FileHandle on garbage collection
 <!-- YAML
 changes:
   - version: REPLACEME
