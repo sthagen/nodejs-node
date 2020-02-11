@@ -57,12 +57,10 @@ assert.deepEqual([[[1, 2, 3]], 4, 5], [[[1, 2, '3']], 4, 5]);
 //   ]
 ```
 
-To deactivate the colors, use the `NO_COLOR` or
-`NODE_DISABLE_COLORS` environment variable.
-This will also deactivate the colors in the REPL.
-
-For more on the color support in terminal environments, read
-the tty [getColorDepth()](tty.html#tty_writestream_getcolordepth_env) doc.
+To deactivate the colors, use the `NO_COLOR` or `NODE_DISABLE_COLORS`
+environment variables. This will also deactivate the colors in the REPL. For
+more on color support in terminal environments, read the tty
+[getColorDepth()](tty.html#tty_writestream_getcolordepth_env) documentation.
 
 ## Legacy assertion mode
 
@@ -202,9 +200,9 @@ An alias of [`assert.deepStrictEqual()`][].
 
 Tests for deep equality between the `actual` and `expected` parameters. Consider
 using [`assert.deepStrictEqual()`][] instead. [`assert.deepEqual()`][] can have
-potentially surprising results.
+surprising results.
 
-"Deep" equality means that the enumerable "own" properties of child objects
+_Deep equality_ means that the enumerable "own" properties of child objects
 are also recursively evaluated by the following rules.
 
 ### Comparison details
