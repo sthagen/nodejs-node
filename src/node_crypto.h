@@ -263,6 +263,8 @@ class SSLWrap {
   static void VerifyError(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void GetCipher(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void GetSharedSigalgs(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void ExportKeyingMaterial(
+      const v8::FunctionCallbackInfo<v8::Value>& args);
   static void EndParser(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void CertCbDone(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Renegotiate(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -700,8 +702,7 @@ class Verify : public SignBase {
   static void Initialize(Environment* env, v8::Local<v8::Object> target);
 
   Error VerifyFinal(const ManagedEVPPKey& key,
-                    const char* sig,
-                    int siglen,
+                    const ByteSource& sig,
                     int padding,
                     const v8::Maybe<int>& saltlen,
                     bool* verify_result);
