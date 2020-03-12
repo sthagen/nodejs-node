@@ -170,6 +170,11 @@ provided by AsyncHooks itself. The logging should then be skipped when
 it was the logging itself that caused AsyncHooks callback to call. By
 doing this the otherwise infinite recursion is broken.
 
+### Class: `AsyncHook`
+
+The class `AsyncHook` exposes an interface for tracking lifetime events
+of asynchronous operations.
+
 #### `asyncHook.enable()`
 
 * Returns: {AsyncHook} A reference to `asyncHook`.
@@ -952,7 +957,7 @@ return `undefined`.
 
 ### `asyncLocalStorage.enterWith(store)`
 <!-- YAML
-added: REPLACEME
+added: v13.11.0
 -->
 
 * `store` {any}

@@ -984,3 +984,67 @@ const { promisify } = require('util');
   }));
   src.end();
 }
+
+{
+  let res = '';
+  const rs = new Readable({
+    read() {
+      setImmediate(() => {
+        rs.push('hello');
+      });
+    }
+  });
+  const ws = new Writable({
+    write: common.mustNotCall()
+  });
+  pipeline(rs, async function*(stream) {
+    /* eslint no-unused-vars: off */
+    for await (const chunk of stream) {
+      throw new Error('kaboom');
+    }
+  }, async function *(source) {
+    for await (const chunk of source) {
+      res += chunk;
+    }
+  }, ws, common.mustCall((err) => {
+    assert.strictEqual(err.message, 'kaboom');
+    assert.strictEqual(res, '');
+  }));
+}
+
+{
+  const server = http.createServer((req, res) => {
+    req.socket.on('error', common.mustNotCall());
+    pipeline(req, new PassThrough(), (err) => {
+      assert.ifError(err);
+      res.end();
+      server.close();
+    });
+  });
+
+  server.listen(0, () => {
+    const req = http.request({
+      method: 'PUT',
+      port: server.address().port
+    });
+    req.end('asd123');
+    req.on('response', common.mustCall());
+    req.on('error', common.mustNotCall());
+  });
+}
+
+{
+  // Might still want to be able to use the writable side
+  // of src. This is in the case where e.g. the Duplex input
+  // is not directly connected to its output. Such a case could
+  // happen when the Duplex is reading from a socket and then echos
+  // the data back on the same socket.
+  const src = new PassThrough();
+  assert.strictEqual(src.writable, true);
+  const dst = new PassThrough();
+  pipeline(src, dst, common.mustCall((err) => {
+    assert.strictEqual(src.writable, true);
+    assert.strictEqual(src.destroyed, false);
+  }));
+  src.push(null);
+}
