@@ -496,6 +496,9 @@ class IsolateData : public MemoryRetainer {
   inline v8::ArrayBuffer::Allocator* allocator() const;
   inline NodeArrayBufferAllocator* node_allocator() const;
 
+  inline worker::Worker* worker_context() const;
+  inline void set_worker_context(worker::Worker* context);
+
 #define VP(PropertyName, StringValue) V(v8::Private, PropertyName)
 #define VY(PropertyName, StringValue) V(v8::Symbol, PropertyName)
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
@@ -540,6 +543,7 @@ class IsolateData : public MemoryRetainer {
   const bool uses_node_allocator_;
   MultiIsolatePlatform* platform_;
   std::shared_ptr<PerIsolateOptions> options_;
+  worker::Worker* worker_context_ = nullptr;
 };
 
 struct ContextInfo {
@@ -853,13 +857,6 @@ class Environment : public MemoryRetainer {
   inline void PushAsyncCallbackScope();
   inline void PopAsyncCallbackScope();
 
-  enum Flags {
-    kNoFlags = 0,
-    kIsMainThread = 1 << 0,
-    kOwnsProcessState = 1 << 1,
-    kOwnsInspector = 1 << 2,
-  };
-
   static inline Environment* GetCurrent(v8::Isolate* isolate);
   static inline Environment* GetCurrent(v8::Local<v8::Context> context);
   static inline Environment* GetCurrent(
@@ -878,8 +875,8 @@ class Environment : public MemoryRetainer {
               v8::Local<v8::Context> context,
               const std::vector<std::string>& args,
               const std::vector<std::string>& exec_args,
-              Flags flags = Flags(),
-              uint64_t thread_id = kNoThreadId);
+              EnvironmentFlags::Flags flags,
+              ThreadId thread_id);
   ~Environment() override;
 
   void InitializeLibuv(bool start_profiler_idle_notifier);
@@ -1048,16 +1045,12 @@ class Environment : public MemoryRetainer {
   inline bool has_serialized_options() const;
   inline void set_has_serialized_options(bool has_serialized_options);
 
-  static uint64_t AllocateThreadId();
-  static constexpr uint64_t kNoThreadId = -1;
-
   inline bool is_main_thread() const;
   inline bool owns_process_state() const;
   inline bool owns_inspector() const;
   inline uint64_t thread_id() const;
   inline worker::Worker* worker_context() const;
   Environment* worker_parent_env() const;
-  inline void set_worker_context(worker::Worker* context);
   inline void add_sub_worker_context(worker::Worker* context);
   inline void remove_sub_worker_context(worker::Worker* context);
   void stop_sub_worker_contexts();
@@ -1260,6 +1253,8 @@ class Environment : public MemoryRetainer {
 
 #endif  // HAVE_INSPECTOR
 
+  inline void set_main_utf16(std::unique_ptr<v8::String::Value>);
+
  private:
   template <typename Fn>
   inline void CreateImmediate(Fn&& cb, bool ref);
@@ -1336,7 +1331,7 @@ class Environment : public MemoryRetainer {
   bool has_serialized_options_ = false;
 
   std::atomic_bool can_call_into_js_ { true };
-  Flags flags_;
+  uint64_t flags_;
   uint64_t thread_id_;
   std::unordered_set<worker::Worker*> sub_worker_contexts_;
 
@@ -1377,8 +1372,6 @@ class Environment : public MemoryRetainer {
 
   std::vector<std::unique_ptr<fs::FileHandleReadWrap>>
       file_handle_read_wrap_freelist_;
-
-  worker::Worker* worker_context_ = nullptr;
 
   std::list<node_module> extra_linked_bindings_;
   Mutex extra_linked_bindings_mutex_;
@@ -1440,6 +1433,11 @@ class Environment : public MemoryRetainer {
   Mutex native_immediates_threadsafe_mutex_;
   NativeImmediateQueue native_immediates_threadsafe_;
   NativeImmediateQueue native_immediates_interrupts_;
+  // Also guarded by native_immediates_threadsafe_mutex_. This can be used when
+  // trying to post tasks from other threads to an Environment, as the libuv
+  // handle for the immediate queues (task_queues_async_) may not be initialized
+  // yet or already have been destroyed.
+  bool task_queues_async_initialized_ = false;
 
   void RunAndClearNativeImmediates(bool only_refed = false);
   void RunAndClearInterrupts();
@@ -1466,6 +1464,11 @@ class Environment : public MemoryRetainer {
 #undef V
 
   v8::Global<v8::Context> context_;
+
+  // Keeps the main script source alive is one was passed to LoadEnvironment().
+  // We should probably find a way to just use plain `v8::String`s created from
+  // the source passed to LoadEnvironment() directly instead.
+  std::unique_ptr<v8::String::Value> main_utf16_;
 };
 
 }  // namespace node
