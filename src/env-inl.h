@@ -910,6 +910,14 @@ void Environment::set_filehandle_close_warning(bool on) {
   emit_filehandle_warning_ = on;
 }
 
+bool Environment::emit_insecure_umask_warning() const {
+  return emit_insecure_umask_warning_;
+}
+
+void Environment::set_emit_insecure_umask_warning(bool on) {
+  emit_insecure_umask_warning_ = on;
+}
+
 inline uint64_t Environment::thread_id() const {
   return thread_id_;
 }
@@ -1276,9 +1284,8 @@ void Environment::set_main_utf16(std::unique_ptr<v8::String::Value> str) {
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   inline                                                                      \
-  v8::Local<TypeName> IsolateData::PropertyName(v8::Isolate* isolate) const { \
-    /* Strings are immutable so casting away const-ness here is okay. */      \
-    return const_cast<IsolateData*>(this)->PropertyName ## _.Get(isolate);    \
+  v8::Local<TypeName> IsolateData::PropertyName() const {                     \
+    return PropertyName ## _ .Get(isolate_);                                  \
   }
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
@@ -1293,7 +1300,7 @@ void Environment::set_main_utf16(std::unique_ptr<v8::String::Value> str) {
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   inline v8::Local<TypeName> Environment::PropertyName() const {              \
-    return isolate_data()->PropertyName(isolate());                           \
+    return isolate_data()->PropertyName();                                    \
   }
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)

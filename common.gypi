@@ -401,6 +401,15 @@
               '-Wl,-brtl',
             ],
           }, {                                             # else it's `AIX`
+            # Disable the following compiler warning:
+            #
+            #   warning: visibility attribute not supported in this
+            #   configuration; ignored [-Wattributes]
+            #
+            # This is gcc complaining about __attribute((visibility("default"))
+            # in static library builds. Legitimate but harmless and it drowns
+            # out more relevant warnings.
+            'cflags': [ '-Wno-attributes' ],
             'ldflags': [
               '-Wl,-blibpath:/usr/lib:/lib:/opt/freeware/lib/pthread/ppc64',
             ],
@@ -430,7 +439,7 @@
           'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
           'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'MACOSX_DEPLOYMENT_TARGET': '10.10',      # -mmacosx-version-min=10.10
+          'MACOSX_DEPLOYMENT_TARGET': '10.13',      # -mmacosx-version-min=10.13
           'USE_HEADERMAP': 'NO',
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',

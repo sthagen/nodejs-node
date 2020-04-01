@@ -152,8 +152,8 @@ fs.open(Buffer.from('/open/some/file.txt'), 'r', (err, fd) => {
 
 On Windows, Node.js follows the concept of per-drive working directory. This
 behavior can be observed when using a drive path without a backslash. For
-example `fs.readdirSync('c:\\')` can potentially return a different result than
-`fs.readdirSync('c:')`. For more information, see
+example `fs.readdirSync('C:\\')` can potentially return a different result than
+`fs.readdirSync('C:')`. For more information, see
 [this MSDN page][MSDN-Rel-Path].
 
 ### URL object support
@@ -2427,6 +2427,10 @@ Synchronous lstat(2).
 <!-- YAML
 added: v0.1.8
 changes:
+  - version: v13.11.0
+    pr-url: https://github.com/nodejs/node/pull/31530
+    description: In `recursive` mode, the callback now receives the first
+                 created path as an argument.
   - version: v10.12.0
     pr-url: https://github.com/nodejs/node/pull/21875
     description: The second argument can now be an `options` object with
@@ -2485,6 +2489,9 @@ See also: mkdir(2).
 <!-- YAML
 added: v0.1.21
 changes:
+  - version: v13.11.0
+    pr-url: https://github.com/nodejs/node/pull/31530
+    description: In `recursive` mode, the first created path is returned now.
   - version: v10.12.0
     pr-url: https://github.com/nodejs/node/pull/21875
     description: The second argument can now be an `options` object with
@@ -3061,6 +3068,42 @@ Returns the number of `bytesRead`.
 
 For detailed information, see the documentation of the asynchronous version of
 this API: [`fs.read()`][].
+
+## `fs.readv(fd, buffers[, position], callback)`
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fd` {integer}
+* `buffers` {ArrayBufferView[]}
+* `position` {integer}
+* `callback` {Function}
+  * `err` {Error}
+  * `bytesRead` {integer}
+  * `buffers` {ArrayBufferView[]}
+
+Read from a file specified by `fd` and write to an array of `ArrayBufferView`s
+using `readv()`.
+
+`position` is the offset from the beginning of the file from where data
+should be read. If `typeof position !== 'number'`, the data will be read
+from the current position.
+
+The callback will be given three arguments: `err`, `bytesRead`, and
+`buffers`. `bytesRead` is how many bytes were read from the file.
+
+## `fs.readvSync(fd, buffers[, position])`
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fd` {integer}
+* `buffers` {ArrayBufferView[]}
+* `position` {integer}
+* Returns: {number} The number of bytes read.
+
+For detailed information, see the documentation of the asynchronous version of
+this API: [`fs.readv()`][].
 
 ## `fs.realpath(path[, options], callback)`
 <!-- YAML
@@ -4438,6 +4481,25 @@ If one or more `filehandle.read()` calls are made on a file handle and then a
 position till the end of the file. It doesn't always read from the beginning
 of the file.
 
+#### `filehandle.readv(buffers[, position])`
+<!-- YAML
+added: REPLACEME
+-->
+
+* `buffers` {ArrayBufferView[]}
+* `position` {integer}
+* Returns: {Promise}
+
+Read from a file and write to an array of `ArrayBufferView`s
+
+The `Promise` is resolved with an object containing a `bytesRead` property
+identifying the number of bytes read, and a `buffers` property containing
+a reference to the `buffers` input.
+
+`position` is the offset from the beginning of the file where this data
+should be read from. If `typeof position !== 'number'`, the data will be read
+from the current position.
+
 #### `filehandle.stat([options])`
 <!-- YAML
 added: v10.0.0
@@ -5648,6 +5710,7 @@ the file contents.
 [`fs.readFileSync()`]: #fs_fs_readfilesync_path_options
 [`fs.readdir()`]: #fs_fs_readdir_path_options_callback
 [`fs.readdirSync()`]: #fs_fs_readdirsync_path_options
+[`fs.readv()`]: #fs_fs_readv_fd_buffers_position_callback
 [`fs.realpath()`]: #fs_fs_realpath_path_options_callback
 [`fs.rmdir()`]: #fs_fs_rmdir_path_options_callback
 [`fs.stat()`]: #fs_fs_stat_path_options_callback

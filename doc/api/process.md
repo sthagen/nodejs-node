@@ -1499,7 +1499,10 @@ debugger. See [Signal Events][].
 ## `process.mainModule`
 <!-- YAML
 added: v0.1.17
+deprecated: REPLACEME
 -->
+
+> Stability: 0 - Deprecated: Use [`require.main`][] instead.
 
 * {Object}
 
@@ -1784,7 +1787,7 @@ relied upon to exist.
 <!-- YAML
 added: v11.8.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1797,7 +1800,7 @@ reports for the current process. Additional documentation is available in the
 
 ### `process.report.compact`
 <!-- YAML
-added: REPLACEME
+added: v13.12.0
 -->
 
 * {boolean}
@@ -1814,7 +1817,7 @@ console.log(`Reports are compact? ${process.report.compact}`);
 <!-- YAML
 added: v11.12.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1833,7 +1836,7 @@ console.log(`Report directory is ${process.report.directory}`);
 <!-- YAML
 added: v11.12.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1852,7 +1855,7 @@ console.log(`Report filename is ${process.report.filename}`);
 <!-- YAML
 added: v11.8.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1895,7 +1898,7 @@ console.log(`Report on fatal error: ${process.report.reportOnFatalError}`);
 <!-- YAML
 added: v11.12.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1913,7 +1916,7 @@ console.log(`Report on signal: ${process.report.reportOnSignal}`);
 <!-- YAML
 added: v11.12.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1930,7 +1933,7 @@ console.log(`Report on exception: ${process.report.reportOnUncaughtException}`);
 <!-- YAML
 added: v11.12.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -1948,7 +1951,7 @@ console.log(`Report signal: ${process.report.signal}`);
 <!-- YAML
 added: v11.8.0
 changes:
-  - version: REPLACEME
+  - version: v13.12.0
     pr-url: https://github.com/nodejs/node/pull/32242
     description: This API is no longer considered experimental.
 -->
@@ -2423,7 +2426,15 @@ flag's behavior.
 ## `process.umask([mask])`
 <!-- YAML
 added: v0.1.19
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/32499
+    description: Calling `process.umask()` with no arguments is deprecated.
+
 -->
+
+> Stability: 0 - Deprecated. Calling `process.umask()` with no arguments is
+> deprecated. No alternative is provided.
 
 * `mask` {string|integer}
 

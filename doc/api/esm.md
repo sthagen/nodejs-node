@@ -518,7 +518,7 @@ would be usable by any version of Node.js, since `import` can refer to CommonJS
 files; but it would not provide any of the advantages of using ES module syntax.
 
 A package could also switch from CommonJS to ES module syntax in a breaking
-change version bump. This has the obvious disadvantage that the newest version
+change version bump. This has the disadvantage that the newest version
 of the package would only be usable in ES module-supporting versions of Node.js.
 
 Every pattern has tradeoffs, but there are two broad approaches that satisfy the
@@ -620,8 +620,8 @@ stateless):
 
 ##### Approach #2: Isolate State
 
-The most straightforward `package.json` would be one that defines the separate
-CommonJS and ES module entry points directly:
+A `package.json` file can define the separate CommonJS and ES module entry
+points directly:
 
 <!-- eslint-skip -->
 ```js
@@ -912,16 +912,13 @@ import packageMain from 'commonjs-package'; // Works
 import { method } from 'commonjs-package'; // Errors
 ```
 
+It is also possible to
+[import an ES or CommonJS module for its side effects only][].
+
 ### `import()` expressions
 
-Dynamic `import()` is supported in both CommonJS and ES modules. It can be used
-to include ES module files from CommonJS code.
-
-```js
-(async () => {
-  await import('./my-app.mjs');
-})();
-```
+[Dynamic `import()`][] is supported in both CommonJS and ES modules. It can be
+used to include ES module files from CommonJS code.
 
 ## CommonJS, JSON, and Native Modules
 
@@ -1188,6 +1185,39 @@ export async function transformSource(source,
 }
 ```
 
+#### <code>getGlobalPreloadCode</code> hook
+
+> Note: The loaders API is being redesigned. This hook may disappear or its
+> signature may change. Do not rely on the API described below.
+
+Sometimes it can be necessary to run some code inside of the same global scope
+that the application will run in. This hook allows to return a string that will
+be ran as sloppy-mode script on startup.
+
+Similar to how CommonJS wrappers work, the code runs in an implicit function
+scope. The only argument is a `require`-like function that can be used to load
+builtins like "fs": `getBuiltin(request: string)`.
+
+If the code needs more advanced `require` features, it will have to construct
+its own `require` using  `module.createRequire()`.
+
+```js
+/**
+ * @returns {string} Code to run before application startup
+ */
+export function getGlobalPreloadCode() {
+  return `\
+globalThis.someInjectedProperty = 42;
+console.log('I just set some globals!');
+
+const { createRequire } = getBuiltin('module');
+
+const require = createRequire(process.cwd + '/<preload>');
+// [...]
+`;
+}
+```
+
 #### <code>dynamicInstantiate</code> hook
 
 > Note: The loaders API is being redesigned. This hook may disappear or its
@@ -1311,7 +1341,7 @@ JavaScript using the [`transformSource` hook][]. Before that hook gets called,
 however, other hooks need to tell Node.js not to throw an error on unknown file
 types; and to tell Node.js how to load this new file type.
 
-This is obviously less performant than transpiling source files before running
+This is less performant than transpiling source files before running
 Node.js; a transpiler loader should only be used for development and testing
 purposes.
 
@@ -1605,7 +1635,7 @@ The resolver can throw the following errors:
 >    1. If _exports_ contains any index property keys, as defined in ECMA-262
 >       [6.1.7 Array Index][], throw an _Invalid Package Configuration_ error.
 >    1. For each property _p_ of _target_, in object insertion order as,
->       1. If _env_ contains an entry for _p_, then
+>       1. If _p_ equals _"default"_ or _env_ contains an entry for _p_, then
 >          1. Let _targetValue_ be the value of the _p_ property in _target_.
 >          1. Return the result of **PACKAGE_EXPORTS_TARGET_RESOLVE**(
 >             _packageURL_, _targetValue_, _subpath_, _env_), continuing the
@@ -1683,6 +1713,7 @@ success!
 [Babel]: https://babeljs.io/
 [CommonJS]: modules.html
 [Conditional Exports]: #esm_conditional_exports
+[Dynamic `import()`]: https://wiki.developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports
 [ECMAScript-modules implementation]: https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md
 [ES Module Integration Proposal for Web Assembly]: https://github.com/webassembly/esm-integration
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
@@ -1692,13 +1723,14 @@ success!
 [`esm`]: https://github.com/standard-things/esm#readme
 [`export`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export
 [`getFormat` hook]: #esm_code_getformat_code_hook
-[`import()`]: #esm_import-expressions
+[`import()`]: #esm_import_expressions
 [`import.meta.url`]: #esm_import_meta
 [`import`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
 [`module.createRequire()`]: modules.html#modules_module_createrequire_filename
 [`module.syncBuiltinESMExports()`]: modules.html#modules_module_syncbuiltinesmexports
 [`transformSource` hook]: #esm_code_transformsource_code_hook
 [dynamic instantiate hook]: #esm_code_dynamicinstantiate_code_hook
+[import an ES or CommonJS module for its side effects only]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Import_a_module_for_its_side_effects_only
 [special scheme]: https://url.spec.whatwg.org/#special-scheme
 [the official standard format]: https://tc39.github.io/ecma262/#sec-modules
 [the dual CommonJS/ES module packages section]: #esm_dual_commonjs_es_module_packages

@@ -37,8 +37,8 @@
 
 This document explains how Collaborators manage the Node.js project.
 Collaborators should understand the
-[guidelines for new contributors](CONTRIBUTING.md) and the
-[project governance model](GOVERNANCE.md).
+[guidelines for new contributors](../../CONTRIBUTING.md) and the
+[project governance model](../../GOVERNANCE.md).
 
 ## Issues and Pull Requests
 
@@ -50,7 +50,7 @@ request. See [Who to CC in the issue tracker](#who-to-cc-in-the-issue-tracker).
 
 Always show courtesy to individuals submitting issues and pull requests. Be
 welcoming to first-time contributors, identified by the GitHub
-![First-time contributor](./doc/first_timer_badge.png) badge.
+![First-time contributor](../first_timer_badge.png) badge.
 
 For first-time contributors, check if the commit author is the same as the pull
 request author. This way, once their pull request lands, GitHub will show them
@@ -175,14 +175,7 @@ fail before the change, and pass after the change.
 
 All pull requests must pass continuous integration tests. Code changes must pass
 on [project CI server](https://ci.nodejs.org/). Pull requests that only change
-documentation and comments can use Travis CI results.
-
-Travis CI jobs have a fixed running time limit that building Node.js sometimes
-exceeds. If the `Compile Node.js` Travis CI job has timed out it will fail after
-around 45 minutes. The exit code will be 143, indicating that a `SIGTERM` signal
-terminated the `make` command. When this happens, restart the timed out job. It
-will reuse built artifacts from the previous timed-out run, and thus take less
-time to complete.
+documentation and comments can use GitHub Actions results.
 
 Do not land any pull requests without passing (green or yellow) CI runs. If
 there are CI failures unrelated to the change in the pull request, try "Resume
@@ -481,7 +474,7 @@ $ git checkout master
 ```
 
 Update the tree (assumes your repo is set up as detailed in
-[CONTRIBUTING.md](./doc/guides/contributing/pull-requests.md#step-1-fork)):
+[CONTRIBUTING.md](./contributing/pull-requests.md#step-1-fork)):
 
 ```text
 $ git fetch upstream

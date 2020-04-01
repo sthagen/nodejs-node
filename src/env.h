@@ -411,6 +411,7 @@ constexpr size_t kFsStatsBufferLength =
   V(http2settings_constructor_template, v8::ObjectTemplate)                    \
   V(http2stream_constructor_template, v8::ObjectTemplate)                      \
   V(http2ping_constructor_template, v8::ObjectTemplate)                        \
+  V(i18n_converter_template, v8::ObjectTemplate)                               \
   V(libuv_stream_wrap_ctor_template, v8::FunctionTemplate)                     \
   V(message_port_constructor_template, v8::FunctionTemplate)                   \
   V(pipe_constructor_template, v8::FunctionTemplate)                           \
@@ -503,7 +504,7 @@ class IsolateData : public MemoryRetainer {
 #define VY(PropertyName, StringValue) V(v8::Symbol, PropertyName)
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
-  inline v8::Local<TypeName> PropertyName(v8::Isolate* isolate) const;
+  inline v8::Local<TypeName> PropertyName() const;
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)
@@ -1064,6 +1065,8 @@ class Environment : public MemoryRetainer {
 
   inline bool filehandle_close_warning() const;
   inline void set_filehandle_close_warning(bool on);
+  inline bool emit_insecure_umask_warning() const;
+  inline void set_emit_insecure_umask_warning(bool on);
 
   inline void ThrowError(const char* errmsg);
   inline void ThrowTypeError(const char* errmsg);
@@ -1284,6 +1287,7 @@ class Environment : public MemoryRetainer {
   bool emit_env_nonstring_warning_ = true;
   bool emit_err_name_warning_ = true;
   bool emit_filehandle_warning_ = true;
+  bool emit_insecure_umask_warning_ = true;
   size_t async_callback_scope_depth_ = 0;
   std::vector<double> destroy_async_id_list_;
 

@@ -7,7 +7,8 @@ const {
   Readable,
   Transform,
   pipeline,
-  PassThrough
+  PassThrough,
+  Duplex
 } = require('stream');
 const assert = require('assert');
 const http = require('http');
@@ -1047,4 +1048,73 @@ const { promisify } = require('util');
     assert.strictEqual(src.destroyed, false);
   }));
   src.push(null);
+}
+
+{
+  const src = new PassThrough();
+  const dst = pipeline(
+    src,
+    async function * (source) {
+      for await (const chunk of source) {
+        yield chunk;
+      }
+    },
+    common.mustCall((err) => {
+      assert.strictEqual(err.code, 'ERR_STREAM_PREMATURE_CLOSE');
+    })
+  );
+  src.push('asd');
+  dst.destroy();
+}
+
+{
+  pipeline(async function * () {
+    yield 'asd';
+  }, async function * (source) {
+    for await (const chunk of source) {
+      yield { chunk };
+    }
+  }, common.mustCall((err) => {
+    assert.ifError(err);
+  }));
+}
+
+{
+  let closed = false;
+  const src = new Readable({
+    read() {},
+    destroy(err, cb) {
+      process.nextTick(cb);
+    }
+  });
+  const dst = new Writable({
+    write(chunk, encoding, callback) {
+      callback();
+    }
+  });
+  src.on('close', () => {
+    closed = true;
+  });
+  src.push(null);
+  pipeline(src, dst, common.mustCall((err) => {
+    assert.strictEqual(closed, true);
+  }));
+}
+
+{
+  let closed = false;
+  const src = new Readable({
+    read() {},
+    destroy(err, cb) {
+      process.nextTick(cb);
+    }
+  });
+  const dst = new Duplex({});
+  src.on('close', common.mustCall(() => {
+    closed = true;
+  }));
+  src.push(null);
+  pipeline(src, dst, common.mustCall((err) => {
+    assert.strictEqual(closed, true);
+  }));
 }
