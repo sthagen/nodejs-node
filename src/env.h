@@ -64,7 +64,7 @@ class FileHandleReadWrap;
 }
 
 namespace performance {
-class performance_state;
+class PerformanceState;
 }
 
 namespace tracing {
@@ -512,6 +512,7 @@ class IsolateData : public MemoryRetainer {
 #undef VY
 #undef VS
 #undef VP
+  inline v8::Local<v8::String> async_wrap_provider(int index) const;
 
   std::unordered_map<const char*, v8::Eternal<v8::String>> http_static_strs;
   inline v8::Isolate* isolate() const;
@@ -536,6 +537,9 @@ class IsolateData : public MemoryRetainer {
 #undef VY
 #undef VS
 #undef VP
+  // Keep a list of all Persistent strings used for AsyncWrap Provider types.
+  std::array<v8::Eternal<v8::String>, AsyncWrap::PROVIDERS_LENGTH>
+      async_wrap_providers_;
 
   v8::Isolate* const isolate_;
   uv_loop_t* const event_loop_;
@@ -694,8 +698,6 @@ class AsyncHooks : public MemoryRetainer {
  private:
   friend class Environment;  // So we can call the constructor.
   inline AsyncHooks();
-  // Keep a list of all Persistent strings used for Provider types.
-  std::array<v8::Eternal<v8::String>, AsyncWrap::PROVIDERS_LENGTH> providers_;
   // Stores the ids of the current execution context stack.
   AliasedFloat64Array async_ids_stack_;
   // Attached to a Uint32Array that tracks the number of active hooks for
@@ -1016,7 +1018,7 @@ class Environment : public MemoryRetainer {
   inline std::vector<std::unique_ptr<fs::FileHandleReadWrap>>&
       file_handle_read_wrap_freelist();
 
-  inline performance::performance_state* performance_state();
+  inline performance::PerformanceState* performance_state();
   inline std::unordered_map<std::string, uint64_t>* performance_marks();
 
   void CollectUVExceptionInfo(v8::Local<v8::Value> context,
@@ -1257,6 +1259,8 @@ class Environment : public MemoryRetainer {
 #endif  // HAVE_INSPECTOR
 
   inline void set_main_utf16(std::unique_ptr<v8::String::Value>);
+  inline void set_process_exit_handler(
+      std::function<void(Environment*, int)>&& handler);
 
  private:
   template <typename Fn>
@@ -1328,7 +1332,7 @@ class Environment : public MemoryRetainer {
 
   AliasedInt32Array stream_base_state_;
 
-  std::unique_ptr<performance::performance_state> performance_state_;
+  std::unique_ptr<performance::PerformanceState> performance_state_;
   std::unordered_map<std::string, uint64_t> performance_marks_;
 
   bool has_run_bootstrapping_code_ = false;
@@ -1458,6 +1462,9 @@ class Environment : public MemoryRetainer {
 
   int64_t base_object_count_ = 0;
   std::atomic_bool is_stopping_ { false };
+
+  std::function<void(Environment*, int)> process_exit_handler_ {
+      DefaultProcessExitHandler };
 
   template <typename T>
   void ForEachBaseObject(T&& iterator);

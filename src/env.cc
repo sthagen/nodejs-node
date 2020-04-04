@@ -76,6 +76,8 @@ std::vector<size_t> IsolateData::Serialize(SnapshotCreator* creator) {
 #undef VY
 #undef VS
 #undef VP
+  for (size_t i = 0; i < AsyncWrap::PROVIDERS_LENGTH; i++)
+    indexes.push_back(creator->AddData(async_wrap_provider(i)));
 
   return indexes;
 }
@@ -103,6 +105,15 @@ void IsolateData::DeserializeProperties(const std::vector<size_t>* indexes) {
 #undef VY
 #undef VS
 #undef VP
+
+  for (size_t j = 0; j < AsyncWrap::PROVIDERS_LENGTH; j++) {
+    MaybeLocal<String> field =
+        isolate_->GetDataFromSnapshotOnce<String>((*indexes)[i++]);
+    if (field.IsEmpty()) {
+      fprintf(stderr, "Failed to deserialize AsyncWrap provider %zu\n", j);
+    }
+    async_wrap_providers_[j].Set(isolate_, field.ToLocalChecked());
+  }
 }
 
 void IsolateData::CreateProperties() {
@@ -153,6 +164,20 @@ void IsolateData::CreateProperties() {
           .ToLocalChecked());
   PER_ISOLATE_STRING_PROPERTIES(V)
 #undef V
+
+  // Create all the provider strings that will be passed to JS. Place them in
+  // an array so the array index matches the PROVIDER id offset. This way the
+  // strings can be retrieved quickly.
+#define V(Provider)                                                           \
+  async_wrap_providers_[AsyncWrap::PROVIDER_ ## Provider].Set(                \
+      isolate_,                                                               \
+      v8::String::NewFromOneByte(                                             \
+        isolate_,                                                             \
+        reinterpret_cast<const uint8_t*>(#Provider),                          \
+        v8::NewStringType::kInternalized,                                     \
+        sizeof(#Provider) - 1).ToLocalChecked());
+  NODE_ASYNC_PROVIDER_TYPES(V)
+#undef V
 }
 
 IsolateData::IsolateData(Isolate* isolate,
@@ -190,6 +215,8 @@ void IsolateData::MemoryInfo(MemoryTracker* tracker) const {
   PER_ISOLATE_STRING_PROPERTIES(V)
 #undef V
 
+  tracker->TrackField("async_wrap_providers", async_wrap_providers_);
+
   if (node_allocator_ != nullptr) {
     tracker->TrackFieldWithSize(
         "node_allocator", sizeof(*node_allocator_), "NodeArrayBufferAllocator");
@@ -207,7 +234,7 @@ void InitThreadLocalOnce() {
 }
 
 void TrackingTraceStateObserver::UpdateTraceCategoryState() {
-  if (!env_->owns_process_state()) {
+  if (!env_->owns_process_state() || !env_->can_call_into_js()) {
     // Ideally, we’d have a consistent story that treats all threads/Environment
     // instances equally here. However, tracing is essentially global, and this
     // callback is called from whichever thread calls `StartTracing()` or
@@ -228,8 +255,7 @@ void TrackingTraceStateObserver::UpdateTraceCategoryState() {
   TryCatchScope try_catch(env_);
   try_catch.SetVerbose(true);
   Local<Value> args[] = {Boolean::New(isolate, async_hooks_enabled)};
-  cb->Call(env_->context(), Undefined(isolate), arraysize(args), args)
-      .ToLocalChecked();
+  USE(cb->Call(env_->context(), Undefined(isolate), arraysize(args), args));
 }
 
 void Environment::CreateProperties() {
@@ -356,7 +382,7 @@ Environment::Environment(IsolateData* isolate_data,
       this);
 
   performance_state_ =
-      std::make_unique<performance::performance_state>(isolate());
+      std::make_unique<performance::PerformanceState>(isolate());
   performance_state_->Mark(
       performance::NODE_PERFORMANCE_MILESTONE_ENVIRONMENT);
   performance_state_->Mark(performance::NODE_PERFORMANCE_MILESTONE_NODE_START,
@@ -951,7 +977,6 @@ void TickInfo::MemoryInfo(MemoryTracker* tracker) const {
 }
 
 void AsyncHooks::MemoryInfo(MemoryTracker* tracker) const {
-  tracker->TrackField("providers", providers_);
   tracker->TrackField("async_ids_stack", async_ids_stack_);
   tracker->TrackField("fields", fields_);
   tracker->TrackField("async_id_fields", async_id_fields_);
@@ -985,16 +1010,12 @@ void Environment::Exit(int exit_code) {
                     StackTrace::CurrentStackTrace(
                         isolate(), stack_trace_limit(), StackTrace::kDetailed));
   }
-  if (is_main_thread()) {
-    stop_sub_worker_contexts();
-    DisposePlatform();
-    exit(exit_code);
-  } else {
-    worker_context()->Exit(exit_code);
-  }
+  process_exit_handler_(this, exit_code);
 }
 
 void Environment::stop_sub_worker_contexts() {
+  DCHECK_EQ(Isolate::GetCurrent(), isolate());
+
   while (!sub_worker_contexts_.empty()) {
     Worker* w = *sub_worker_contexts_.begin();
     remove_sub_worker_context(w);

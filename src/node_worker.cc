@@ -135,10 +135,10 @@ class WorkerThreadData {
       uv_err_name_r(ret, err_buf, sizeof(err_buf));
       w->custom_error_ = "ERR_WORKER_INIT_FAILED";
       w->custom_error_str_ = err_buf;
-      w->loop_init_failed_ = true;
       w->stopped_ = true;
       return;
     }
+    loop_init_failed_ = false;
 
     std::shared_ptr<ArrayBufferAllocator> allocator =
         ArrayBufferAllocator::Create();
@@ -194,6 +194,7 @@ class WorkerThreadData {
     }
 
     if (isolate != nullptr) {
+      CHECK(!loop_init_failed_);
       bool platform_finished = false;
 
       isolate_data_.reset();
@@ -212,18 +213,20 @@ class WorkerThreadData {
 
       // Wait until the platform has cleaned up all relevant resources.
       while (!platform_finished) {
-        CHECK(!w_->loop_init_failed_);
         uv_run(&loop_, UV_RUN_ONCE);
       }
     }
-    if (!w_->loop_init_failed_) {
+    if (!loop_init_failed_) {
       CheckedUvLoopClose(&loop_);
     }
   }
 
+  bool loop_is_usable() const { return !loop_init_failed_; }
+
  private:
   Worker* const w_;
   uv_loop_t loop_;
+  bool loop_init_failed_ = true;
   DeleteFnPtr<IsolateData, FreeIsolateData> isolate_data_;
 
   friend class Worker;
@@ -253,7 +256,7 @@ void Worker::Run() {
 
   WorkerThreadData data(this);
   if (isolate_ == nullptr) return;
-  CHECK(!data.w_->loop_init_failed_);
+  CHECK(data.loop_is_usable());
 
   Debug(this, "Starting worker with id %llu", thread_id_.id);
   {
@@ -311,6 +314,9 @@ void Worker::Run() {
         if (is_stopped()) return;
         CHECK_NOT_NULL(env_);
         env_->set_env_vars(std::move(env_vars_));
+        SetProcessExitHandler(env_.get(), [this](Environment*, int exit_code) {
+          Exit(exit_code);
+        });
       }
       {
         Mutex::ScopedLock lock(mutex_);
@@ -420,9 +426,10 @@ void Worker::JoinThread() {
     MakeCallback(env()->onexit_string(), arraysize(args), args);
   }
 
-  // We cleared all libuv handles bound to this Worker above,
-  // the C++ object is no longer needed for anything now.
-  MakeWeak();
+  // If we get here, the !thread_joined_ condition at the top of the function
+  // implies that the thread was running. In that case, its final action will
+  // be to schedule a callback on the parent thread which will delete this
+  // object, so there's nothing more to do here.
 }
 
 Worker::~Worker() {
@@ -588,16 +595,7 @@ void Worker::StartThread(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&w, args.This());
   Mutex::ScopedLock lock(w->mutex_);
 
-  // The object now owns the created thread and should not be garbage collected
-  // until that finishes.
-  w->ClearWeak();
-
-  w->env()->add_sub_worker_context(w);
   w->stopped_ = false;
-  w->thread_joined_ = false;
-
-  if (w->has_ref_)
-    w->env()->add_refs(1);
 
   uv_thread_options_t thread_options;
   thread_options.flags = UV_THREAD_HAS_STACK_SIZE;
@@ -624,21 +622,27 @@ void Worker::StartThread(const FunctionCallbackInfo<Value>& args) {
           // implicitly delete w
         });
   }, static_cast<void*>(w));
-  if (ret != 0) {
+
+  if (ret == 0) {
+    // The object now owns the created thread and should not be garbage
+    // collected until that finishes.
+    w->ClearWeak();
+    w->thread_joined_ = false;
+
+    if (w->has_ref_)
+      w->env()->add_refs(1);
+
+    w->env()->add_sub_worker_context(w);
+  } else {
+    w->stopped_ = true;
+
     char err_buf[128];
     uv_err_name_r(ret, err_buf, sizeof(err_buf));
-    w->custom_error_ = "ERR_WORKER_INIT_FAILED";
-    w->custom_error_str_ = err_buf;
-    w->loop_init_failed_ = true;
-    w->thread_joined_ = true;
-    w->stopped_ = true;
-    w->env()->remove_sub_worker_context(w);
     {
       Isolate* isolate = w->env()->isolate();
       HandleScope handle_scope(isolate);
       THROW_ERR_WORKER_INIT_FAILED(isolate, err_buf);
     }
-    w->MakeWeak();
   }
 }
 
