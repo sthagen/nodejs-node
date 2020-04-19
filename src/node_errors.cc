@@ -375,8 +375,13 @@ static void ReportFatalException(Environment* env,
     }
 
     if (!env->options()->trace_uncaught) {
-      FPrintF(stderr, "(Use `node --trace-uncaught ...` to show "
-                      "where the exception was thrown)\n");
+      std::string argv0;
+      if (!env->argv().empty()) argv0 = env->argv()[0];
+      if (argv0.empty()) argv0 = "node";
+      FPrintF(stderr,
+              "(Use `%s --trace-uncaught ...` to show where the exception "
+              "was thrown)\n",
+              fs::Basename(argv0, ".exe"));
     }
   }
 
@@ -406,7 +411,13 @@ void OnFatalError(const char* location, const char* message) {
 
   Isolate* isolate = Isolate::GetCurrent();
   Environment* env = Environment::GetCurrent(isolate);
-  if (per_process::cli_options->report_on_fatalerror) {
+  bool report_on_fatalerror;
+  {
+    Mutex::ScopedLock lock(node::per_process::cli_options_mutex);
+    report_on_fatalerror = per_process::cli_options->report_on_fatalerror;
+  }
+
+  if (report_on_fatalerror) {
     report::TriggerNodeReport(
         isolate, env, message, "FatalError", "", Local<String>());
   }

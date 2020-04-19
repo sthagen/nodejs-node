@@ -16,7 +16,6 @@ using node::kAllowedInEnvironment;
 using node::kDisallowedInEnvironment;
 using v8::Array;
 using v8::ArrayBuffer;
-using v8::BackingStore;
 using v8::Boolean;
 using v8::Context;
 using v8::Float64Array;
@@ -27,7 +26,6 @@ using v8::Integer;
 using v8::Isolate;
 using v8::Local;
 using v8::Locker;
-using v8::Maybe;
 using v8::MaybeLocal;
 using v8::Null;
 using v8::Number;
@@ -310,7 +308,8 @@ void Worker::Run() {
             std::move(argv_),
             std::move(exec_argv_),
             EnvironmentFlags::kNoFlags,
-            thread_id_));
+            thread_id_,
+            std::move(inspector_parent_handle_)));
         if (is_stopped()) return;
         CHECK_NOT_NULL(env_);
         env_->set_env_vars(std::move(env_vars_));
@@ -328,12 +327,8 @@ void Worker::Run() {
       {
         CreateEnvMessagePort(env_.get());
         Debug(this, "Created message port for worker %llu", thread_id_.id);
-        if (LoadEnvironment(env_.get(),
-                            StartExecutionCallback{},
-                            std::move(inspector_parent_handle_))
-                .IsEmpty()) {
+        if (LoadEnvironment(env_.get(), StartExecutionCallback{}).IsEmpty())
           return;
-        }
 
         Debug(this, "Loaded environment for worker %llu", thread_id_.id);
       }

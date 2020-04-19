@@ -1488,6 +1488,7 @@ added: v8.0.0
 -->
 
 * `error` {Error}
+* Returns: {this}
 
 Destroy the stream, and optionally emit an `'error'` event. After this call, the
 transform stream would release any internal resources.
@@ -1670,7 +1671,9 @@ failure, this can cause event listener leaks and swallowed errors.
 
 ### `stream.Readable.from(iterable, [options])`
 <!-- YAML
-added: v12.3.0
+added:
+  - v12.3.0
+  - v10.17.0
 -->
 
 * `iterable` {Iterable} Object implementing the `Symbol.asyncIterator` or

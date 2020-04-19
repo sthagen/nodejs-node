@@ -441,7 +441,7 @@ disappear in a non-semver-major release.
 <!-- YAML
 added: v11.6.0
 changes:
-  - version: REPLACEME
+  - version: v13.13.0
     pr-url: https://github.com/nodejs/node/pull/32520
     description: Change maximum default size of HTTP headers from 8KB to 16KB.
 -->
@@ -648,13 +648,14 @@ Name of the file to which the report will be written.
 <!-- YAML
 added: v11.8.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/32496
+    description: This option is no longer considered experimental.
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/27312
     description: changed from `--diagnostic-report-on-fatalerror` to
                  `--report-on-fatalerror`
 -->
-
-> Stability: 1 - Experimental
 
 Enables the report to be triggered on fatal errors (internal errors within
 the Node.js runtime such as out of memory) that lead to termination of the
@@ -1418,6 +1419,30 @@ mitigate this issue, one potential solution is to increase the size of libuv's
 threadpool by setting the `'UV_THREADPOOL_SIZE'` environment variable to a value
 greater than `4` (its current default value). For more information, see the
 [libuv threadpool documentation][].
+
+## Useful V8 options
+
+V8 has its own set of CLI options. Any V8 CLI option that is provided to `node`
+will be passed on to V8 to handle. V8's options have _no stability guarantee_.
+The V8 team themselves don't consider them to be part of their formal API,
+and reserve the right to change them at any time. Likewise, they are not
+covered by the Node.js stability guarantees. Many of the V8
+options are of interest only to V8 developers. Despite this, there is a small
+set of V8 options that are widely applicable to Node.js, and they are
+documented here:
+
+### `--max-old-space-size=SIZE` (in Mbytes)
+
+Sets the max memory size of V8's old memory section. As memory
+consumption approaches the limit, V8 will spend more time on
+garbage collection in an effort to free unused memory.
+
+On a machine with 2GB of memory, consider setting this to
+1536 (1.5GB) to leave some memory for other uses and avoid swapping.
+
+```console
+$ node --max-old-space-size=1536 index.js
+```
 
 [`--openssl-config`]: #cli_openssl_config_file
 [`Buffer`]: buffer.html#buffer_class_buffer

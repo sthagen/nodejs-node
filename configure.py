@@ -635,6 +635,12 @@ parser.add_option('--v8-non-optimized-debug',
     default=False,
     help='compile V8 with minimal optimizations and with runtime checks')
 
+parser.add_option('--v8-with-dchecks',
+    action='store_true',
+    dest='v8_with_dchecks',
+    default=False,
+    help='compile V8 with debug checks and runtime debugging features enabled')
+
 parser.add_option('--node-builtin-modules-path',
     action='store',
     dest='node_builtin_modules_path',
@@ -826,13 +832,19 @@ def check_compiler(o):
     return
 
   ok, is_clang, clang_version, gcc_version = try_check_compiler(CXX, 'c++')
+  version_str = ".".join(map(str, clang_version if is_clang else gcc_version))
+  print_verbose('Detected %sC++ compiler (CXX=%s) version: %s' %
+                ('clang ' if is_clang else '', CXX, version_str))
   if not ok:
     warn('failed to autodetect C++ compiler version (CXX=%s)' % CXX)
   elif clang_version < (8, 0, 0) if is_clang else gcc_version < (6, 3, 0):
     warn('C++ compiler (CXX=%s, %s) too old, need g++ 6.3.0 or clang++ 8.0.0' %
-      (CXX, ".".join(map(str, clang_version if is_clang else gcc_version))))
+         (CXX, version_str))
 
   ok, is_clang, clang_version, gcc_version = try_check_compiler(CC, 'c')
+  version_str = ".".join(map(str, clang_version if is_clang else gcc_version))
+  print_verbose('Detected %sC compiler (CC=%s) version: %s' %
+                ('clang ' if is_clang else '', CC, version_str))
   if not ok:
     warn('failed to autodetect C compiler version (CC=%s)' % CC)
   elif not is_clang and gcc_version < (4, 2, 0):
@@ -840,7 +852,7 @@ def check_compiler(o):
     # do for the C bits.  However, we might as well encourage people to upgrade
     # to a version that is not completely ancient.
     warn('C compiler (CC=%s, %s) too old, need gcc 4.2 or clang 3.2' %
-      (CC, ".".join(map(str, gcc_version))))
+         (CC, version_str))
 
   o['variables']['llvm_version'] = get_llvm_version(CC) if is_clang else '0.0'
 
@@ -1229,6 +1241,7 @@ def configure_v8(o):
   o['variables']['v8_enable_gdbjit'] = 1 if options.gdb else 0
   o['variables']['v8_no_strict_aliasing'] = 1  # Work around compiler bugs.
   o['variables']['v8_optimized_debug'] = 0 if options.v8_non_optimized_debug else 1
+  o['variables']['dcheck_always_on'] = 1 if options.v8_with_dchecks else 0
   o['variables']['v8_random_seed'] = 0  # Use a random seed for hash tables.
   o['variables']['v8_promise_internal_field_count'] = 1 # Add internal field to promises for async hooks.
   o['variables']['v8_use_siphash'] = 0 if options.without_siphash else 1

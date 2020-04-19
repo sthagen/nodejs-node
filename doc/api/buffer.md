@@ -379,9 +379,10 @@ A `TypeError` will be thrown if `size` is not a number.
 
 The `Buffer` module pre-allocates an internal `Buffer` instance of
 size [`Buffer.poolSize`][] that is used as a pool for the fast allocation of new
-`Buffer` instances created using [`Buffer.allocUnsafe()`][] and the deprecated
-`new Buffer(size)` constructor only when `size` is less than or equal to
-`Buffer.poolSize >> 1` (floor of [`Buffer.poolSize`][] divided by two).
+`Buffer` instances created using [`Buffer.allocUnsafe()`][],
+[`Buffer.from(array)`][], and the deprecated `new Buffer(size)` constructor only
+when `size` is less than or equal to `Buffer.poolSize >> 1` (floor of
+[`Buffer.poolSize`][] divided by two).
 
 Use of this pre-allocated internal memory pool is a key difference between
 calling `Buffer.alloc(size, fill)` vs. `Buffer.allocUnsafe(size).fill(fill)`.
@@ -570,6 +571,9 @@ const buf = Buffer.from([0x62, 0x75, 0x66, 0x66, 0x65, 0x72]);
 
 A `TypeError` will be thrown if `array` is not an `Array` or other type
 appropriate for `Buffer.from()` variants.
+
+`Buffer.from(array)` and [`Buffer.from(string)`][] may also use the internal
+`Buffer` pool like [`Buffer.allocUnsafe()`][] does.
 
 ### Class Method: `Buffer.from(arrayBuffer[, byteOffset[, length]])`
 <!-- YAML
@@ -1994,8 +1998,8 @@ added: v0.1.90
 * `string` {string} String to write to `buf`.
 * `offset` {integer} Number of bytes to skip before starting to write `string`.
   **Default:** `0`.
-* `length` {integer} Maximum number of bytes to write. **Default:**
-  `buf.length - offset`.
+* `length` {integer} Maximum number of bytes to write (written bytes will not
+  exceed `buf.length - offset`). **Default:** `buf.length - offset`.
 * `encoding` {string} The character encoding of `string`. **Default:** `'utf8'`.
 * Returns: {integer} Number of bytes written.
 
@@ -2011,6 +2015,13 @@ const len = buf.write('\u00bd + \u00bc = \u00be', 0);
 
 console.log(`${len} bytes: ${buf.toString('utf8', 0, len)}`);
 // Prints: 12 bytes: ½ + ¼ = ¾
+
+const buffer = Buffer.alloc(10);
+
+const length = buffer.write('abcd', 8);
+
+console.log(`${length} bytes: ${buffer.toString('utf8', 8, 10)}`);
+// Prints: 2 bytes : ab
 ```
 
 ### `buf.writeBigInt64BE(value[, offset])`
@@ -2726,10 +2737,11 @@ to one of these new APIs.*
   uninitialized, the allocated segment of memory might contain old data that is
   potentially sensitive.
 
-`Buffer` instances returned by [`Buffer.allocUnsafe()`][] *may* be allocated off
-a shared internal memory pool if `size` is less than or equal to half
-[`Buffer.poolSize`][]. Instances returned by [`Buffer.allocUnsafeSlow()`][]
-*never* use the shared internal memory pool.
+`Buffer` instances returned by [`Buffer.allocUnsafe()`][] and
+[`Buffer.from(array)`][] *may* be allocated off a shared internal memory pool
+if `size` is less than or equal to half [`Buffer.poolSize`][]. Instances
+returned by [`Buffer.allocUnsafeSlow()`][] *never* use the shared internal
+memory pool.
 
 ### The `--zero-fill-buffers` command line option
 <!-- YAML

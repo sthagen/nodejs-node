@@ -33,7 +33,6 @@
 #include "handle_wrap.h"
 #include "node.h"
 #include "node_binding.h"
-#include "node_http2_state.h"
 #include "node_main_instance.h"
 #include "node_options.h"
 #include "req_wrap.h"
@@ -50,17 +49,11 @@
 #include <unordered_set>
 #include <vector>
 
-struct nghttp2_rcbuf;
-
 namespace node {
 
 namespace contextify {
 class ContextifyScript;
 class CompiledFnEntry;
-}
-
-namespace fs {
-class FileHandleReadWrap;
 }
 
 namespace performance {
@@ -436,6 +429,7 @@ constexpr size_t kFsStatsBufferLength =
   V(async_hooks_promise_resolve_function, v8::Function)                        \
   V(buffer_prototype_object, v8::Object)                                       \
   V(crypto_key_object_constructor, v8::Function)                               \
+  V(current_callback_data, v8::Object)                                         \
   V(domain_callback, v8::Function)                                             \
   V(domexception_function, v8::Function)                                       \
   V(enhance_fatal_stack_after_inspector, v8::Function)                         \
@@ -514,7 +508,8 @@ class IsolateData : public MemoryRetainer {
 #undef VP
   inline v8::Local<v8::String> async_wrap_provider(int index) const;
 
-  std::unordered_map<const char*, v8::Eternal<v8::String>> http_static_strs;
+  std::unordered_map<const char*, v8::Eternal<v8::String>> static_str_map;
+
   inline v8::Isolate* isolate() const;
   IsolateData(const IsolateData&) = delete;
   IsolateData& operator=(const IsolateData&) = delete;
@@ -871,6 +866,24 @@ class Environment : public MemoryRetainer {
 
   static inline Environment* GetFromCallbackData(v8::Local<v8::Value> val);
 
+  // Methods created using SetMethod(), SetPrototypeMethod(), etc. inside
+  // this scope can access the created T* object using
+  // Unwrap<T>(args.Data()) later.
+  template <typename T>
+  struct BindingScope {
+    explicit inline BindingScope(Environment* env);
+    inline ~BindingScope();
+
+    T* data = nullptr;
+    Environment* env;
+
+    inline operator bool() const { return data != nullptr; }
+    inline bool operator !() const { return data == nullptr; }
+  };
+
+  template <typename T>
+  inline v8::MaybeLocal<v8::Object> MakeBindingCallbackData();
+
   static uv_key_t thread_local_env;
   static inline Environment* GetThreadLocalEnv();
 
@@ -990,33 +1003,7 @@ class Environment : public MemoryRetainer {
   inline uint32_t get_next_script_id();
   inline uint32_t get_next_function_id();
 
-  inline double* heap_statistics_buffer() const;
-  inline void set_heap_statistics_buffer(
-      std::shared_ptr<v8::BackingStore> backing_store);
-
-  inline double* heap_space_statistics_buffer() const;
-  inline void set_heap_space_statistics_buffer(
-      std::shared_ptr<v8::BackingStore> backing_store);
-
-  inline double* heap_code_statistics_buffer() const;
-  inline void set_heap_code_statistics_buffer(
-      std::shared_ptr<v8::BackingStore> backing_store);
-
-  inline char* http_parser_buffer() const;
-  inline void set_http_parser_buffer(char* buffer);
-  inline bool http_parser_buffer_in_use() const;
-  inline void set_http_parser_buffer_in_use(bool in_use);
-
-  inline http2::Http2State* http2_state() const;
-  inline void set_http2_state(std::unique_ptr<http2::Http2State> state);
-
   EnabledDebugList* enabled_debug_list() { return &enabled_debug_list_; }
-
-  inline AliasedFloat64Array* fs_stats_field_array();
-  inline AliasedBigUint64Array* fs_stats_field_bigint_array();
-
-  inline std::vector<std::unique_ptr<fs::FileHandleReadWrap>>&
-      file_handle_read_wrap_freelist();
 
   inline performance::PerformanceState* performance_state();
   inline std::unordered_map<std::string, uint64_t>* performance_marks();
@@ -1262,6 +1249,9 @@ class Environment : public MemoryRetainer {
   inline void set_process_exit_handler(
       std::function<void(Environment*, int)>&& handler);
 
+  void RunAndClearNativeImmediates(bool only_refed = false);
+  void RunAndClearInterrupts();
+
  private:
   template <typename Fn>
   inline void CreateImmediate(Fn&& cb, bool ref);
@@ -1366,20 +1356,7 @@ class Environment : public MemoryRetainer {
   int handle_cleanup_waiting_ = 0;
   int request_waiting_ = 0;
 
-  std::shared_ptr<v8::BackingStore> heap_statistics_buffer_;
-  std::shared_ptr<v8::BackingStore> heap_space_statistics_buffer_;
-  std::shared_ptr<v8::BackingStore> heap_code_statistics_buffer_;
-
-  char* http_parser_buffer_ = nullptr;
-  bool http_parser_buffer_in_use_ = false;
-  std::unique_ptr<http2::Http2State> http2_state_;
-
   EnabledDebugList enabled_debug_list_;
-  AliasedFloat64Array fs_stats_field_array_;
-  AliasedBigUint64Array fs_stats_field_bigint_array_;
-
-  std::vector<std::unique_ptr<fs::FileHandleReadWrap>>
-      file_handle_read_wrap_freelist_;
 
   std::list<node_module> extra_linked_bindings_;
   Mutex extra_linked_bindings_mutex_;
@@ -1447,9 +1424,7 @@ class Environment : public MemoryRetainer {
   // yet or already have been destroyed.
   bool task_queues_async_initialized_ = false;
 
-  void RunAndClearNativeImmediates(bool only_refed = false);
-  void RunAndClearInterrupts();
-  Environment** interrupt_data_ = nullptr;
+  std::atomic<Environment**> interrupt_data_ {nullptr};
   void RequestInterruptFromV8();
   static void CheckImmediate(uv_check_t* handle);
 
@@ -1461,6 +1436,7 @@ class Environment : public MemoryRetainer {
   bool started_cleanup_ = false;
 
   int64_t base_object_count_ = 0;
+  int64_t initial_base_object_count_ = 0;
   std::atomic_bool is_stopping_ { false };
 
   std::function<void(Environment*, int)> process_exit_handler_ {

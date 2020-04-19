@@ -784,7 +784,7 @@ out/doc/api/assets/%: doc/api_assets/% out/doc/api/assets
 run-npm-ci = $(PWD)/$(NPM) ci
 
 LINK_DATA = out/doc/apilinks.json
-VERSIONS_DATA = out/doc/previous-versions.json
+VERSIONS_DATA = out/previous-doc-versions.json
 gen-api = tools/doc/generate.js --node-version=$(FULLVERSION) \
 		--apilinks=$(LINK_DATA) $< --output-directory=out/doc/api \
 		--versions-file=$(VERSIONS_DATA)
@@ -816,6 +816,7 @@ docopen: $(apidocs_html)
 .PHONY: docclean
 docclean:
 	$(RM) -r out/doc
+	$(RM) "$(VERSIONS_DATA)"
 
 RAWVER=$(shell $(PYTHON) tools/getnodeversion.py)
 VERSION=v$(RAWVER)
@@ -1233,9 +1234,9 @@ lint-md-build:
 	$(warning "Deprecated no-op target 'lint-md-build'")
 
 ifeq ("$(wildcard tools/.mdlintstamp)","")
-    LINT_MD_NEWER =
+LINT_MD_NEWER =
 else
-    LINT_MD_NEWER = -newer tools/.mdlintstamp
+LINT_MD_NEWER = -newer tools/.mdlintstamp
 endif
 
 LINT_MD_TARGETS = doc src lib benchmark test tools/doc tools/icu $(wildcard *.md)
