@@ -520,8 +520,9 @@ cipher text should be discarded due to failed authentication. If the tag length
 is invalid according to [NIST SP 800-38D][] or does not match the value of the
 `authTagLength` option, `decipher.setAuthTag()` will throw an error.
 
-The `decipher.setAuthTag()` method must be called before
-[`decipher.final()`][] and can only be called once.
+The `decipher.setAuthTag()` method must be called before [`decipher.update()`][]
+for `CCM` mode or before [`decipher.final()`][] for `GCM` and `OCB` modes.
+`decipher.setAuthTag()` can only be called once.
 
 ### `decipher.setAutoPadding([autoPadding])`
 <!-- YAML
@@ -2222,8 +2223,8 @@ behaves as if [`keyObject.export()`][] had been called on its result. Otherwise,
 the respective part of the key is returned as a [`KeyObject`][].
 
 When encoding public keys, it is recommended to use `'spki'`. When encoding
-private keys, it is recommended to use `'pks8'` with a strong passphrase, and to
-keep the passphrase confidential.
+private keys, it is recommended to use `'pkcs8'` with a strong passphrase,
+and to keep the passphrase confidential.
 
 ```js
 const { generateKeyPairSync } = require('crypto');

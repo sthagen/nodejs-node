@@ -573,6 +573,8 @@ deprecated:
   - v13.14.0
 -->
 
+> Stability: 0 - Deprecated: Use [`request.destroy()`][] instead.
+
 Marks the request as aborting. Calling this will cause remaining data
 in the response to be dropped and the socket to be destroyed.
 
@@ -629,6 +631,11 @@ is finished.
 ### `request.destroy([error])`
 <!-- YAML
 added: v0.3.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/32789
+    description: The function returns `this` for consistency with other Readable
+                 streams.
 -->
 
 * `error` {Error} Optional, an error to emit with `'error'` event.
@@ -1845,9 +1852,15 @@ const req = http.request({
 ### `message.destroy([error])`
 <!-- YAML
 added: v0.3.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/32789
+    description: The function returns `this` for consistency with other Readable
+                 streams.
 -->
 
 * `error` {Error}
+* Returns: {this}
 
 Calls `destroy()` on the socket that received the `IncomingMessage`. If `error`
 is provided, an `'error'` event is emitted on the socket and `error` is passed
@@ -2466,6 +2479,76 @@ events will be emitted in the following order:
 
 Setting the `timeout` option or using the `setTimeout()` function will
 not abort the request or do anything besides add a `'timeout'` event.
+
+## `http.validateHeaderName(name)`
+<!-- YAML
+added: REPLACEME
+-->
+
+* `name` {string}
+
+Performs the low-level validations on the provided `name` that are done when
+`res.setHeader(name, value)` is called.
+
+Passing illegal value as `name` will result in a [`TypeError`][] being thrown,
+identified by `code: 'ERR_INVALID_HTTP_TOKEN'`.
+
+It is not necessary to use this method before passing headers to an HTTP request
+or response. The HTTP module will automatically validate such headers.
+Examples:
+
+Example:
+```js
+const { validateHeaderName } = require('http');
+
+try {
+  validateHeaderName('');
+} catch (err) {
+  err instanceof TypeError; // --> true
+  err.code; // --> 'ERR_INVALID_HTTP_TOKEN'
+  err.message; // --> 'Header name must be a valid HTTP token [""]'
+}
+```
+
+## `http.validateHeaderValue(name, value)`
+<!-- YAML
+added: REPLACEME
+-->
+
+* `name` {string}
+* `value` {any}
+
+Performs the low-level validations on the provided `value` that are done when
+`res.setHeader(name, value)` is called.
+
+Passing illegal value as `value` will result in a [`TypeError`][] being thrown.
+* Undefined value error is identified by `code: 'ERR_HTTP_INVALID_HEADER_VALUE'`.
+* Invalid value character error is identified by `code: 'ERR_INVALID_CHAR'`.
+
+It is not necessary to use this method before passing headers to an HTTP request
+or response. The HTTP module will automatically validate such headers.
+
+Examples:
+
+```js
+const { validateHeaderValue } = require('http');
+
+try {
+  validateHeaderValue('x-my-header', undefined);
+} catch (err) {
+  err instanceof TypeError; // --> true
+  err.code === 'ERR_HTTP_INVALID_HEADER_VALUE'; // --> true
+  err.message; // --> 'Invalid value "undefined" for header "x-my-header"'
+}
+
+try {
+  validateHeaderValue('x-my-header', 'oʊmɪɡə');
+} catch (err) {
+  err instanceof TypeError; // --> true
+  err.code === 'ERR_INVALID_CHAR'; // --> true
+  err.message; // --> 'Invalid character in header content ["x-my-header"]'
+}
+```
 
 [`--insecure-http-parser`]: cli.html#cli_insecure_http_parser
 [`--max-http-header-size`]: cli.html#cli_max_http_header_size_size

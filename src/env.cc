@@ -261,29 +261,17 @@ void TrackingTraceStateObserver::UpdateTraceCategoryState() {
   USE(cb->Call(env_->context(), Undefined(isolate), arraysize(args), args));
 }
 
-class NoBindingData : public BaseObject {
- public:
-  NoBindingData(Environment* env, Local<Object> obj) : BaseObject(env, obj) {}
-
-  SET_NO_MEMORY_INFO()
-  SET_MEMORY_INFO_NAME(NoBindingData)
-  SET_SELF_SIZE(NoBindingData)
-};
-
 void Environment::CreateProperties() {
   HandleScope handle_scope(isolate_);
   Local<Context> ctx = context();
+
   {
     Context::Scope context_scope(ctx);
     Local<FunctionTemplate> templ = FunctionTemplate::New(isolate());
     templ->InstanceTemplate()->SetInternalFieldCount(
         BaseObject::kInternalFieldCount);
-    set_as_callback_data_template(templ);
 
-    Local<Object> obj = MakeBindingCallbackData<NoBindingData>()
-        .ToLocalChecked();
-    set_as_callback_data(obj);
-    set_current_callback_data(obj);
+    set_binding_data_ctor_template(templ);
   }
 
   // Store primordials setup by the per-context script in the environment.
@@ -674,6 +662,8 @@ void Environment::RunCleanup() {
   started_cleanup_ = true;
   TraceEventScope trace_scope(TRACING_CATEGORY_NODE1(environment),
                               "RunCleanup", this);
+  bindings_.clear();
+  initial_base_object_count_ = 0;
   CleanupHandles();
 
   while (!cleanup_hooks_.empty()) {
@@ -739,7 +729,7 @@ void Environment::RunAndClearInterrupts() {
     }
     DebugSealHandleScope seal_handle_scope(isolate());
 
-    while (std::unique_ptr<NativeImmediateCallback> head = queue.Shift())
+    while (auto head = queue.Shift())
       head->Call(this);
   }
 }
@@ -765,8 +755,7 @@ void Environment::RunAndClearNativeImmediates(bool only_refed) {
   auto drain_list = [&]() {
     TryCatchScope try_catch(this);
     DebugSealHandleScope seal_handle_scope(isolate());
-    while (std::unique_ptr<NativeImmediateCallback> head =
-               native_immediates_.Shift()) {
+    while (auto head = native_immediates_.Shift()) {
       if (head->is_refed())
         ref_count++;
 
