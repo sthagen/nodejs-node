@@ -202,7 +202,9 @@ is not set to `true`, it returns a `Promise` for an `Object` with `address` and
 ### Supported getaddrinfo flags
 <!-- YAML
 changes:
-  - version: v13.13.0
+  - version:
+     - v13.13.0
+     - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/32183
     description: Added support for the `dns.ALL` flag.
 -->
@@ -611,7 +613,7 @@ earlier ones time out or result in some other error.
 
 The `dns.promises` API provides an alternative set of asynchronous DNS methods
 that return `Promise` objects rather than using callbacks. The API is accessible
-via `require('dns').promises`.
+via `require('dns').promises` or `require('dns/promises')`.
 
 ### Class: `dnsPromises.Resolver`
 <!-- YAML

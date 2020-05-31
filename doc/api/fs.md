@@ -581,7 +581,7 @@ Stop watching for changes on the given `fs.FSWatcher`. Once stopped, the
 
 ### `watcher.ref()`
 <!-- YAML
-added: REPLACEME
+added: v14.3.0
 -->
 
 * Returns: {fs.FSWatcher}
@@ -596,7 +596,7 @@ called previously.
 
 ### `watcher.unref()`
 <!-- YAML
-added: REPLACEME
+added: v14.3.0
 -->
 
 * Returns: {fs.FSWatcher}
@@ -609,7 +609,7 @@ no effect.
 
 ## Class: `fs.StatWatcher`
 <!-- YAML
-added: REPLACEME
+added: v14.3.0
 -->
 
 * Extends {EventEmitter}
@@ -619,7 +619,7 @@ object.
 
 ### `watcher.ref()`
 <!-- YAML
-added: REPLACEME
+added: v14.3.0
 -->
 
 * Returns: {fs.StatWatcher}
@@ -634,7 +634,7 @@ called previously.
 
 ### `watcher.unref()`
 <!-- YAML
-added: REPLACEME
+added: v14.3.0
 -->
 
 * Returns: {fs.StatWatcher}
@@ -1715,6 +1715,12 @@ fs.copyFileSync('source.txt', 'destination.txt', COPYFILE_EXCL);
 <!-- YAML
 added: v0.1.31
 changes:
+  - version:
+     - v13.6.0
+     - v12.17.0
+    pr-url: https://github.com/nodejs/node/pull/29083
+    description: The `fs` options allow overriding the used `fs`
+                 implementation.
   - version: v12.10.0
     pr-url: https://github.com/nodejs/node/pull/29212
     description: Enable `emitClose` option.
@@ -1733,10 +1739,6 @@ changes:
   - version: v2.3.0
     pr-url: https://github.com/nodejs/node/pull/1845
     description: The passed `options` object can be a string now.
-  - version: v13.6.0
-    pr-url: https://github.com/nodejs/node/pull/29083
-    description: The `fs` options allow overriding the used `fs`
-                 implementation.
 -->
 
 * `path` {string|Buffer|URL}
@@ -1820,6 +1822,12 @@ If `options` is a string, then it specifies the encoding.
 <!-- YAML
 added: v0.1.31
 changes:
+  - version:
+     - v13.6.0
+     - v12.17.0
+    pr-url: https://github.com/nodejs/node/pull/29083
+    description: The `fs` options allow overriding the used `fs`
+                 implementation.
   - version: v12.10.0
     pr-url: https://github.com/nodejs/node/pull/29212
     description: Enable `emitClose` option.
@@ -1836,10 +1844,6 @@ changes:
   - version: v2.3.0
     pr-url: https://github.com/nodejs/node/pull/1845
     description: The passed `options` object can be a string now.
-  - version: v13.6.0
-    pr-url: https://github.com/nodejs/node/pull/29083
-    description: The `fs` options allow overriding the used `fs`
-                 implementation.
 -->
 
 * `path` {string|Buffer|URL}
@@ -2496,7 +2500,9 @@ Synchronous lstat(2).
 <!-- YAML
 added: v0.1.8
 changes:
-  - version: v13.11.0
+  - version:
+     - v13.11.0
+     - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/31530
     description: In `recursive` mode, the callback now receives the first
                  created path as an argument.
@@ -2558,7 +2564,9 @@ See also: mkdir(2).
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v13.11.0
+  - version:
+     - v13.11.0
+     - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/31530
     description: In `recursive` mode, the first created path is returned now.
   - version: v10.12.0
@@ -2846,9 +2854,13 @@ a `Promise` for an `Object` with `bytesRead` and `buffer` properties.
 
 ## `fs.read(fd, [options,] callback)`
 <!-- YAML
-added: v13.11.0
+added:
+ - v13.11.0
+ - v12.17.0
 changes:
-  - version: v13.11.0
+  - version:
+     - v13.11.0
+     - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/31402
     description: Options object can be passed in
                  to make Buffer, offset, length and position optional
@@ -3144,9 +3156,13 @@ this API: [`fs.read()`][].
 
 ## `fs.readSync(fd, buffer, [options])`
 <!-- YAML
-added: v13.13.0
+added:
+ - v13.13.0
+ - v12.17.0
 changes:
-  - version: v13.13.0
+  - version:
+     - v13.13.0
+     - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/32460
     description: Options object can be passed in
                  to make offset, length and position optional
@@ -3170,7 +3186,9 @@ this API: [`fs.read()`][].
 
 ## `fs.readv(fd, buffers[, position], callback)`
 <!-- YAML
-added: v13.13.0
+added:
+ - v13.13.0
+ - v12.17.0
 -->
 
 * `fd` {integer}
@@ -3191,9 +3209,14 @@ from the current position.
 The callback will be given three arguments: `err`, `bytesRead`, and
 `buffers`. `bytesRead` is how many bytes were read from the file.
 
+If this method is invoked as its [`util.promisify()`][]ed version, it returns
+a `Promise` for an `Object` with `bytesRead` and `buffers` properties.
+
 ## `fs.readvSync(fd, buffers[, position])`
 <!-- YAML
-added: v13.13.0
+added:
+ - v13.13.0
+ - v12.17.0
 -->
 
 * `fd` {integer}
@@ -3544,7 +3567,7 @@ is recommended.
 
 For example, given the following directory structure:
 
-```fundamental
+```text
 - txtDir
 -- file.txt
 - app.js
@@ -4260,7 +4283,7 @@ recommended.
 When `file` is a file descriptor, the behavior is almost identical to directly
 calling `fs.write()` like:
 
-```javascript
+```js
 fs.write(fd, Buffer.from(data, options.encoding), callback);
 ```
 
@@ -4552,7 +4575,9 @@ property that is a reference to the passed in `buffer` argument.
 
 #### `filehandle.read(options)`
 <!-- YAML
-added: v13.11.0
+added:
+ - v13.11.0
+ - v12.17.0
 -->
 * `options` {Object}
   * `buffer` {Buffer|Uint8Array} **Default:** `Buffer.alloc(16384)`
@@ -4587,7 +4612,9 @@ of the file.
 
 #### `filehandle.readv(buffers[, position])`
 <!-- YAML
-added: v13.13.0
+added:
+ - v13.13.0
+ - v12.17.0
 -->
 
 * `buffers` {ArrayBufferView[]}
@@ -5433,6 +5460,24 @@ without waiting for the `Promise` to be resolved (or rejected).
 The following constants are exported by `fs.constants`.
 
 Not every constant will be available on every operating system.
+
+To use more than one constant, use the bitwise OR `|` operator.
+
+Example:
+
+```js
+const fs = require('fs');
+
+const {
+  O_RDWR,
+  O_CREAT,
+  O_EXCL
+} = fs.constants;
+
+fs.open('/path/to/my/file', O_RDWR | O_CREAT | O_EXCL, (err, fd) => {
+  // ...
+});
+```
 
 ### File Access Constants
 
