@@ -98,13 +98,12 @@ help: ## Print help for targets with comments.
 # and recreated which can break the addons build when running test-ci
 # See comments on the build-addons target for some more info
 ifeq ($(BUILD_WITH), make)
-$(NODE_EXE): config.gypi out/Makefile
-	$(MAKE) -C out BUILDTYPE=Release V=$(V)
-	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Release/$(NODE_EXE) $@; fi
-
-$(NODE_G_EXE): config.gypi out/Makefile
-	$(MAKE) -C out BUILDTYPE=Debug V=$(V)
-	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Debug/$(NODE_EXE) $@; fi
+$(NODE_EXE): build_type:=Release
+$(NODE_G_EXE): build_type:=Debug
+$(NODE_EXE) $(NODE_G_EXE): config.gypi out/Makefile
+	$(MAKE) -C out BUILDTYPE=${build_type} V=$(V)
+	if [ ! -r $@ -o ! -L $@ ]; then \
+	  ln -fs out/${build_type}/$(NODE_EXE) $@; fi
 else
 ifeq ($(BUILD_WITH), ninja)
 ifeq ($(V),1)
@@ -495,7 +494,7 @@ test-all-suites: | clear-stalled test-build bench-addons-build doc-only ## Run a
 
 # CI_* variables should be kept synchronized with the ones in vcbuild.bat
 CI_NATIVE_SUITES ?= addons js-native-api node-api
-CI_JS_SUITES ?= default
+CI_JS_SUITES ?= default benchmark
 ifeq ($(node_use_openssl), false)
 	CI_DOC := doctool
 else
@@ -528,7 +527,7 @@ test-ci-js: | clear-stalled
 .PHONY: test-ci
 # Related CI jobs: most CI tests, excluding node-test-commit-arm-fanned
 test-ci: LOGLEVEL := info
-test-ci: | clear-stalled build-addons build-js-native-api-tests build-node-api-tests doc-only
+test-ci: | clear-stalled bench-addons-build build-addons build-js-native-api-tests build-node-api-tests doc-only
 	out/Release/cctest --gtest_output=xml:out/junit/cctest.xml
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=$(BUILDTYPE_LOWER) --flaky-tests=$(FLAKY_TESTS) \
@@ -1244,8 +1243,9 @@ lint-js:
 jslint: lint-js
 	@echo "Please use lint-js instead of jslint"
 
-run-lint-js-ci = tools/lint-js.js $(PARALLEL_ARGS) -f tap -o test-eslint.tap \
-		$(LINT_JS_TARGETS)
+run-lint-js-ci = tools/node_modules/eslint/bin/eslint.js \
+  --report-unused-disable-directives --ext=.js,.mjs,.md -f tap \
+	-o test-eslint.tap $(LINT_JS_TARGETS)
 
 .PHONY: lint-js-ci
 # On the CI the output is emitted in the TAP format.
@@ -1334,7 +1334,7 @@ lint-cpp: tools/.cpplintstamp
 tools/.cpplintstamp: $(LINT_CPP_FILES)
 	@echo "Running C++ linter..."
 	@$(PYTHON) tools/cpplint.py $(CPPLINT_QUIET) $?
-	@$(PYTHON) tools/checkimports.py
+	@$(PYTHON) tools/checkimports.py $?
 	@touch $@
 
 .PHONY: lint-addon-docs

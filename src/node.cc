@@ -148,8 +148,6 @@ bool v8_initialized = false;
 // node_internals.h
 // process-relative uptime base in nanoseconds, initialized in node::Start()
 uint64_t node_start_time;
-// Tells whether --prof is passed.
-bool v8_is_profiling = false;
 
 // node_v8_platform-inl.h
 struct V8Platform v8_platform;
@@ -352,6 +350,7 @@ MaybeLocal<Value> Environment::BootstrapNode() {
     return scope.EscapeMaybe(result);
   }
 
+  // TODO(joyeecheung): skip these in the snapshot building for workers.
   auto thread_switch_id =
       is_main_thread() ? "internal/bootstrap/switches/is_main_thread"
                        : "internal/bootstrap/switches/is_not_main_thread";
@@ -461,13 +460,6 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     return scope.EscapeMaybe(cb(info));
   }
 
-  // To allow people to extend Node in different ways, this hook allows
-  // one to drop a file lib/_third_party_main.js into the build
-  // directory which will be executed instead of Node's normal loading.
-  if (NativeModuleEnv::Exists("_third_party_main")) {
-    return StartExecution(env, "internal/main/run_third_party_main");
-  }
-
   if (env->worker_context() != nullptr) {
     return StartExecution(env, "internal/main/worker_thread");
   }
@@ -477,7 +469,7 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     first_argv = env->argv()[1];
   }
 
-  if (first_argv == "inspect" || first_argv == "debug") {
+  if (first_argv == "inspect") {
     return StartExecution(env, "internal/main/inspect");
   }
 
@@ -737,7 +729,10 @@ void ResetStdio() {
         err = tcsetattr(fd, TCSANOW, &s.termios);
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sa, nullptr));
-      CHECK_EQ(0, err);
+
+      // Normally we expect err == 0. But if macOS App Sandbox is enabled,
+      // tcsetattr will fail with err == -1 and errno == EPERM.
+      CHECK_IMPLIES(err != 0, err == -1 && errno == EPERM);
     }
   }
 #endif  // __POSIX__
@@ -786,19 +781,11 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
     env_opts->abort_on_uncaught_exception = true;
   }
 
-  // TODO(bnoordhuis) Intercept --prof arguments and start the CPU profiler
-  // manually?  That would give us a little more control over its runtime
-  // behavior but it could also interfere with the user's intentions in ways
-  // we fail to anticipate.  Dillema.
-  if (std::find(v8_args.begin(), v8_args.end(), "--prof") != v8_args.end()) {
-    per_process::v8_is_profiling = true;
-  }
-
 #ifdef __POSIX__
   // Block SIGPROF signals when sleeping in epoll_wait/kevent/etc.  Avoids the
   // performance penalty of frequent EINTR wakeups when the profiler is running.
   // Only do this for v8.log profiling, as it breaks v8::CpuProfiler users.
-  if (per_process::v8_is_profiling) {
+  if (std::find(v8_args.begin(), v8_args.end(), "--prof") != v8_args.end()) {
     uv_loop_configure(uv_default_loop(), UV_LOOP_BLOCK_SIGNAL, SIGPROF);
   }
 #endif
@@ -953,9 +940,8 @@ void Init(int* argc,
   }
 
   if (per_process::cli_options->print_v8_help) {
-    // Doesn't return.
     V8::SetFlagsFromString("--help", static_cast<size_t>(6));
-    UNREACHABLE();
+    exit(0);
   }
 
   *argc = argv_.size();
@@ -1017,13 +1003,16 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   if (per_process::cli_options->print_bash_completion) {
     std::string completion = options_parser::GetBashCompletion();
     printf("%s\n", completion.c_str());
-    exit(0);
+    result.exit_code = 0;
+    result.early_return = true;
+    return result;
   }
 
   if (per_process::cli_options->print_v8_help) {
-    // Doesn't return.
     V8::SetFlagsFromString("--help", static_cast<size_t>(6));
-    UNREACHABLE();
+    result.exit_code = 0;
+    result.early_return = true;
+    return result;
   }
 
 #if HAVE_OPENSSL
@@ -1072,19 +1061,15 @@ int Start(int argc, char** argv) {
   {
     Isolate::CreateParams params;
     const std::vector<size_t>* indexes = nullptr;
-    std::vector<intptr_t> external_references;
-
+    const EnvSerializeInfo* env_info = nullptr;
     bool force_no_snapshot =
         per_process::cli_options->per_isolate->no_node_snapshot;
     if (!force_no_snapshot) {
       v8::StartupData* blob = NodeMainInstance::GetEmbeddedSnapshotBlob();
       if (blob != nullptr) {
-        // TODO(joyeecheung): collect external references and set it in
-        // params.external_references.
-        external_references.push_back(reinterpret_cast<intptr_t>(nullptr));
-        params.external_references = external_references.data();
         params.snapshot_blob = blob;
         indexes = NodeMainInstance::GetIsolateDataIndexes();
+        env_info = NodeMainInstance::GetEnvSerializeInfo();
       }
     }
 
@@ -1094,7 +1079,7 @@ int Start(int argc, char** argv) {
                                    result.args,
                                    result.exec_args,
                                    indexes);
-    result.exit_code = main_instance.Run();
+    result.exit_code = main_instance.Run(env_info);
   }
 
   TearDownOncePerProcess();

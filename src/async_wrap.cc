@@ -23,6 +23,7 @@
 #include "async_wrap-inl.h"
 #include "env-inl.h"
 #include "node_errors.h"
+#include "node_external_reference.h"
 #include "tracing/traced_value.h"
 #include "util-inl.h"
 
@@ -502,7 +503,7 @@ void AsyncWrap::PushAsyncContext(const FunctionCallbackInfo<Value>& args) {
   // then the checks in push_async_ids() and pop_async_id() will.
   double async_id = args[0]->NumberValue(env->context()).FromJust();
   double trigger_async_id = args[1]->NumberValue(env->context()).FromJust();
-  env->async_hooks()->push_async_context(async_id, trigger_async_id, args[2]);
+  env->async_hooks()->push_async_context(async_id, trigger_async_id, {});
 }
 
 
@@ -510,6 +511,22 @@ void AsyncWrap::PopAsyncContext(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   double async_id = args[0]->NumberValue(env->context()).FromJust();
   args.GetReturnValue().Set(env->async_hooks()->pop_async_context(async_id));
+}
+
+
+void AsyncWrap::ExecutionAsyncResource(
+    const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  uint32_t index;
+  if (!args[0]->Uint32Value(env->context()).To(&index)) return;
+  args.GetReturnValue().Set(
+      env->async_hooks()->native_execution_async_resource(index));
+}
+
+
+void AsyncWrap::ClearAsyncIdStack(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  env->async_hooks()->clear_async_id_stack();
 }
 
 
@@ -552,11 +569,20 @@ void AsyncWrap::QueueDestroyAsyncId(const FunctionCallbackInfo<Value>& args) {
       args[0].As<Number>()->Value());
 }
 
+void AsyncWrap::SetCallbackTrampoline(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  CHECK(args[0]->IsFunction());
+
+  env->set_async_hooks_callback_trampoline(args[0].As<Function>());
+}
+
 Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(Environment* env) {
   Local<FunctionTemplate> tmpl = env->async_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
     tmpl = env->NewFunctionTemplate(nullptr);
     tmpl->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "AsyncWrap"));
+    tmpl->Inherit(BaseObject::GetConstructorTemplate(env));
     env->SetProtoMethod(tmpl, "getAsyncId", AsyncWrap::GetAsyncId);
     env->SetProtoMethod(tmpl, "asyncReset", AsyncWrap::AsyncReset);
     env->SetProtoMethod(tmpl, "getProviderType", AsyncWrap::GetProviderType);
@@ -574,8 +600,11 @@ void AsyncWrap::Initialize(Local<Object> target,
   HandleScope scope(isolate);
 
   env->SetMethod(target, "setupHooks", SetupHooks);
+  env->SetMethod(target, "setCallbackTrampoline", SetCallbackTrampoline);
   env->SetMethod(target, "pushAsyncContext", PushAsyncContext);
   env->SetMethod(target, "popAsyncContext", PopAsyncContext);
+  env->SetMethod(target, "executionAsyncResource", ExecutionAsyncResource);
+  env->SetMethod(target, "clearAsyncIdStack", ClearAsyncIdStack);
   env->SetMethod(target, "queueDestroyAsyncId", QueueDestroyAsyncId);
   env->SetMethod(target, "enablePromiseHook", EnablePromiseHook);
   env->SetMethod(target, "disablePromiseHook", DisablePromiseHook);
@@ -614,7 +643,7 @@ void AsyncWrap::Initialize(Local<Object> target,
 
   FORCE_SET_TARGET_FIELD(target,
                          "execution_async_resources",
-                         env->async_hooks()->execution_async_resources());
+                         env->async_hooks()->js_execution_async_resources());
 
   target->Set(context,
               env->async_ids_stack_string(),
@@ -636,6 +665,7 @@ void AsyncWrap::Initialize(Local<Object> target,
   SET_HOOKS_CONSTANT(kTriggerAsyncId);
   SET_HOOKS_CONSTANT(kAsyncIdCounter);
   SET_HOOKS_CONSTANT(kDefaultTriggerAsyncId);
+  SET_HOOKS_CONSTANT(kUsesExecutionAsyncResource);
   SET_HOOKS_CONSTANT(kStackLength);
 #undef SET_HOOKS_CONSTANT
   FORCE_SET_TARGET_FIELD(target, "constants", constants);
@@ -666,6 +696,25 @@ void AsyncWrap::Initialize(Local<Object> target,
   PromiseWrap::Initialize(env);
 }
 
+void AsyncWrap::RegisterExternalReferences(
+    ExternalReferenceRegistry* registry) {
+  registry->Register(SetupHooks);
+  registry->Register(SetCallbackTrampoline);
+  registry->Register(PushAsyncContext);
+  registry->Register(PopAsyncContext);
+  registry->Register(ExecutionAsyncResource);
+  registry->Register(ClearAsyncIdStack);
+  registry->Register(QueueDestroyAsyncId);
+  registry->Register(EnablePromiseHook);
+  registry->Register(DisablePromiseHook);
+  registry->Register(RegisterDestroyHook);
+  registry->Register(AsyncWrapObject::New);
+  registry->Register(AsyncWrap::GetAsyncId);
+  registry->Register(AsyncWrap::AsyncReset);
+  registry->Register(AsyncWrap::GetProviderType);
+  registry->Register(PromiseWrap::GetAsyncId);
+  registry->Register(PromiseWrap::GetTriggerAsyncId);
+}
 
 AsyncWrap::AsyncWrap(Environment* env,
                      Local<Object> object,
@@ -895,3 +944,5 @@ Local<Object> AsyncWrap::GetOwner(Environment* env, Local<Object> obj) {
 }  // namespace node
 
 NODE_MODULE_CONTEXT_AWARE_INTERNAL(async_wrap, node::AsyncWrap::Initialize)
+NODE_MODULE_EXTERNAL_REFERENCE(async_wrap,
+                               node::AsyncWrap::RegisterExternalReferences)

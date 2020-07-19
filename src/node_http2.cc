@@ -193,6 +193,12 @@ Http2Options::Http2Options(Http2State* http2_state, SessionType type) {
   //            terms of MB increments (i.e. the value 1 == 1 MB)
   if (flags & (1 << IDX_OPTIONS_MAX_SESSION_MEMORY))
     set_max_session_memory(buffer[IDX_OPTIONS_MAX_SESSION_MEMORY] * 1000000);
+
+  if (flags & (1 << IDX_OPTIONS_MAX_SETTINGS)) {
+    nghttp2_option_set_max_settings(
+        option,
+        static_cast<size_t>(buffer[IDX_OPTIONS_MAX_SETTINGS]));
+  }
 }
 
 #define GRABSETTING(entries, count, name)                                      \
@@ -367,9 +373,7 @@ Origins::Origins(
                               origin_string_len);
 
   // Make sure the start address is aligned appropriately for an nghttp2_nv*.
-  char* start = reinterpret_cast<char*>(
-      RoundUp(reinterpret_cast<uintptr_t>(buf_.data()),
-              alignof(nghttp2_origin_entry)));
+  char* start = AlignUp(buf_.data(), alignof(nghttp2_origin_entry));
   char* origin_contents = start + (count_ * sizeof(nghttp2_origin_entry));
   nghttp2_origin_entry* const nva =
       reinterpret_cast<nghttp2_origin_entry*>(start);
@@ -1209,22 +1213,29 @@ void Http2Session::HandleHeadersFrame(const nghttp2_frame* frame) {
   // this way for performance reasons (it's faster to generate and pass an
   // array than it is to generate and pass the object).
 
-  std::vector<Local<Value>> headers_v(stream->headers_count() * 2);
+  MaybeStackBuffer<Local<Value>, 64> headers_v(stream->headers_count() * 2);
+  MaybeStackBuffer<Local<Value>, 32> sensitive_v(stream->headers_count());
+  size_t sensitive_count = 0;
+
   stream->TransferHeaders([&](const Http2Header& header, size_t i) {
     headers_v[i * 2] = header.GetName(this).ToLocalChecked();
     headers_v[i * 2 + 1] = header.GetValue(this).ToLocalChecked();
+    if (header.flags() & NGHTTP2_NV_FLAG_NO_INDEX)
+      sensitive_v[sensitive_count++] = headers_v[i * 2];
   });
   CHECK_EQ(stream->headers_count(), 0);
 
   DecrementCurrentSessionMemory(stream->current_headers_length_);
   stream->current_headers_length_ = 0;
 
-  Local<Value> args[5] = {
-      stream->object(),
-      Integer::New(isolate, id),
-      Integer::New(isolate, stream->headers_category()),
-      Integer::New(isolate, frame->hd.flags),
-      Array::New(isolate, headers_v.data(), headers_v.size())};
+  Local<Value> args[] = {
+    stream->object(),
+    Integer::New(isolate, id),
+    Integer::New(isolate, stream->headers_category()),
+    Integer::New(isolate, frame->hd.flags),
+    Array::New(isolate, headers_v.out(), headers_v.length()),
+    Array::New(isolate, sensitive_v.out(), sensitive_count),
+  };
   MakeCallback(env()->http2session_on_headers_function(),
                arraysize(args), args);
 }
@@ -1750,11 +1761,7 @@ void Http2Session::OnStreamRead(ssize_t nread, const uv_buf_t& buf_) {
 
   statistics_.data_received += nread;
 
-  if (LIKELY(stream_buf_offset_ == 0)) {
-    // Shrink to the actual amount of used data.
-    buf.Resize(nread);
-    IncrementCurrentSessionMemory(nread);
-  } else {
+  if (UNLIKELY(stream_buf_offset_ > 0)) {
     // This is a very unlikely case, and should only happen if the ReadStart()
     // call in OnStreamAfterWrite() immediately provides data. If that does
     // happen, we concatenate the data we received with the already-stored
@@ -1765,19 +1772,19 @@ void Http2Session::OnStreamRead(ssize_t nread, const uv_buf_t& buf_) {
     memcpy(new_buf.data(), stream_buf_.base + stream_buf_offset_, pending_len);
     memcpy(new_buf.data() + pending_len, buf.data(), nread);
 
-    // The data in stream_buf_ is already accounted for, add nread received
-    // bytes to session memory but remove the already processed
-    // stream_buf_offset_ bytes.
-    // TODO(@jasnell): There are some cases where nread is < stream_buf_offset_
-    // here but things still work. Those need to be investigated.
-    // CHECK_GE(nread, stream_buf_offset_);
-    IncrementCurrentSessionMemory(nread - stream_buf_offset_);
-
     buf = std::move(new_buf);
     nread = buf.size();
     stream_buf_offset_ = 0;
     stream_buf_ab_.Reset();
+
+    // We have now fully processed the stream_buf_ input chunk (by moving the
+    // remaining part into buf, which will be accounted for below).
+    DecrementCurrentSessionMemory(stream_buf_.len);
   }
+
+  // Shrink to the actual amount of used data.
+  buf.Resize(nread);
+  IncrementCurrentSessionMemory(nread);
 
   // Remember the current buffer, so that OnDataChunkReceived knows the
   // offset of a DATA frame's data into the socket read buffer.

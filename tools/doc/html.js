@@ -32,6 +32,7 @@ const raw = require('rehype-raw');
 const htmlStringify = require('rehype-stringify');
 const path = require('path');
 const typeParser = require('./type-parser.js');
+const { highlight, getLanguage } = require('highlight.js');
 
 module.exports = {
   toHTML, firstHeader, preprocessText, preprocessElements, buildToc
@@ -104,10 +105,13 @@ function firstHeader() {
 
 // Handle general body-text replacements.
 // For example, link man page references to the actual page.
-function preprocessText() {
+function preprocessText({ nodeVersion }) {
   return (tree) => {
     visit(tree, null, (node) => {
-      if (node.type === 'text' && node.value) {
+      if (common.isSourceLink(node.value)) {
+        const [path] = node.value.match(/(?<=<!-- source_link=).*(?= -->)/);
+        node.value = `<p><strong>Source Code:</strong> <a href="https://github.com/nodejs/node/blob/${nodeVersion}/${path}">${path}</a></p>`;
+      } else if (node.type === 'text' && node.value) {
         const value = linkJsTypeDocs(linkManPages(node.value));
         if (value !== node.value) {
           node.type = 'html';
@@ -180,6 +184,21 @@ function preprocessElements({ filename }) {
       if (node.type === 'heading') {
         headingIndex = index;
         heading = node;
+      } else if (node.type === 'code') {
+        if (!node.lang) {
+          console.warn(
+            `No language set in ${filename}, ` +
+            `line ${node.position.start.line}`);
+        }
+        const language = (node.lang || '').split(' ')[0];
+        const highlighted = getLanguage(language) ?
+          highlight(language, node.value).value :
+          node.value;
+        node.type = 'html';
+        node.value = '<pre>' +
+          `<code class = 'language-${node.lang}'>` +
+          highlighted +
+          '</code></pre>';
       } else if (node.type === 'html' && common.isYAMLBlock(node.value)) {
         node.value = parseYAML(node.value);
 

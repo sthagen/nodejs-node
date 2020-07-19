@@ -27,6 +27,7 @@ using v8::Object;
 using v8::ObjectTemplate;
 using v8::Private;
 using v8::PropertyDescriptor;
+using v8::SealHandleScope;
 using v8::String;
 using v8::Value;
 
@@ -209,6 +210,8 @@ void SetIsolateCreateParamsForNode(Isolate::CreateParams* params) {
     // heap based on the actual physical memory.
     params->constraints.ConfigureDefaults(total_memory, 0);
   }
+  params->embedder_wrapper_object_index = BaseObject::InternalFields::kSlot;
+  params->embedder_wrapper_type_index = std::numeric_limits<int>::max();
 }
 
 void SetIsolateErrorHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
@@ -347,16 +350,7 @@ Environment* CreateEnvironment(
   // TODO(addaleax): This is a much better place for parsing per-Environment
   // options than the global parse call.
   Environment* env = new Environment(
-      isolate_data,
-      context,
-      args,
-      exec_args,
-      flags,
-      thread_id);
-  if (flags & EnvironmentFlags::kOwnsProcessState) {
-    env->set_abort_on_uncaught_exception(false);
-  }
-
+      isolate_data, context, args, exec_args, nullptr, flags, thread_id);
 #if HAVE_INSPECTOR
   if (inspector_parent_handle) {
     env->InitializeInspector(
@@ -376,10 +370,13 @@ Environment* CreateEnvironment(
 }
 
 void FreeEnvironment(Environment* env) {
+  Isolate::DisallowJavascriptExecutionScope disallow_js(env->isolate(),
+      Isolate::DisallowJavascriptExecutionScope::THROW_ON_FAILURE);
   {
-    // TODO(addaleax): This should maybe rather be in a SealHandleScope.
-    HandleScope handle_scope(env->isolate());
+    HandleScope handle_scope(env->isolate());  // For env->context().
     Context::Scope context_scope(env->context());
+    SealHandleScope seal_handle_scope(env->isolate());
+
     env->set_stopping(true);
     env->stop_sub_worker_contexts();
     env->RunCleanup();
@@ -420,7 +417,7 @@ MaybeLocal<Value> LoadEnvironment(
     Environment* env,
     StartExecutionCallback cb,
     std::unique_ptr<InspectorParentHandle> removeme) {
-  env->InitializeLibuv(per_process::v8_is_profiling);
+  env->InitializeLibuv();
   env->InitializeDiagnostics();
 
   return StartExecution(env, cb);
@@ -437,8 +434,7 @@ MaybeLocal<Value> LoadEnvironment(
         // This is a slightly hacky way to convert UTF-8 to UTF-16.
         Local<String> str =
             String::NewFromUtf8(env->isolate(),
-                                main_script_source_utf8,
-                                v8::NewStringType::kNormal).ToLocalChecked();
+                                main_script_source_utf8).ToLocalChecked();
         auto main_utf16 = std::make_unique<String::Value>(env->isolate(), str);
 
         // TODO(addaleax): Avoid having a global table for all scripts.
@@ -553,7 +549,7 @@ void InitializeContextRuntime(Local<Context> context) {
   if (context->Global()->Get(context, intl_string).ToLocal(&intl_v) &&
       intl_v->IsObject()) {
     Local<Object> intl = intl_v.As<Object>();
-    intl->Delete(context, break_iter_string).FromJust();
+    intl->Delete(context, break_iter_string).Check();
   }
 
   // Delete `Atomics.wake`
@@ -564,7 +560,7 @@ void InitializeContextRuntime(Local<Context> context) {
   if (context->Global()->Get(context, atomics_string).ToLocal(&atomics_v) &&
       atomics_v->IsObject()) {
     Local<Object> atomics = atomics_v.As<Object>();
-    atomics->Delete(context, wake_string).FromJust();
+    atomics->Delete(context, wake_string).Check();
   }
 
   // Remove __proto__
