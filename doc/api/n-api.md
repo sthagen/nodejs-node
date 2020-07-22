@@ -127,7 +127,7 @@ the native addon will also need to have a C/C++ toolchain installed.
 
 For Linux developers, the necessary C/C++ toolchain packages are readily
 available. [GCC][] is widely used in the Node.js community to build and
-test across a variety of plarforms. For many developers, the [LLVM][]
+test across a variety of platforms. For many developers, the [LLVM][]
 compiler infrastructure is also a good choice.
 
 For Mac developers, [Xcode][] offers all the required compiler tools.
@@ -3330,6 +3330,7 @@ defined in [Section 7.2.14][] of the ECMAScript Language Specification.
 added:
  - v13.0.0
  - v12.16.0
+ - v10.22.0
 -->
 
 > Stability: 1 - Experimental
@@ -3358,6 +3359,7 @@ defined in [Section 24.1.1.3][] of the ECMAScript Language Specification.
 added:
  - v13.3.0
  - v12.16.0
+ - v10.22.0
 -->
 
 > Stability: 1 - Experimental

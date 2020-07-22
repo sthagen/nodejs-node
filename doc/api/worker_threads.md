@@ -109,9 +109,10 @@ markAsUntransferable(pooledBuffer);
 const { port1 } = new MessageChannel();
 port1.postMessage(typedArray1, [ typedArray1.buffer ]);
 
-// The following line prints the contents of typedArray1 -- it still owns its
-// memory and has been cloned, not transfered. Without `markAsUntransferable()`,
-// this would print an empty Uint8Array. typedArray2 is intact as well.
+// The following line prints the contents of typedArray1 -- it still owns
+// its memory and has been cloned, not transferred. Without
+// `markAsUntransferable()`, this would print an empty Uint8Array.
+// typedArray2 is intact as well.
 console.log(typedArray1);
 console.log(typedArray2);
 ```
@@ -620,9 +621,12 @@ if (isMainThread) {
 <!-- YAML
 added: v10.5.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34394
+    description: The `trackUnmanagedFds` option was set to `true` by default.
   - version:
-    - REPLACEME
-    pr-url: ???
+    - v14.6.0
+    pr-url: https://github.com/nodejs/node/pull/34303
     description: The `trackUnmanagedFds` option was introduced.
   - version:
      - v13.13.0
@@ -688,7 +692,7 @@ changes:
     [`fs.close()`][], and close them when the Worker exits, similar to other
     resources like network sockets or file descriptors managed through
     the [`FileHandle`][] API. This option is automatically inherited by all
-    nested `Worker`s. **Default**: `false`.
+    nested `Worker`s. **Default**: `true`.
   * `transferList` {Object[]} If one or more `MessagePort`-like objects
     are passed in `workerData`, a `transferList` is required for those
     items or [`ERR_MISSING_MESSAGE_PORT_IN_TRANSFER_LIST`][] will be thrown.
