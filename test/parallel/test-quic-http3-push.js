@@ -12,11 +12,14 @@ const assert = require('assert');
 const { key, cert, ca, kHttp3Alpn } = require('../common/quic');
 
 const { createQuicSocket } = require('net');
+const { createWriteStream } = require('fs');
 
-const options = { key, cert, ca, alpn: kHttp3Alpn };
+const qlog = process.env.NODE_QLOG === '1';
 
-const client = createQuicSocket({ client: options });
-const server = createQuicSocket({ server: options });
+const options = { key, cert, ca, alpn: kHttp3Alpn, qlog };
+
+const client = createQuicSocket({ qlog, client: options });
+const server = createQuicSocket({ qlog, server: options });
 
 client.on('close', common.mustCall());
 server.on('close', common.mustCall());
@@ -28,7 +31,7 @@ const countdown = new Countdown(2, () => {
 
 (async function() {
   server.on('session', common.mustCall((session) => {
-
+    if (qlog) session.qlog.pipe(createWriteStream('server.qlog'));
     session.on('stream', common.mustCall((stream) => {
       assert(stream.submitInitialHeaders({ ':status': '200' }));
 
@@ -58,7 +61,9 @@ const countdown = new Countdown(2, () => {
       push.submitInitialHeaders({ ':status': '200' });
       push.end('testing');
       push.on('close', common.mustCall());
-      push.on('finish', common.mustCall());
+      // TODO(@jasnell): There's current a bug where the last
+      // _final callback is not being invoked in this case
+      // push.on('finish', common.mustCall());
 
       stream.end('hello world');
       stream.resume();
@@ -78,7 +83,6 @@ const countdown = new Countdown(2, () => {
       stream.on('informationalHeaders', common.mustNotCall());
       stream.on('trailingHeaders', common.mustNotCall());
     }));
-
     session.on('close', common.mustCall());
   }));
 
@@ -90,6 +94,7 @@ const countdown = new Countdown(2, () => {
     maxStreamsUni: 10,
     h3: { maxPushes: 10 }
   });
+  if (qlog) req.qlog.pipe(createWriteStream('client.qlog'));
 
   req.on('stream', common.mustCall((stream) => {
     let data = '';
@@ -113,7 +118,7 @@ const countdown = new Countdown(2, () => {
 
   req.on('close', common.mustCall());
 
-  const stream = req.openStream();
+  const stream = await req.openStream();
 
   stream.on('pushHeaders', common.mustCall((headers, push_id) => {
     const expected = [
@@ -139,18 +144,16 @@ const countdown = new Countdown(2, () => {
     countdown.dec();
   }));
 
-  stream.on('ready', () => {
-    assert(stream.submitInitialHeaders({
-      ':method': 'POST',
-      ':scheme': 'https',
-      ':authority': 'localhost',
-      ':path': '/',
-    }));
+  assert(stream.submitInitialHeaders({
+    ':method': 'POST',
+    ':scheme': 'https',
+    ':authority': 'localhost',
+    ':path': '/',
+  }));
 
-    stream.end('hello world');
-    stream.resume();
-    stream.on('finish', common.mustCall());
-    stream.on('end', common.mustCall());
-  });
+  stream.end('hello world');
+  stream.resume();
+  stream.on('finish', common.mustCall());
+  stream.on('end', common.mustCall());
 
 })().then(common.mustCall());

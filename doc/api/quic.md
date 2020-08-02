@@ -25,16 +25,8 @@ const { createQuicSocket } = require('net');
 // Create the QUIC UDP IPv4 socket bound to local IP port 1234
 const socket = createQuicSocket({ endpoint: { port: 1234 } });
 
-socket.on('session', (session) => {
+socket.on('session', async (session) => {
   // A new server side session has been created!
-
-  session.on('secure', () => {
-    // Once the TLS handshake is completed, we can
-    // open streams...
-    const uni = session.openStream({ halfOpen: true });
-    uni.write('hi ');
-    uni.end('from the server!');
-  });
 
   // The peer opened a new stream!
   session.on('stream', (stream) => {
@@ -46,6 +38,10 @@ socket.on('session', (session) => {
     stream.on('data', console.log);
     stream.on('end', () => console.log('stream ended'));
   });
+
+  const uni = await session.openStream({ halfOpen: true });
+  uni.write('hi ');
+  uni.end('from the server!');
 });
 
 // Tell the socket to operate as a server using the given
@@ -58,7 +54,7 @@ socket.on('session', (session) => {
 
 ```
 
-## QUIC Basics
+## QUIC basics
 
 QUIC is a UDP-based network transport protocol that includes built-in security
 via TLS 1.3, flow control, error correction, connection migration,
@@ -84,7 +80,7 @@ Unlike the `net.Socket` and `tls.TLSSocket`, a `QuicSocket` instance cannot be
 directly used by user code at the JavaScript level to send or receive data over
 the network.
 
-### Client and Server QuicSessions
+### Client and server QuicSessions
 
 A `QuicSession` represents a logical connection between two QUIC endpoints (a
 client and a server). In the JavaScript API, each is represented by the
@@ -187,10 +183,12 @@ The `openStream()` method is used to create a new `QuicStream`:
 
 ```js
 // Create a new bidirectional stream
-const stream1 = session.openStream();
+async function createStreams(session) {
+  const stream1 = await session.openStream();
 
-// Create a new unidirectional stream
-const stream2 = session.openStream({ halfOpen: true });
+  // Create a new unidirectional stream
+  const stream2 = await session.openStream({ halfOpen: true });
+}
 ```
 
 As suggested by the names, a bidirectional stream allows data to be sent on
@@ -212,7 +210,7 @@ session.on('stream', (stream) => {
 });
 ```
 
-#### QuicStream Headers
+#### QuicStream headers
 
 Some QUIC application protocols (like HTTP/3) make use of headers.
 
@@ -498,7 +496,7 @@ also use explicit scope in addresses, so only packets sent to a multicast
 address without specifying an explicit scope are affected by the most recent
 successful use of this call.
 
-##### Examples: IPv6 Outgoing Multicast Interface
+##### Examples: IPv6 outgoing multicast interface
 <!-- YAML
 added: REPLACEME
 -->
@@ -524,7 +522,7 @@ socket.on('ready', () => {
 });
 ```
 
-##### Example: IPv4 Outgoing Multicast Interface
+##### Example: IPv4 outgoing multicast interface
 <!-- YAML
 added: REPLACEME
 -->
@@ -539,7 +537,7 @@ socket.on('ready', () => {
 });
 ```
 
-##### Call Results
+##### Call results
 
 A call on a socket that is not ready to send or no longer open may throw a
 Not running Error.
@@ -1045,12 +1043,13 @@ added: REPLACEME
   * `defaultEncoding` {string} The default encoding that is used when no
     encoding is specified as an argument to `quicstream.write()`. Default:
     `'utf8'`.
-* Returns: {QuicStream}
+* Returns: {Promise} containing {QuicStream}
 
-Returns a new `QuicStream`.
+Returns a `Promise` that resolves a new `QuicStream`.
 
-An error will be thrown if the `QuicSession` has been destroyed or is in the
-process of a graceful shutdown.
+The `Promise` will be rejected if the `QuicSession` has been destroyed, is in
+the process of a graceful shutdown, or the `QuicSession` is otherwise blocked
+from opening a new stream.
 
 #### `quicsession.ping()`
 <!--YAML
@@ -1189,23 +1188,6 @@ added: REPLACEME
 The `QuicClientSession` class implements the client side of a QUIC connection.
 Instances are created using the `quicsocket.connect()` method.
 
-#### Event: `'OCSPResponse'`
-<!-- YAML
-added: REPLACEME
--->
-
-Emitted when the `QuicClientSession` receives a requested OCSP certificate
-status response from the QUIC server peer.
-
-The callback is invoked with a single argument:
-
-* `response` {Buffer}
-
-Node.js does not perform any automatic validation or processing of the
-response.
-
-The `'OCSPResponse'` event will not be emitted more than once.
-
 #### Event: `'sessionTicket'`
 <!-- YAML
 added: REPLACEME
@@ -1313,24 +1295,6 @@ The callback is invoked with four arguments:
   the TLS handshake to continue.
 
 The `'clientHello'` event will not be emitted more than once.
-
-#### Event: `'OCSPRequest'`
-<!-- YAML
-added: REPLACEME
--->
-
-Emitted when the `QuicServerSession` has received a OCSP certificate status
-request as part of the TLS handshake.
-
-The callback is invoked with three arguments:
-
-* `servername` {string}
-* `context` {tls.SecureContext}
-* `callback` {Function}
-
-The callback *must* be invoked in order for the TLS handshake to continue.
-
-The `'OCSPRequest'` event will not be emitted more than once.
 
 #### `quicserversession.addContext(servername\[, context\])`
 <!-- YAML
@@ -1682,6 +1646,7 @@ added: REPLACEME
     * `qpackBlockedStreams` {number}
     * `maxHeaderListSize` {number}
     * `maxPushes` {number}
+  * `ocspHandler` {Function} A function for handling [OCSP responses][].
   * `passphrase` {string} Shared passphrase used for a single private key and/or
     a PFX.
   * `pfx` {string|string[]|Buffer|Buffer[]|Object[]} PFX or PKCS12 encoded
@@ -1703,9 +1668,6 @@ added: REPLACEME
     `QuicClientSession` object.
   * `qlog` {boolean} Whether to enable ['qlog'][] for this session.
     Default: `false`.
-  * `requestOCSP` {boolean} If `true`, specifies that the OCSP status request
-    extension will be added to the client hello and an `'OCSPResponse'` event
-    will be emitted before establishing a secure communication.
   * `secureOptions` {number} Optionally affect the OpenSSL protocol behavior,
     which is not usually necessary. This should be used carefully if at all!
     Value is a numeric bitmask of the `SSL_OP_*` options from
@@ -1853,6 +1815,7 @@ added: REPLACEME
   * `maxStreamDataBidiLocal` {number}
   * `maxStreamDataBidiRemote` {number}
   * `maxStreamDataUni` {number}
+  * `ocspHandler` {Function} A function for handling [OCSP requests][].
   * `passphrase` {string} Shared passphrase used for a single private key
     and/or a PFX.
   * `pfx` {string|string[]|Buffer|Buffer[]|Object[]} PFX or PKCS12 encoded
@@ -2117,15 +2080,6 @@ stream('initialHeaders', (headers) => {
 });
 ```
 
-#### Event: `'ready'`
-<!-- YAML
-added: REPLACEME
--->
-
-Emitted when the underlying `QuicSession` has emitted its `secure` event
-this stream has received its id, which is accessible as `stream.id` once this
-event is emitted.
-
 #### Event: `'trailingHeaders'`
 <!-- YAML
 added: REPLACEME
@@ -2153,14 +2107,6 @@ stream('trailingHeaders', (headers) => {
 added: REPLACEME
 -->
 
-#### `quicstream.aborted`
-<!-- YAML
-added: REPLACEME
--->
-* Type: {boolean}
-
-True if dataflow on the `QuicStream` was prematurely terminated.
-
 #### `quicstream.bidirectional`
 <!--YAML
 added: REPLACEME
@@ -2168,7 +2114,10 @@ added: REPLACEME
 
 * Type: {boolean}
 
-Set to `true` if the `QuicStream` is bidirectional.
+When `true`, the `QuicStream` is bidirectional. Both the readable and
+writable sides of the `QuicStream` `Duplex` are open.
+
+Read-only.
 
 #### `quicstream.bytesReceived`
 <!-- YAML
@@ -2179,6 +2128,8 @@ added: REPLACEME
 
 The total number of bytes received for this `QuicStream`.
 
+Read-only.
+
 #### `quicstream.bytesSent`
 <!-- YAML
 added: REPLACEME
@@ -2188,6 +2139,8 @@ added: REPLACEME
 
 The total number of bytes sent by this `QuicStream`.
 
+Read-only.
+
 #### `quicstream.clientInitiated`
 <!-- YAML
 added: REPLACEME
@@ -2195,17 +2148,20 @@ added: REPLACEME
 
 * Type: {boolean}
 
-Set to `true` if the `QuicStream` was initiated by a `QuicClientSession`
+Will be `true` if the `QuicStream` was initiated by a `QuicClientSession`
 instance.
 
-#### `quicstream.close(code)`
+Read-only.
+
+#### `quicstream.close()`
 <!-- YAML
 added: REPLACEME
 -->
 
-* `code` {number}
+* Returns: {Promise`}
 
-Closes the `QuicStream`.
+Closes the `QuicStream` by ending both sides of the `QuicStream` `Duplex`.
+Returns a `Promise` that is resolved once the `QuicStream` has been destroyed.
 
 #### `quicstream.dataAckHistogram`
 <!-- YAML
@@ -2236,6 +2192,8 @@ added: REPLACEME
 
 The length of time the `QuicStream` has been active.
 
+Read-only.
+
 #### `quicstream.finalSize`
 <!-- YAML
 added: REPLACEME
@@ -2244,6 +2202,8 @@ added: REPLACEME
 * Type: {number}
 
 The total number of bytes successfully received by the `QuicStream`.
+
+Read-only.
 
 #### `quicstream.id`
 <!-- YAML
@@ -2254,6 +2214,8 @@ added: REPLACEME
 
 The numeric identifier of the `QuicStream`.
 
+Read-only.
+
 #### `quicstream.maxAcknowledgedOffset`
 <!-- YAML
 added: REPLACEME
@@ -2262,6 +2224,8 @@ added: REPLACEME
 * Type: {number}
 
 The highest acknowledged data offset received for this `QuicStream`.
+
+Read-only.
 
 #### `quicstream.maxExtendedOffset`
 <!-- YAML
@@ -2272,6 +2236,8 @@ added: REPLACEME
 
 The maximum extended data offset that has been reported to the connected peer.
 
+Read-only.
+
 #### `quicstream.maxReceivedOffset`
 <!-- YAML
 added: REPLACEME
@@ -2281,15 +2247,7 @@ added: REPLACEME
 
 The maximum received offset for this `QuicStream`.
 
-#### `quicstream.pending`
-<!-- YAML
-added: REPLACEME
--->
-
-* {boolean}
-
-This property is `true` if the underlying session is not finished yet,
-i.e. before the `'ready'` event is emitted.
+Read-only.
 
 #### `quicstream.pushStream(headers\[, options\])`
 <!-- YAML
@@ -2324,8 +2282,10 @@ added: REPLACEME
 
 * Type: {boolean}
 
-Set to `true` if the `QuicStream` was initiated by a `QuicServerSession`
+Will be `true` if the `QuicStream` was initiated by a `QuicServerSession`
 instance.
+
+Read-only.
 
 #### `quicstream.session`
 <!-- YAML
@@ -2334,7 +2294,10 @@ added: REPLACEME
 
 * Type: {QuicSession}
 
-The `QuicServerSession` or `QuicClientSession`.
+The `QuicServerSession` or `QuicClientSession` to which the
+`QuicStream` belongs.
+
+Read-only.
 
 #### `quicstream.sendFD(fd\[, options\])`
 <!-- YAML
@@ -2415,11 +2378,30 @@ added: REPLACEME
 
 * Type: {boolean}
 
-Set to `true` if the `QuicStream` is unidirectional.
+Will be `true` if the `QuicStream` is undirectional. Whether the `QuicStream`
+will be readable or writable depends on whether the `quicstream.session` is
+a `QuicClientSession` or `QuicServerSession`, and whether the `QuicStream`
+was initiated locally or remotely.
 
-## Additional Notes
+| `quicstream.session` | `quicstream.serverInitiated` | Readable | Writable |
+| -------------------- | ---------------------------- | -------- | -------- |
+|  `QuicClientSession` |            `true`            |     Y    |     N    |
+|  `QuicServerSession` |            `true`            |     N    |     Y    |
+|  `QuicClientSession` |            `false`           |     N    |     Y    |
+|  `QuicServerSession` |            `false`           |     Y    |     N    |
 
-### Custom DNS Lookup Functions
+| `quicstream.session` | `quicstream.clientInitiated` | Readable | Writable |
+| -------------------- | ---------------------------- | -------- | -------- |
+|  `QuicClientSession` |            `true`            |     N    |     Y    |
+|  `QuicServerSession` |            `true`            |     Y    |     N    |
+|  `QuicClientSession` |            `false`           |     Y    |     N    |
+|  `QuicServerSession` |            `false`           |     N    |     Y    |
+
+Read-only.
+
+## Additional notes
+
+### Custom DNS lookup functions
 
 By default, the QUIC implementation uses the `dns` module's
 [promisified version of `lookup()`][] to resolve domains names
@@ -2448,6 +2430,55 @@ async function myCustomLookup(address, type) {
 }
 ```
 
+### Online Certificate Status Protocol (OCSP)
+
+The QUIC implementation supports use of OCSP during the TLS 1.3 handshake
+of a new QUIC session.
+
+#### Requests
+
+A `QuicServerSession` can receive and process OCSP requests by setting the
+`ocspHandler` option in the `quicsocket.listen()` function. The value of
+the `ocspHandler` is an async function that must return an object with the
+OCSP response and, optionally, a new {tls.SecureContext} to use during the
+handshake.
+
+The handler function will be invoked with two arguments:
+
+* `type`: {string} Will always be `request` for `QuicServerSession`.
+* `options`: {Object}
+  * `servername` {string} The SNI server name.
+  * `context` {tls.SecureContext} The `SecureContext` currently used.
+
+```js
+async function ocspServerHandler(type, { servername, context }) {
+  // Process the request...
+  return { data: Buffer.from('The OCSP response') };
+}
+
+sock.listen({ ocspHandler: ocspServerHandler });
+```
+
+#### Responses
+
+A `QuicClientSession` can receive and process OCSP responses by setting the
+`ocspHandler` option in the `quicsocket.connect()` function. The value of
+the `ocspHandler` is an async function with no expected return value.
+
+The handler function will be invoked with two arguments:
+
+* `type`: {string} Will always be `response` for `QuicClientSession`.
+* `options`: {Object}
+  * `data`: {Buffer} The OCSP response provided by the server
+
+```js
+async function ocspClientHandler(type, { data }) {
+  console.log(data.toString());
+}
+
+sock.connect({ ocspHandler: ocspClientHandler });
+```
+
 [`crypto.getCurves()`]: crypto.html#crypto_crypto_getcurves
 [`stream.Readable`]: #stream_class_stream_readable
 [`tls.DEFAULT_ECDH_CURVE`]: #tls_tls_default_ecdh_curve
@@ -2457,6 +2488,8 @@ async function myCustomLookup(address, type) {
 [Certificate Object]: https://nodejs.org/dist/latest-v12.x/docs/api/tls.html#tls_certificate_object
 [custom DNS lookup function]: #quic_custom_dns_lookup_functions
 [modifying the default cipher suite]: tls.html#tls_modifying_the_default_tls_cipher_suite
+[OCSP requests]: #quic_online_certificate_status_protocol_ocsp
+[OCSP responses]: #quic_online_certificate_status_protocol_ocsp
 [OpenSSL Options]: crypto.html#crypto_openssl_options
 [Perfect Forward Secrecy]: #tls_perfect_forward_secrecy
 [promisified version of `lookup()`]: dns.html#dns_dnspromises_lookup_hostname_options

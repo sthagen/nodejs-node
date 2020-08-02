@@ -37,12 +37,11 @@ const server = createQuicSocket({ server: options });
     port: server.endpoints[0].address.port
   });
 
-  const stream = req.openStream();
-  stream.write('foo');
+  const stream = await req.openStream();
+  stream.end('foo');
   // Do not explicitly end the stream here.
 
-  stream.on('finish', common.mustNotCall());
-  stream.on('data', common.mustNotCall());
+  stream.resume();
   stream.on('end', common.mustCall());
 
   stream.on('close', common.mustCall(() => {

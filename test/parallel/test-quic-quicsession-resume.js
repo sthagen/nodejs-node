@@ -17,12 +17,14 @@ const {
   debug,
 } = require('../common/quic');
 
+const { createWriteStream } = require('fs');
 const { createQuicSocket } = require('net');
 
-const options = { key, cert, ca, alpn: 'zzz' };
+const qlog = process.env.NODE_QLOG === '1';
+const options = { key, cert, ca, alpn: 'zzz', qlog };
 
-const server = createQuicSocket({ server: options });
-const client = createQuicSocket({ client: options });
+const server = createQuicSocket({ qlog, server: options });
+const client = createQuicSocket({ qlog, client: options });
 
 const countdown = new Countdown(2, () => {
   server.close();
@@ -30,12 +32,13 @@ const countdown = new Countdown(2, () => {
 });
 
 (async function() {
+  let counter = 0;
   server.on('session', common.mustCall((session) => {
-    session.on('secure', common.mustCall(() => {
-      assert(session.usingEarlyData);
-    }));
-
+    if (qlog) session.qlog.pipe(createWriteStream(`server-${counter++}.qlog`));
     session.on('stream', common.mustCall((stream) => {
+      stream.on('close', common.mustCall());
+      assert(stream.unidirectional);
+      assert(!stream.writable);
       stream.resume();
     }));
   }, 2));
@@ -49,6 +52,7 @@ const countdown = new Countdown(2, () => {
     address: common.localhostIPv4,
     port: server.endpoints[0].address.port,
   });
+  if (qlog) req.qlog.pipe(createWriteStream(`client-${counter}.qlog`));
 
   req.on('sessionTicket', common.mustCall((ticket, params) => {
     assert(ticket instanceof Buffer);
@@ -59,17 +63,13 @@ const countdown = new Countdown(2, () => {
     storedParams = params;
   }, 1));
 
-  req.on('secure', () => {
-    const stream = req.openStream({ halfOpen: true });
-    stream.end('hello');
-    stream.resume();
-    stream.on('close', () => {
-      req.close();
-      countdown.dec();
-      // Wait a turn then start a new session using the stored
-      // ticket and transportParameters
-      setImmediate(newSession, storedTicket, storedParams);
-    });
+  const stream = await req.openStream({ halfOpen: true });
+  stream.end('hello');
+  stream.on('close', () => {
+    countdown.dec();
+    // Wait a turn then start a new session using the stored
+    // ticket and transportParameters
+    setImmediate(newSession, storedTicket, storedParams);
   });
 
   async function newSession(sessionTicket, remoteTransportParams) {
@@ -79,29 +79,19 @@ const countdown = new Countdown(2, () => {
       sessionTicket,
       remoteTransportParams
     });
+    if (qlog) req.qlog.pipe(createWriteStream('client2.qlog'));
 
     assert(req.allowEarlyData);
 
-    const stream = req.openStream({ halfOpen: true });
+    const stream = await req.openStream({ halfOpen: true });
     stream.end('hello');
     stream.on('error', common.mustNotCall());
     stream.on('close', common.mustCall(() => countdown.dec()));
 
-    // TODO(@jasnell): There's a slight bug in here in that
-    // calling end() will uncork the stream, causing data to
-    // be flushed to the C++ layer, which will trigger a
-    // SendPendingData that will start the handshake. That
-    // has the effect of short circuiting the intent of
-    // manual startHandshake(), which makes it not use 0RTT
-    // for the stream data.
-
-    req.on('secure', common.mustCall(() => {
-      // TODO(@jasnell): This will be false for now because no
-      // early data was sent. Once we actually start making
-      // use of early data on the client side, this should be
-      // true when the early data was accepted.
-      assert(!req.usingEarlyData);
-    }));
+    // TODO(@jasnell): This will be false for now because no
+    // early data was sent. Once we actually start making
+    // use of early data on the client side, this should be
+    // true when the early data was accepted.
+    assert(!req.usingEarlyData);
   }
-
 })().then(common.mustCall());
