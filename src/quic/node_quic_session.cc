@@ -31,6 +31,7 @@
 #include "uv.h"
 
 #include <algorithm>
+#include <memory>
 #include <vector>
 #include <string>
 #include <utility>
@@ -43,7 +44,6 @@ using crypto::SecureContext;
 using v8::Array;
 using v8::ArrayBufferView;
 using v8::Context;
-using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::HandleScope;
@@ -57,7 +57,39 @@ using v8::String;
 using v8::Undefined;
 using v8::Value;
 
+using TryCatchScope = node::errors::TryCatchScope;
+
 namespace quic {
+
+QuicCallbackScope::QuicCallbackScope(QuicSession* session)
+    : session_(session),
+      private_(new InternalCallbackScope(
+          session->env(),
+          session->object(),
+          {
+            session->get_async_id(),
+            session->get_trigger_async_id()
+          })),
+      try_catch_(session->env()->isolate()) {
+  try_catch_.SetVerbose(true);
+}
+
+QuicCallbackScope::~QuicCallbackScope() {
+  Environment* env = session_->env();
+  if (UNLIKELY(try_catch_.HasCaught())) {
+    session_->crypto_context()->set_in_client_hello(false);
+    session_->crypto_context()->set_in_ocsp_request(false);
+    if (!try_catch_.HasTerminated() && env->can_call_into_js()) {
+      session_->set_last_error({
+        QUIC_ERROR_SESSION,
+        uint64_t{NGTCP2_INTERNAL_ERROR}
+      });
+      session_->Close();
+      CHECK(session_->is_destroyed());
+    }
+    private_->MarkAsFailed();
+  }
+}
 
 typedef ssize_t(*ngtcp2_close_fn)(
   ngtcp2_conn* conn,
@@ -366,14 +398,24 @@ void JSQuicSessionListener::OnKeylog(const char* line, size_t len) {
 
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
-  Local<Value> line_bf = Buffer::Copy(env, line, 1 + len).ToLocalChecked();
-  char* data = Buffer::Data(line_bf);
+
+  QuicCallbackScope cb_scope(session());
+
+  Local<Value> line_buf;
+  if (!Buffer::Copy(env, line, 1 + len).ToLocal(&line_buf))
+    return;
+
+  char* data = Buffer::Data(line_buf);
   data[len] = '\n';
 
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(env->quic_on_session_keylog_function(), 1, &line_bf);
+  USE(env->quic_on_session_keylog_function()->Call(
+      env->context(),
+      session()->object(),
+      1,
+      &line_buf));
 }
 
 void JSQuicSessionListener::OnStreamBlocked(int64_t stream_id) {
@@ -381,8 +423,14 @@ void JSQuicSessionListener::OnStreamBlocked(int64_t stream_id) {
 
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
+
+  QuicCallbackScope cb_scope(session());
+
   BaseObjectPtr<QuicStream> stream = session()->FindStream(stream_id);
-  stream->MakeCallback(env->quic_on_stream_blocked_function(), 0, nullptr);
+  USE(env->quic_on_stream_blocked_function()->Call(
+      env->context(),
+      stream->object(),
+      0, nullptr));
 }
 
 void JSQuicSessionListener::OnClientHello(
@@ -393,25 +441,42 @@ void JSQuicSessionListener::OnClientHello(
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
 
-  Local<Value> argv[] = {
-    Undefined(env->isolate()),
-    Undefined(env->isolate()),
-    session()->crypto_context()->hello_ciphers().ToLocalChecked()
-  };
+  // Why this instead of using MakeCallback? We need to catch any
+  // errors that happen both when preparing the arguments and
+  // invoking the callback so that we can properly signal a failure
+  // to the peer.
+  QuicCallbackScope cb_scope(session());
 
-  if (alpn != nullptr) {
-    argv[0] = String::NewFromUtf8(env->isolate(), alpn).ToLocalChecked();
+  Local<Array> ciphers;
+  Local<Value> alpn_string = Undefined(env->isolate());
+  Local<Value> servername = Undefined(env->isolate());
+
+  if (!session()->crypto_context()->hello_ciphers().ToLocal(&ciphers) ||
+      (alpn != nullptr &&
+       !String::NewFromUtf8(
+           env->isolate(),
+           alpn).ToLocal(&alpn_string)) ||
+      (server_name != nullptr &&
+       !String::NewFromUtf8(
+           env->isolate(),
+           server_name).ToLocal(&servername))) {
+    return;
   }
-  if (server_name != nullptr) {
-    argv[1] = String::NewFromUtf8(env->isolate(), server_name).ToLocalChecked();
-  }
+
+  Local<Value> argv[] = {
+    alpn_string,
+    servername,
+    ciphers
+  };
 
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_client_hello_function(),
-      arraysize(argv), argv);
+  USE(env->quic_on_session_client_hello_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnCert(const char* server_name) {
@@ -419,18 +484,24 @@ void JSQuicSessionListener::OnCert(const char* server_name) {
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
 
+  QuicCallbackScope cb_scope(session());
+
   Local<Value> servername = Undefined(env->isolate());
-  if (server_name != nullptr) {
-    servername = OneByteString(
-        env->isolate(),
-        server_name,
-        strlen(server_name));
+  if (UNLIKELY(server_name != nullptr &&
+      !String::NewFromUtf8(
+          env->isolate(),
+          server_name,
+          v8::NewStringType::kNormal,
+          strlen(server_name)).ToLocal(&servername))) {
+    return;
   }
 
-  // Grab a shared pointer to this to prevent the QuicSession
-  // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(env->quic_on_session_cert_function(), 1, &servername);
+
+  USE(env->quic_on_session_cert_function()->Call(
+      env->context(),
+      session()->object(),
+      1, &servername));
 }
 
 void JSQuicSessionListener::OnStreamHeaders(
@@ -443,35 +514,50 @@ void JSQuicSessionListener::OnStreamHeaders(
   Context::Scope context_scope(env->context());
   MaybeStackBuffer<Local<Value>, 16> head(headers.size());
   size_t n = 0;
+
+  QuicCallbackScope cb_scope(session());
+
   for (const auto& header : headers) {
-    // name and value should never be empty here, and if
-    // they are, there's an actual bug so go ahead and crash
-    Local<Value> pair[] = {
-      header->GetName(session()->application()).ToLocalChecked(),
-      header->GetValue(session()->application()).ToLocalChecked()
-    };
+    Local<Value> pair[2];
+
+    if (UNLIKELY(!header->GetName(session()->application()).ToLocal(&pair[0])))
+      return;
+
+    if (UNLIKELY(!header->GetValue(session()->application()).ToLocal(&pair[1])))
+      return;
+
     head[n++] = Array::New(env->isolate(), pair, arraysize(pair));
   }
+
   Local<Value> argv[] = {
       Number::New(env->isolate(), static_cast<double>(stream_id)),
       Array::New(env->isolate(), head.out(), n),
       Integer::New(env->isolate(), kind),
       Undefined(env->isolate())
   };
+
   if (kind == QUICSTREAM_HEADERS_KIND_PUSH)
     argv[3] = Number::New(env->isolate(), static_cast<double>(push_id));
+
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_stream_headers_function(),
-      arraysize(argv), argv);
+
+  USE(env->quic_on_stream_headers_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnOCSP(Local<Value> ocsp) {
   Environment* env = session()->env();
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
+  QuicCallbackScope cb_scope(session());
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(env->quic_on_session_status_function(), 1, &ocsp);
+  USE(env->quic_on_session_status_function()->Call(
+      env->context(),
+      session()->object(),
+      1, &ocsp));
 }
 
 void JSQuicSessionListener::OnStreamClose(
@@ -481,6 +567,8 @@ void JSQuicSessionListener::OnStreamClose(
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
 
+  QuicCallbackScope cb_scope(session());
+
   Local<Value> argv[] = {
     Number::New(env->isolate(), static_cast<double>(stream_id)),
     Number::New(env->isolate(), static_cast<double>(app_error_code))
@@ -489,10 +577,12 @@ void JSQuicSessionListener::OnStreamClose(
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_stream_close_function(),
+
+  USE(env->quic_on_stream_close_function()->Call(
+      env->context(),
+      session()->object(),
       arraysize(argv),
-      argv);
+      argv));
 }
 
 void JSQuicSessionListener::OnStreamReset(
@@ -502,6 +592,8 @@ void JSQuicSessionListener::OnStreamReset(
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
 
+  QuicCallbackScope cb_scope(session());
+
   Local<Value> argv[] = {
     Number::New(env->isolate(), static_cast<double>(stream_id)),
     Number::New(env->isolate(), static_cast<double>(app_error_code))
@@ -509,16 +601,20 @@ void JSQuicSessionListener::OnStreamReset(
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_stream_reset_function(),
+
+  USE(env->quic_on_stream_reset_function()->Call(
+      env->context(),
+      session()->object(),
       arraysize(argv),
-      argv);
+      argv));
 }
 
 void JSQuicSessionListener::OnSessionClose(QuicError error, int flags) {
   Environment* env = session()->env();
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
+
+  QuicCallbackScope cb_scope(session());
 
   Local<Value> argv[] = {
     Number::New(env->isolate(), static_cast<double>(error.code)),
@@ -534,15 +630,20 @@ void JSQuicSessionListener::OnSessionClose(QuicError error, int flags) {
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_close_function(),
-      arraysize(argv), argv);
+  USE(env->quic_on_session_close_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnStreamReady(BaseObjectPtr<QuicStream> stream) {
   Environment* env = session()->env();
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
+
+  QuicCallbackScope cb_scope(session());
+
   Local<Value> argv[] = {
     stream->object(),
     Number::New(env->isolate(), static_cast<double>(stream->id())),
@@ -552,9 +653,12 @@ void JSQuicSessionListener::OnStreamReady(BaseObjectPtr<QuicStream> stream) {
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_stream_ready_function(),
-      arraysize(argv), argv);
+
+  USE(env->quic_on_stream_ready_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnHandshakeCompleted() {
@@ -563,26 +667,40 @@ void JSQuicSessionListener::OnHandshakeCompleted() {
   Context::Scope context_scope(env->context());
 
   QuicCryptoContext* ctx = session()->crypto_context();
-  Local<Value> servername = Undefined(env->isolate());
-  const char* hostname = ctx->servername();
-  if (hostname != nullptr) {
-    servername =
-        String::NewFromUtf8(env->isolate(), hostname).ToLocalChecked();
-  }
 
+  QuicCallbackScope cb_scope(session());
+
+  Local<Value> servername = Undefined(env->isolate());
   Local<Value> validationErrorReason = v8::Null(env->isolate());
   Local<Value> validationErrorCode = v8::Null(env->isolate());
+  Local<Value> cipher_name;
+  Local<Value> cipher_version;
+
+  const char* hostname = ctx->servername();
+  if (hostname != nullptr &&
+      !String::NewFromUtf8(env->isolate(), hostname).ToLocal(&servername)) {
+    return;
+  }
+
+  if (!ctx->cipher_name().ToLocal(&cipher_name) ||
+      !ctx->cipher_version().ToLocal(&cipher_version)) {
+    return;
+  }
+
   int err = ctx->VerifyPeerIdentity();
-  if (err != X509_V_OK) {
-    crypto::GetValidationErrorReason(env, err).ToLocal(&validationErrorReason);
-    crypto::GetValidationErrorCode(env, err).ToLocal(&validationErrorCode);
+  if (err != X509_V_OK &&
+      (!crypto::GetValidationErrorReason(env, err)
+            .ToLocal(&validationErrorReason) ||
+       !crypto::GetValidationErrorCode(env, err)
+            .ToLocal(&validationErrorCode))) {
+      return;
   }
 
   Local<Value> argv[] = {
     servername,
     GetALPNProtocol(*session()),
-    ctx->cipher_name().ToLocalChecked(),
-    ctx->cipher_version().ToLocalChecked(),
+    cipher_name,
+    cipher_version,
     Integer::New(env->isolate(), session()->max_pktlen_),
     validationErrorReason,
     validationErrorCode,
@@ -594,10 +712,12 @@ void JSQuicSessionListener::OnHandshakeCompleted() {
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_handshake_function(),
+
+  USE(env->quic_on_session_handshake_function()->Call(
+      env->context(),
+      session()->object(),
       arraysize(argv),
-      argv);
+      argv));
 }
 
 void JSQuicSessionListener::OnPathValidation(
@@ -611,6 +731,9 @@ void JSQuicSessionListener::OnPathValidation(
   HandleScope scope(env->isolate());
   Local<Context> context = env->context();
   Context::Scope context_scope(context);
+
+  QuicCallbackScope cb_scope(session());
+
   Local<Value> argv[] = {
     Integer::New(env->isolate(), res),
     AddressToJS(env, local),
@@ -619,16 +742,20 @@ void JSQuicSessionListener::OnPathValidation(
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_path_validation_function(),
+
+  USE(env->quic_on_session_path_validation_function()->Call(
+      env->context(),
+      session()->object(),
       arraysize(argv),
-      argv);
+      argv));
 }
 
 void JSQuicSessionListener::OnSessionTicket(int size, SSL_SESSION* sess) {
   Environment* env = session()->env();
   HandleScope scope(env->isolate());
   Context::Scope context_scope(env->context());
+
+  QuicCallbackScope cb_scope(session());
 
   Local<Value> argv[] = {
     v8::Undefined(env->isolate()),
@@ -641,22 +768,28 @@ void JSQuicSessionListener::OnSessionTicket(int size, SSL_SESSION* sess) {
     unsigned char* session_data =
         reinterpret_cast<unsigned char*>(session_ticket.data());
     memset(session_data, 0, size);
-    if (i2d_SSL_SESSION(sess, &session_data) > 0)
-      argv[0] = session_ticket.ToBuffer().ToLocalChecked();
+    if (i2d_SSL_SESSION(sess, &session_data) > 0 &&
+        !session_ticket.ToBuffer().ToLocal(&argv[0])) {
+      return;
+    }
   }
 
-  if (session()->is_transport_params_set()) {
-    argv[1] = Buffer::Copy(
-        env,
-        reinterpret_cast<const char*>(&session()->transport_params_),
-        sizeof(session()->transport_params_)).ToLocalChecked();
+  if (session()->is_transport_params_set() &&
+      !Buffer::Copy(env,
+           reinterpret_cast<const char*>(&session()->transport_params_),
+           sizeof(session()->transport_params_)).ToLocal(&argv[1])) {
+    return;
   }
+
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_ticket_function(),
-      arraysize(argv), argv);
+
+  USE(env->quic_on_session_ticket_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnUsePreferredAddress(
@@ -666,6 +799,8 @@ void JSQuicSessionListener::OnUsePreferredAddress(
   HandleScope scope(env->isolate());
   Local<Context> context = env->context();
   Context::Scope context_scope(context);
+
+  QuicCallbackScope cb_scope(session());
 
   std::string hostname = family == AF_INET ?
       preferred_address.ipv4_address():
@@ -682,9 +817,12 @@ void JSQuicSessionListener::OnUsePreferredAddress(
   };
 
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_use_preferred_address_function(),
-      arraysize(argv), argv);
+
+  USE(env->quic_on_session_use_preferred_address_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnVersionNegotiation(
@@ -695,6 +833,8 @@ void JSQuicSessionListener::OnVersionNegotiation(
   HandleScope scope(env->isolate());
   Local<Context> context = env->context();
   Context::Scope context_scope(context);
+
+  QuicCallbackScope cb_scope(session());
 
   MaybeStackBuffer<Local<Value>, 4> versions(vcnt);
   for (size_t n = 0; n < vcnt; n++)
@@ -715,9 +855,11 @@ void JSQuicSessionListener::OnVersionNegotiation(
   // Grab a shared pointer to this to prevent the QuicSession
   // from being freed while the MakeCallback is running.
   BaseObjectPtr<QuicSession> ptr(session());
-  session()->MakeCallback(
-      env->quic_on_session_version_negotiation_function(),
-      arraysize(argv), argv);
+  USE(env->quic_on_session_version_negotiation_function()->Call(
+      env->context(),
+      session()->object(),
+      arraysize(argv),
+      argv));
 }
 
 void JSQuicSessionListener::OnQLog(QLogStream* qlog_stream) {
@@ -725,8 +867,12 @@ void JSQuicSessionListener::OnQLog(QLogStream* qlog_stream) {
   Environment* env = session()->env();
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
+  QuicCallbackScope cb_scope(session());
   Local<Value> obj = qlog_stream->object();
-  session()->MakeCallback(env->quic_on_session_qlog_function(), 1, &obj);
+  USE(env->quic_on_session_qlog_function()->Call(
+      env->context(),
+      session()->object(),
+      1, &obj));
 }
 
 // Generates a new random connection ID.
@@ -973,23 +1119,20 @@ int QuicCryptoContext::OnOCSP() {
   return is_in_ocsp_request() ? -1 : 1;
 }
 
-// The OnCertDone function is called by the QuicSessionOnCertDone
-// function when usercode is done handling the OCSPRequest event.
-void QuicCryptoContext::OnOCSPDone(
-    BaseObjectPtr<SecureContext> context,
-    Local<Value> ocsp_response) {
+void QuicCryptoContext::OnClientHelloDone(
+    BaseObjectPtr<SecureContext> context) {
   Debug(session(),
-        "OCSPRequest completed. Context Provided? %s, OCSP Provided? %s",
-        context ? "Yes" : "No",
-        ocsp_response->IsArrayBufferView() ? "Yes" : "No");
+        "ClientHello completed. Context Provided? %s\n",
+        context ? "Yes" : "No");
+
   // Continue the TLS handshake when this function exits
   // otherwise it will stall and fail.
   TLSHandshakeScope handshake_scope(
       this,
-      [&]() { set_in_ocsp_request(false); });
+      [&]() { set_in_client_hello(false); });
 
   // Disable the callback at this point so we don't loop continuously
-  session_->state_->ocsp_enabled = 0;
+  session_->state_->client_hello_enabled = 0;
 
   if (context) {
     int err = crypto::UseSNIContext(ssl_, context);
@@ -999,7 +1142,24 @@ void QuicCryptoContext::OnOCSPDone(
           THROW_ERR_QUIC_FAILURE_SETTING_SNI_CONTEXT(session_->env()) :
           crypto::ThrowCryptoError(session_->env(), err);
     }
+    secure_context_ = context;
   }
+}
+
+// The OnCertDone function is called by the QuicSessionOnCertDone
+// function when usercode is done handling the OCSPRequest event.
+void QuicCryptoContext::OnOCSPDone(Local<Value> ocsp_response) {
+  Debug(session(),
+        "OCSPRequest completed. Response Provided? %s",
+        ocsp_response->IsArrayBufferView() ? "Yes" : "No");
+  // Continue the TLS handshake when this function exits
+  // otherwise it will stall and fail.
+  TLSHandshakeScope handshake_scope(
+      this,
+      [&]() { set_in_ocsp_request(false); });
+
+  // Disable the callback at this point so we don't loop continuously
+  session_->state_->ocsp_enabled = 0;
 
   if (ocsp_response->IsArrayBufferView()) {
     ocsp_response_.Reset(
@@ -1462,12 +1622,12 @@ QuicSession::QuicSession(
   PushListener(&default_listener_);
   set_connection_id_strategy(RandomConnectionIDStrategy);
   set_preferred_address_strategy(preferred_address_strategy);
-  crypto_context_.reset(
-      new QuicCryptoContext(
+  crypto_context_ = std::make_unique<QuicCryptoContext>(
+
           this,
           secure_context,
           side,
-          options));
+          options);
   application_.reset(SelectApplication(this));
 
   wrap->DefineOwnProperty(
@@ -2698,32 +2858,22 @@ void QuicSession::InitServer(
 }
 
 namespace {
-// A pointer to this function is passed to the JavaScript side during
-// the client hello and is called by user code when the TLS handshake
-// should resume.
 void QuicSessionOnClientHelloDone(const FunctionCallbackInfo<Value>& args) {
-  QuicSession* session;
-  ASSIGN_OR_RETURN_UNWRAP(&session, args.Holder());
-  session->crypto_context()->OnClientHelloDone();
-}
-
-// This callback is invoked by user code after completing handling
-// of the 'OCSPRequest' event. The callback is invoked with two
-// possible arguments, both of which are optional
-//   1. A replacement SecureContext
-//   2. An OCSP response
-void QuicSessionOnCertDone(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   QuicSession* session;
   ASSIGN_OR_RETURN_UNWRAP(&session, args.Holder());
-
   Local<FunctionTemplate> cons = env->secure_context_constructor_template();
   SecureContext* context = nullptr;
   if (args[0]->IsObject() && cons->HasInstance(args[0]))
     context = Unwrap<SecureContext>(args[0].As<Object>());
-  session->crypto_context()->OnOCSPDone(
-      BaseObjectPtr<SecureContext>(context),
-      args[1]);
+  session->crypto_context()->OnClientHelloDone(
+      BaseObjectPtr<SecureContext>(context));
+}
+
+void QuicSessionOnCertDone(const FunctionCallbackInfo<Value>& args) {
+  QuicSession* session;
+  ASSIGN_OR_RETURN_UNWRAP(&session, args.Holder());
+  session->crypto_context()->OnOCSPDone(args[0]);
 }
 }  // namespace
 
@@ -2896,11 +3046,12 @@ int QuicSession::OnReceiveCryptoData(
     return NGTCP2_ERR_CALLBACK_FAILURE;
 
   QuicSession::NgCallbackScope callback_scope(session);
-  return session->crypto_context()->Receive(
+  int ret = session->crypto_context()->Receive(
       crypto_level,
       offset,
       data,
       datalen);
+  return ret == 0 ? 0 : NGTCP2_ERR_CALLBACK_FAILURE;
 }
 
 // Called by ngtcp2 for both client and server connections

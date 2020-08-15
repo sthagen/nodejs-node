@@ -407,13 +407,11 @@ class QuicCryptoContext final : public MemoryRetainer {
 
   int OnClientHello();
 
-  inline void OnClientHelloDone();
+  void OnClientHelloDone(BaseObjectPtr<crypto::SecureContext> context);
 
   int OnOCSP();
 
-  void OnOCSPDone(
-      BaseObjectPtr<crypto::SecureContext> secure_context,
-      v8::Local<v8::Value> ocsp_response);
+  void OnOCSPDone(v8::Local<v8::Value> ocsp_response);
 
   bool OnSecrets(
       ngtcp2_crypto_level level,
@@ -1507,6 +1505,22 @@ class QuicSession final : public AsyncWrap,
   friend class QuicCryptoContext;
   friend class QuicSessionListener;
   friend class JSQuicSessionListener;
+};
+
+class QuicCallbackScope {
+ public:
+  explicit QuicCallbackScope(QuicSession* session);
+  ~QuicCallbackScope();
+
+  void operator=(const QuicCallbackScope&) = delete;
+  void operator=(QuicCallbackScope&&) = delete;
+  QuicCallbackScope(const QuicCallbackScope&) = delete;
+  QuicCallbackScope(QuicCallbackScope&&) = delete;
+
+ private:
+  BaseObjectPtr<QuicSession> session_;
+  std::unique_ptr<InternalCallbackScope> private_;
+  v8::TryCatch try_catch_;
 };
 
 }  // namespace quic

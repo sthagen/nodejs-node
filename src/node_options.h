@@ -100,6 +100,7 @@ class DebugOptions : public Options {
 class EnvironmentOptions : public Options {
  public:
   bool abort_on_uncaught_exception = false;
+  std::vector<std::string> conditions;
   bool enable_source_maps = false;
   bool experimental_json_modules = false;
   bool experimental_modules = false;
@@ -188,7 +189,7 @@ class PerIsolateOptions : public Options {
   bool no_node_snapshot = false;
   bool report_uncaught_exception = false;
   bool report_on_signal = false;
-  bool experimental_top_level_await = false;
+  bool experimental_top_level_await = true;
   std::string report_signal = "SIGUSR2";
   inline EnvironmentOptions* get_per_env_options();
   void CheckOptions(std::vector<std::string>* errors) override;

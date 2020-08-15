@@ -284,7 +284,7 @@ Additionally, the [`buf.values()`][], [`buf.keys()`][], and
 The `Buffer` class is a global type for dealing with binary data directly.
 It can be constructed in a variety of ways.
 
-### Class Method: `Buffer.alloc(size[, fill[, encoding]])`
+### Static method: `Buffer.alloc(size[, fill[, encoding]])`
 <!-- YAML
 added: v5.10.0
 changes:
@@ -349,7 +349,7 @@ data that might not have been allocated for `Buffer`s.
 
 A `TypeError` will be thrown if `size` is not a number.
 
-### Class Method: `Buffer.allocUnsafe(size)`
+### Static method: `Buffer.allocUnsafe(size)`
 <!-- YAML
 added: v5.10.0
 changes:
@@ -398,7 +398,7 @@ pool, while `Buffer.allocUnsafe(size).fill(fill)` *will* use the internal
 difference is subtle but can be important when an application requires the
 additional performance that [`Buffer.allocUnsafe()`][] provides.
 
-### Class Method: `Buffer.allocUnsafeSlow(size)`
+### Static method: `Buffer.allocUnsafeSlow(size)`
 <!-- YAML
 added: v5.12.0
 -->
@@ -446,7 +446,7 @@ socket.on('readable', () => {
 
 A `TypeError` will be thrown if `size` is not a number.
 
-### Class Method: `Buffer.byteLength(string[, encoding])`
+### Static method: `Buffer.byteLength(string[, encoding])`
 <!-- YAML
 added: v0.1.90
 changes:
@@ -485,7 +485,7 @@ When `string` is a `Buffer`/[`DataView`][]/[`TypedArray`][]/[`ArrayBuffer`][]/
 [`SharedArrayBuffer`][], the byte length as reported by `.byteLength`
 is returned.
 
-### Class Method: `Buffer.compare(buf1, buf2)`
+### Static method: `Buffer.compare(buf1, buf2)`
 <!-- YAML
 added: v0.11.13
 changes:
@@ -513,7 +513,7 @@ console.log(arr.sort(Buffer.compare));
 // (This result is equal to: [buf2, buf1].)
 ```
 
-### Class Method: `Buffer.concat(list[, totalLength])`
+### Static method: `Buffer.concat(list[, totalLength])`
 <!-- YAML
 added: v0.7.11
 changes:
@@ -560,7 +560,7 @@ console.log(bufA.length);
 // Prints: 42
 ```
 
-### Class Method: `Buffer.from(array)`
+### Static method: `Buffer.from(array)`
 <!-- YAML
 added: v5.10.0
 -->
@@ -581,7 +581,7 @@ appropriate for `Buffer.from()` variants.
 `Buffer.from(array)` and [`Buffer.from(string)`][] may also use the internal
 `Buffer` pool like [`Buffer.allocUnsafe()`][] does.
 
-### Class Method: `Buffer.from(arrayBuffer[, byteOffset[, length]])`
+### Static method: `Buffer.from(arrayBuffer[, byteOffset[, length]])`
 <!-- YAML
 added: v5.10.0
 -->
@@ -632,7 +632,7 @@ A `TypeError` will be thrown if `arrayBuffer` is not an [`ArrayBuffer`][] or a
 [`SharedArrayBuffer`][] or another type appropriate for `Buffer.from()`
 variants.
 
-### Class Method: `Buffer.from(buffer)`
+### Static method: `Buffer.from(buffer)`
 <!-- YAML
 added: v5.10.0
 -->
@@ -657,7 +657,7 @@ console.log(buf2.toString());
 A `TypeError` will be thrown if `buffer` is not a `Buffer` or another type
 appropriate for `Buffer.from()` variants.
 
-### Class Method: `Buffer.from(object[, offsetOrEncoding[, length]])`
+### Static method: `Buffer.from(object[, offsetOrEncoding[, length]])`
 <!-- YAML
 added: v8.2.0
 -->
@@ -691,7 +691,7 @@ const buf = Buffer.from(new Foo(), 'utf8');
 A `TypeError` will be thrown if `object` does not have the mentioned methods or
 is not of another type appropriate for `Buffer.from()` variants.
 
-### Class Method: `Buffer.from(string[, encoding])`
+### Static method: `Buffer.from(string[, encoding])`
 <!-- YAML
 added: v5.10.0
 -->
@@ -717,7 +717,7 @@ console.log(buf1.toString('latin1'));
 A `TypeError` will be thrown if `string` is not a string or another type
 appropriate for `Buffer.from()` variants.
 
-### Class Method: `Buffer.isBuffer(obj)`
+### Static method: `Buffer.isBuffer(obj)`
 <!-- YAML
 added: v0.1.101
 -->
@@ -727,7 +727,7 @@ added: v0.1.101
 
 Returns `true` if `obj` is a `Buffer`, `false` otherwise.
 
-### Class Method: `Buffer.isEncoding(encoding)`
+### Static method: `Buffer.isEncoding(encoding)`
 <!-- YAML
 added: v0.9.1
 -->
@@ -1709,6 +1709,9 @@ console.log(buf.readIntLE(0, 6).toString(16));
 <!-- YAML
 added: v0.5.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUint8()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1736,6 +1739,9 @@ console.log(buf.readUInt8(2));
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUint16BE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1762,6 +1768,9 @@ console.log(buf.readUInt16BE(1).toString(16));
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUint16LE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1790,6 +1799,9 @@ console.log(buf.readUInt16LE(2).toString(16));
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUint32BE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1814,6 +1826,9 @@ console.log(buf.readUInt32BE(0).toString(16));
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUint32LE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1840,6 +1855,9 @@ console.log(buf.readUInt32LE(1).toString(16));
 <!-- YAML
 added: v0.11.15
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUintBE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -1869,6 +1887,9 @@ console.log(buf.readUIntBE(1, 6).toString(16));
 <!-- YAML
 added: v0.11.15
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.readUintLE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2651,6 +2672,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUint8()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2682,6 +2706,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUint16BE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2711,6 +2738,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUint16LE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2740,6 +2770,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUint32BE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2768,6 +2801,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUint32LE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2796,6 +2832,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUintBE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -2826,6 +2865,9 @@ console.log(buf);
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34729
+    description: This function is also available as `buf.writeUintLE()`.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18395
     description: Removed `noAssert` and no implicit coercion of the offset
@@ -3206,13 +3248,13 @@ introducing security vulnerabilities into an application.
 [RFC 4648, Section 5]: https://tools.ietf.org/html/rfc4648#section-5
 [WHATWG Encoding Standard]: https://encoding.spec.whatwg.org/
 [`ArrayBuffer`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
-[`Buffer.alloc()`]: #buffer_class_method_buffer_alloc_size_fill_encoding
-[`Buffer.allocUnsafe()`]: #buffer_class_method_buffer_allocunsafe_size
-[`Buffer.allocUnsafeSlow()`]: #buffer_class_method_buffer_allocunsafeslow_size
-[`Buffer.from(array)`]: #buffer_class_method_buffer_from_array
-[`Buffer.from(arrayBuf)`]: #buffer_class_method_buffer_from_arraybuffer_byteoffset_length
-[`Buffer.from(buffer)`]: #buffer_class_method_buffer_from_buffer
-[`Buffer.from(string)`]: #buffer_class_method_buffer_from_string_encoding
+[`Buffer.alloc()`]: #buffer_static_method_buffer_alloc_size_fill_encoding
+[`Buffer.allocUnsafe()`]: #buffer_static_method_buffer_allocunsafe_size
+[`Buffer.allocUnsafeSlow()`]: #buffer_static_method_buffer_allocunsafeslow_size
+[`Buffer.from(array)`]: #buffer_static_method_buffer_from_array
+[`Buffer.from(arrayBuf)`]: #buffer_static_method_buffer_from_arraybuffer_byteoffset_length
+[`Buffer.from(buffer)`]: #buffer_static_method_buffer_from_buffer
+[`Buffer.from(string)`]: #buffer_static_method_buffer_from_string_encoding
 [`Buffer.poolSize`]: #buffer_class_property_buffer_poolsize
 [`DataView`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
 [`ERR_INVALID_BUFFER_SIZE`]: errors.html#ERR_INVALID_BUFFER_SIZE

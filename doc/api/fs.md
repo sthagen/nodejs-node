@@ -4016,6 +4016,7 @@ to be notified of filesystem changes.
 * On SunOS systems (including Solaris and SmartOS), this uses [`event ports`][].
 * On Windows systems, this feature depends on [`ReadDirectoryChangesW`][].
 * On Aix systems, this feature depends on [`AHAFS`][], which must be enabled.
+* On IBM i systems, this feature is not supported.
 
 If the underlying functionality is not available for some reason, then
 `fs.watch()` will not be able to function and may thrown an exception.
@@ -4547,7 +4548,8 @@ added: v10.0.0
   file descriptor is closed, or will be rejected if an error occurs while
   closing.
 
-Closes the file descriptor.
+Closes the file handle. Will wait for any pending operation on the handle
+to complete before completing.
 
 ```js
 const fsPromises = require('fs').promises;
@@ -5878,7 +5880,7 @@ A call to `fs.ftruncate()` or `filehandle.truncate()` can be used to reset
 the file contents.
 
 [`AHAFS`]: https://www.ibm.com/developerworks/aix/library/au-aix_event_infrastructure/
-[`Buffer.byteLength`]: buffer.html#buffer_class_method_buffer_bytelength_string_encoding
+[`Buffer.byteLength`]: buffer.html#buffer_static_method_buffer_bytelength_string_encoding
 [`Buffer`]: buffer.html#buffer_buffer
 [`FSEvents`]: https://developer.apple.com/documentation/coreservices/file_system_events
 [`Number.MAX_SAFE_INTEGER`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER

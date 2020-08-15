@@ -348,8 +348,6 @@ NAPI_MODULE_INIT() {
 
 ## Environment life cycle APIs
 
-> Stability: 1 - Experimental
-
 [Section 8.7][] of the [ECMAScript Language Specification][] defines the concept
 of an "Agent" as a self-contained environment in which JavaScript code runs.
 Multiple such Agents may be started and terminated either concurrently or in
@@ -602,7 +600,7 @@ For more details, review the [Object lifetime management][].
 
 #### napi_type_tag
 <!-- YAML
-added: REPLACEME
+added: v14.8.0
 -->
 
 A 128-bit value stored as two unsigned 64-bit integers. It serves as a UUID
@@ -1550,9 +1548,11 @@ and will lead the process to abort.
 The hooks will be called in reverse order, i.e. the most recently added one
 will be called first.
 
-Removing this hook can be done by using `napi_remove_env_cleanup_hook`.
+Removing this hook can be done by using [`napi_remove_env_cleanup_hook`][].
 Typically, that happens when the resource for which this hook was added
 is being torn down anyway.
+
+For asynchronous cleanup, [`napi_add_async_cleanup_hook`][] is available.
 
 #### napi_remove_env_cleanup_hook
 <!-- YAML
@@ -1572,6 +1572,52 @@ need to be exact matches.
 
 The function must have originally been registered
 with `napi_add_env_cleanup_hook`, otherwise the process will abort.
+
+#### napi_add_async_cleanup_hook
+<!-- YAML
+added: v14.8.0
+-->
+
+> Stability: 1 - Experimental
+
+```c
+NAPI_EXTERN napi_status napi_add_async_cleanup_hook(
+    napi_env env,
+    void (*fun)(void* arg, void(* cb)(void*), void* cbarg),
+    void* arg,
+    napi_async_cleanup_hook_handle* remove_handle);
+```
+
+Registers `fun` as a function to be run with the `arg` parameter once the
+current Node.js environment exits. Unlike [`napi_add_env_cleanup_hook`][],
+the hook is allowed to be asynchronous in this case, and must invoke the passed
+`cb()` function with `cbarg` once all asynchronous activity is finished.
+
+Otherwise, behavior generally matches that of [`napi_add_env_cleanup_hook`][].
+
+If `remove_handle` is not `NULL`, an opaque value will be stored in it
+that must later be passed to [`napi_remove_async_cleanup_hook`][],
+regardless of whether the hook has already been invoked.
+Typically, that happens when the resource for which this hook was added
+is being torn down anyway.
+
+#### napi_remove_async_cleanup_hook
+<!-- YAML
+added: v14.8.0
+-->
+
+> Stability: 1 - Experimental
+
+```c
+NAPI_EXTERN napi_status napi_remove_async_cleanup_hook(
+    napi_env env,
+    napi_async_cleanup_hook_handle remove_handle);
+```
+
+Unregisters the cleanup hook corresponding to `remove_handle`. This will prevent
+the hook from being executed, unless it has already started executing.
+This must be called on any `napi_async_cleanup_hook_handle` value retrieved
+from [`napi_add_async_cleanup_hook`][].
 
 ## Module registration
 N-API modules are registered in a manner similar to other modules
@@ -3168,7 +3214,12 @@ Returns `napi_ok` if the API succeeded.
 
 This API represents behavior similar to invoking the `typeof` Operator on
 the object as defined in [Section 12.5.5][] of the ECMAScript Language
-Specification. However, it has support for detecting an External value.
+Specification. However, there are some differences:
+
+1. It has support for detecting an External value.
+2. It detects `null` as a separate type, while ECMAScript `typeof` would detect
+   `object`.
+
 If `value` has a type that is invalid, an error is returned.
 
 ### napi_instanceof
@@ -4619,7 +4670,7 @@ JavaScript object becomes garbage-collected.
 
 ### napi_type_tag_object
 <!-- YAML
-added: REPLACEME
+added: v14.8.0
 -->
 
 > Stability: 1 - Experimental
@@ -4646,7 +4697,7 @@ If the object already has an associated type tag, this API will return
 
 ### napi_check_object_type_tag
 <!-- YAML
-added: REPLACEME
+added: v14.8.0
 -->
 
 > Stability: 1 - Experimental
@@ -5705,6 +5756,7 @@ This API may only be called from the main thread.
 [`Worker`]: worker_threads.html#worker_threads_class_worker
 [`global`]: globals.html#globals_global
 [`init` hooks]: async_hooks.html#async_hooks_init_asyncid_type_triggerasyncid_resource
+[`napi_add_async_cleanup_hook`]: #n_api_napi_add_async_cleanup_hook
 [`napi_add_env_cleanup_hook`]: #n_api_napi_add_env_cleanup_hook
 [`napi_add_finalizer`]: #n_api_napi_add_finalizer
 [`napi_async_complete_callback`]: #n_api_napi_async_complete_callback
@@ -5745,6 +5797,8 @@ This API may only be called from the main thread.
 [`napi_queue_async_work`]: #n_api_napi_queue_async_work
 [`napi_reference_ref`]: #n_api_napi_reference_ref
 [`napi_reference_unref`]: #n_api_napi_reference_unref
+[`napi_remove_async_cleanup_hook`]: #n_api_napi_remove_async_cleanup_hook
+[`napi_remove_env_cleanup_hook`]: #n_api_napi_remove_env_cleanup_hook
 [`napi_set_instance_data`]: #n_api_napi_set_instance_data
 [`napi_set_property`]: #n_api_napi_set_property
 [`napi_threadsafe_function_call_js`]: #n_api_napi_threadsafe_function_call_js

@@ -1727,6 +1727,20 @@ the request body.
 When this event is emitted and handled, the [`'request'`][] event will
 not be emitted.
 
+### Event: `'connection'`
+<!-- YAML
+added: v8.4.0
+-->
+
+* `socket` {stream.Duplex}
+
+This event is emitted when a new TCP stream is established. `socket` is
+typically an object of type [`net.Socket`][]. Usually users will not want to
+access this event.
+
+This event can also be explicitly emitted by users to inject connections
+into the HTTP server. In that case, any [`Duplex`][] stream can be passed.
+
 #### Event: `'request'`
 <!-- YAML
 added: v8.4.0
@@ -1887,6 +1901,20 @@ the request body.
 
 When this event is emitted and handled, the [`'request'`][] event will
 not be emitted.
+
+### Event: `'connection'`
+<!-- YAML
+added: v8.4.0
+-->
+
+* `socket` {stream.Duplex}
+
+This event is emitted when a new TCP stream is established, before the TLS
+handshake begins. `socket` is typically an object of type [`net.Socket`][].
+Usually users will not want to access this event.
+
+This event can also be explicitly emitted by users to inject connections
+into the HTTP server. In that case, any [`Duplex`][] stream can be passed.
 
 #### Event: `'request'`
 <!-- YAML
@@ -2586,6 +2614,7 @@ properties.
 * `maxHeaderListSize` {number} Specifies the maximum size (uncompressed octets)
   of header list that will be accepted. The minimum allowed value is 0. The
   maximum allowed value is 2<sup>32</sup>-1. **Default:** `65535`.
+* `maxHeaderSize` {number} Alias for `maxHeaderListSize`.
 * `enableConnectProtocol`{boolean} Specifies `true` if the "Extended Connect
   Protocol" defined by [RFC 8441][] is to be enabled. This setting is only
   meaningful if sent by the server. Once the `enableConnectProtocol` setting

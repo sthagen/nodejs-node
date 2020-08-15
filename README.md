@@ -283,6 +283,8 @@ For information about the governance of the Node.js project, see
 **Danielle Adams** &lt;adamzdanielle@gmail.com&gt; (she/her)
 * [davisjam](https://github.com/davisjam) -
 **Jamie Davis** &lt;davisjam@vt.edu&gt; (he/him)
+* [DerekNonGeneric](https://github.com/DerekNonGeneric) -
+**Derek Lewis** &lt;DerekNonGeneric@inf.is&gt; (he/him)
 * [devnexen](https://github.com/devnexen) -
 **David Carlier** &lt;devnexen@gmail.com&gt;
 * [devsnek](https://github.com/devsnek) -
@@ -381,6 +383,8 @@ For information about the governance of the Node.js project, see
 **Pranshu Srivastava** &lt;rexagod@gmail.com&gt; (he/him)
 * [richardlau](https://github.com/richardlau) -
 **Richard Lau** &lt;riclau@uk.ibm.com&gt;
+* [rickyes](https://github.com/rickyes) -
+**Ricky Zhou** &lt;0x19951125@gmail.com&gt; (he/him)
 * [ronag](https://github.com/ronag) -
 **Robert Nagy** &lt;ronagy@icloud.com&gt;
 * [ronkorving](https://github.com/ronkorving) -
@@ -583,6 +587,8 @@ Primary GPG keys for Node.js Releasers (some Releasers sign with subkeys):
 `DD8F2338BAE7501E3DD5AC78C273792F7D83545D`
 * **Ruben Bridgewater** &lt;ruben@bridgewater.de&gt;
 `A48C2BEE680E841632CD4E44F07496B3EB3C1762`
+* **Ruy Adorno** &lt;ruyadorno@hotmail.com&gt;
+`108F52B48DB57BB0CC439B2997B01419BD92F80A`
 * **Shelley Vohr** &lt;shelley.vohr@gmail.com&gt;
 `B9E2F5981AA6E0CD28160D9FF13993A75599653C`
 
@@ -597,6 +603,7 @@ gpg --keyserver pool.sks-keyservers.net --recv-keys C4F0DFFF4E8C1A8236409D08E73B
 gpg --keyserver pool.sks-keyservers.net --recv-keys C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C
 gpg --keyserver pool.sks-keyservers.net --recv-keys DD8F2338BAE7501E3DD5AC78C273792F7D83545D
 gpg --keyserver pool.sks-keyservers.net --recv-keys A48C2BEE680E841632CD4E44F07496B3EB3C1762
+gpg --keyserver pool.sks-keyservers.net --recv-keys 108F52B48DB57BB0CC439B2997B01419BD92F80A
 gpg --keyserver pool.sks-keyservers.net --recv-keys B9E2F5981AA6E0CD28160D9FF13993A75599653C
 ```
 

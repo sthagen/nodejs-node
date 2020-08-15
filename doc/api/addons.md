@@ -232,6 +232,12 @@ NODE_MODULE_INIT(/* exports, module, context */) {
 ```
 
 #### Worker support
+<!-- YAML
+changes:
+  - version: v14.8.0
+    pr-url: https://github.com/nodejs/node/pull/34572
+    description: Cleanup hooks may now be asynchronous.
+-->
 
 In order to be loaded from multiple Node.js environments,
 such as a main thread and a Worker thread, an add-on needs to either:
@@ -250,9 +256,14 @@ void AddEnvironmentCleanupHook(v8::Isolate* isolate,
 ```
 
 This function adds a hook that will run before a given Node.js instance shuts
-down. If necessary, such hooks can be removed using
-`RemoveEnvironmentCleanupHook()` before they are run, which has the same
-signature. Callbacks are run in last-in first-out order.
+down. If necessary, such hooks can be removed before they are run using
+`RemoveEnvironmentCleanupHook()`, which has the same signature. Callbacks are
+run in last-in first-out order.
+
+If necessary, there is an additional pair of `AddEnvironmentCleanupHook()`
+and `RemoveEnvironmentCleanupHook()` overloads, where the cleanup hook takes a
+callback function. This can be used for shutting down asynchronous resources,
+such as any libuv handles registered by the addon.
 
 The following `addon.cc` uses `AddEnvironmentCleanupHook`:
 

@@ -281,6 +281,11 @@ DebugOptionsParser::DebugOptionsParser() {
 }
 
 EnvironmentOptionsParser::EnvironmentOptionsParser() {
+  AddOption("--conditions",
+            "additional user conditions for conditional exports and imports",
+            &EnvironmentOptions::conditions,
+            kAllowedInEnvironment);
+  AddAlias("-u", "--conditions");
   AddOption("--diagnostic-dir",
             "set dir for all output files"
             " (default: current working directory)",
@@ -615,12 +620,13 @@ PerIsolateOptionsParser::PerIsolateOptionsParser(
   Implies("--report-signal", "--report-on-signal");
 
   AddOption("--experimental-top-level-await",
-            "enable experimental support for ECMAScript Top-Level Await",
+            "",
             &PerIsolateOptions::experimental_top_level_await,
             kAllowedInEnvironment);
   AddOption("--harmony-top-level-await", "", V8Option{});
   Implies("--experimental-top-level-await", "--harmony-top-level-await");
   Implies("--harmony-top-level-await", "--experimental-top-level-await");
+  ImpliesNot("--no-harmony-top-level-await", "--experimental-top-level-await");
 
   Insert(eop, &PerIsolateOptions::get_per_env_options);
 }

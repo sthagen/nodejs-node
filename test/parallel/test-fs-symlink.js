@@ -56,10 +56,6 @@ fs.symlink(linkData, linkPath, common.mustCall(function(err) {
     assert.ifError(err);
     assert.strictEqual(destination, linkData);
   }));
-
-  tmpdir.refresh();
-  // Refs: https://github.com/nodejs/node/issues/34514
-  fs.symlinkSync(Buffer.from(linkData), linkPath);
 }));
 
 // Test invalid symlink
@@ -96,6 +92,6 @@ const errObj = {
 assert.throws(() => fs.symlink('', '', '🍏', common.mustNotCall()), errObj);
 assert.throws(() => fs.symlinkSync('', '', '🍏'), errObj);
 
-process.on('exit', function() {
+process.on('exit', () => {
   assert.notStrictEqual(linkTime, fileTime);
 });
