@@ -2025,7 +2025,7 @@ An attempt was made to issue Server Name Indication from a TLS server-side
 socket, which is only valid from a client.
 
 <a id="ERR_TLS_PSK_SET_IDENTIY_HINT_FAILED"></a>
-### ERR_TLS_PSK_SET_IDENTIY_HINT_FAILED
+### `ERR_TLS_PSK_SET_IDENTIY_HINT_FAILED`
 
 Failed to set PSK identity hint. Hint may be too long.
 
@@ -2138,11 +2138,6 @@ import 'package-name'; // supported
 ### `ERR_UNSUPPORTED_ESM_URL_SCHEME`
 
 `import` with URL schemes other than `file` and `data` is unsupported.
-
-<a id="ERR_V8BREAKITERATOR"></a>
-### `ERR_V8BREAKITERATOR`
-
-The V8 `BreakIterator` API was used but the full ICU data set is not installed.
 
 <a id="ERR_VALID_PERFORMANCE_ENTRY_TYPE"></a>
 ### `ERR_VALID_PERFORMANCE_ENTRY_TYPE`
@@ -2521,18 +2516,6 @@ cannot be serialized.
 This can only happen when native addons create `SharedArrayBuffer`s in
 "externalized" mode, or put existing `SharedArrayBuffer` into externalized mode.
 
-<a id="ERR_UNKNOWN_BUILTIN_MODULE"></a>
-### `ERR_UNKNOWN_BUILTIN_MODULE`
-<!-- YAML
-added: v8.0.0
-removed: v9.0.0
--->
-
-The `'ERR_UNKNOWN_BUILTIN_MODULE'` error code is used to identify a specific
-kind of internal Node.js error that should not typically be triggered by user
-code. Instances of this error point to an internal bug within the Node.js
-binary itself.
-
 <a id="ERR_UNKNOWN_STDIN_TYPE"></a>
 ### `ERR_UNKNOWN_STDIN_TYPE`
 <!-- YAML
@@ -2554,6 +2537,11 @@ removed: v11.7.0
 An attempt was made to launch a Node.js process with an unknown `stdout` or
 `stderr` file type. This error is usually an indication of a bug within Node.js
 itself, although it is possible for user code to trigger it.
+
+<a id="ERR_V8BREAKITERATOR"></a>
+### `ERR_V8BREAKITERATOR`
+
+The V8 `BreakIterator` API was used but the full ICU data set is not installed.
 
 <a id="ERR_VALUE_OUT_OF_RANGE"></a>
 ### `ERR_VALUE_OUT_OF_RANGE`
@@ -2645,7 +2633,7 @@ closed.
 [crypto digest algorithm]: crypto.html#crypto_crypto_gethashes
 [domains]: domain.html
 [event emitter-based]: events.html#events_class_eventemitter
-[exports]: esm.html#esm_package_entry_points
+[exports]: packages.html#packages_package_entry_points
 [file descriptors]: https://en.wikipedia.org/wiki/File_descriptor
 [policy]: policy.html
 [RFC 7230 Section 3]: https://tools.ietf.org/html/rfc7230#section-3
@@ -2654,6 +2642,6 @@ closed.
 [Subresource Integrity specification]: https://www.w3.org/TR/SRI/#the-integrity-attribute
 [try-catch]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch
 [vm]: vm.html
-[self-reference a package using its name]: esm.html#esm_self_referencing_a_package_using_its_name
-[define a custom subpath]: esm.html#esm_subpath_exports
-["imports" field]: esm.html#esm_internal_package_imports
+[self-reference a package using its name]: packages.html#packages_self_referencing_a_package_using_its_name
+[define a custom subpath]: packages.html#packages_subpath_exports
+["imports" field]: packages.html#packages_internal_package_imports

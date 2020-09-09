@@ -164,13 +164,22 @@ bool GenerateRetryToken(
     return false;
   }
 
+  ngtcp2_crypto_aead_ctx aead_ctx;
+  if (NGTCP2_ERR(ngtcp2_crypto_aead_ctx_encrypt_init(
+          &aead_ctx,
+          &ctx.aead,
+          token_key,
+          ivlen))) {
+    return false;
+  }
+
   size_t plaintextlen = std::distance(std::begin(plaintext), p);
   if (NGTCP2_ERR(ngtcp2_crypto_encrypt(
           token,
           &ctx.aead,
+          &aead_ctx,
           plaintext.data(),
           plaintextlen,
-          token_key,
           token_iv,
           ivlen,
           addr.raw(),
@@ -291,12 +300,21 @@ bool InvalidRetryToken(
 
   uint8_t plaintext[4096];
 
+  ngtcp2_crypto_aead_ctx aead_ctx;
+  if (NGTCP2_ERR(ngtcp2_crypto_aead_ctx_decrypt_init(
+          &aead_ctx,
+          &ctx.aead,
+          token_key,
+          ivlen))) {
+    return true;
+  }
+
   if (NGTCP2_ERR(ngtcp2_crypto_decrypt(
           plaintext,
           &ctx.aead,
+          &aead_ctx,
           ciphertext,
           ciphertextlen,
-          token_key,
           token_iv,
           ivlen,
           addr.raw(),
@@ -602,8 +620,6 @@ void InitializeSecureContext(
     BaseObjectPtr<crypto::SecureContext> sc,
     bool early_data,
     ngtcp2_crypto_side side) {
-  // TODO(@jasnell): Using a static value for this at the moment but
-  // we need to determine if a non-static or per-session value is better.
   constexpr static unsigned char session_id_ctx[] = "node.js quic server";
   switch (side) {
     case NGTCP2_CRYPTO_SIDE_SERVER:

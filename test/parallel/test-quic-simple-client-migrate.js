@@ -5,10 +5,9 @@ const common = require('../common');
 if (!common.hasQuic)
   common.skip('missing quic');
 
-common.skip('Not working correct yet... need to refactor');
-
 const assert = require('assert');
 const { key, cert, ca } = require('../common/quic');
+
 const { once } = require('events');
 const { createQuicSocket } = require('net');
 const { pipeline } = require('stream');
@@ -58,14 +57,34 @@ const server = createQuicSocket({ server: options });
   stream.on('end', common.mustCall(() => {
     assert.strictEqual(data, 'Hello from the client');
   }));
-  stream.on('close', common.mustCall());
+  stream.on('close', common.mustCall(() => {
+    req.close();
+  }));
   // Send some data on one connection...
   stream.write('Hello ');
 
   // Wait just a bit, then migrate to a different
   // QuicSocket and continue sending.
   setTimeout(common.mustCall(async () => {
+    const s1 = req.socket;
+    const a1 = req.socket.endpoints[0].address;
+
+    await Promise.all([1, {}, 'test', false, null, undefined].map((i) => {
+      return assert.rejects(req.setSocket(i), {
+        code: 'ERR_INVALID_ARG_TYPE'
+      });
+    }));
+    await Promise.all([1, {}, 'test', null].map((i) => {
+      return assert.rejects(req.setSocket(req.socket, i), {
+        code: 'ERR_INVALID_ARG_TYPE'
+      });
+    }));
+
     await req.setSocket(client2);
+
+    // Verify that it is using a different network endpoint
+    assert.notStrictEqual(s1, req.socket);
+    assert.notDeepStrictEqual(a1, req.socket.endpoints[0].address);
     client.close();
     stream.end('from the client');
   }), common.platformTimeout(100));

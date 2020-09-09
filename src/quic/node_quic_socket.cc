@@ -252,6 +252,7 @@ QuicSocket::QuicSocket(
     : AsyncWrap(quic_state->env(), wrap, AsyncWrap::PROVIDER_QUICSOCKET),
       StatsBase(quic_state->env(), wrap),
       alloc_info_(MakeAllocator()),
+      block_list_(SocketAddressBlockListWrap::New(quic_state->env())),
       options_(options),
       state_(quic_state->env()->isolate()),
       max_connections_(max_connections),
@@ -268,6 +269,12 @@ QuicSocket::QuicSocket(
   Debug(this, "New QuicSocket created");
 
   EntropySource(token_secret_, kTokenSecretLen);
+
+  wrap->DefineOwnProperty(
+      env()->context(),
+      env()->block_list_string(),
+      block_list_->object(),
+      PropertyAttribute::ReadOnly).Check();
 
   wrap->DefineOwnProperty(
       env()->context(),
@@ -432,6 +439,12 @@ void QuicSocket::OnReceive(
     return;
   }
 
+  if (UNLIKELY(block_list_->Apply(remote_addr))) {
+    Debug(this, "Ignoring blocked remote address: %s", remote_addr);
+    IncrementStat(&QuicSocketStats::packets_ignored);
+    return;
+  }
+
   IncrementStat(&QuicSocketStats::bytes_received, nread);
 
   const uint8_t* data = reinterpret_cast<const uint8_t*>(buf.data());
@@ -472,14 +485,7 @@ void QuicSocket::OnReceive(
   QuicCID dcid(pdcid, pdcidlen);
   QuicCID scid(pscid, pscidlen);
 
-  // TODO(@jasnell): It would be fantastic if Debug() could be
-  // modified to accept objects with a ToString-like capability
-  // similar to what we can do with TraceEvents... that would
-  // allow us to pass the QuicCID directly to Debug and have it
-  // converted to hex only if the category is enabled so we can
-  // skip committing resources here.
-  std::string dcid_hex = dcid.ToString();
-  Debug(this, "Received a QUIC packet for dcid %s", dcid_hex.c_str());
+  Debug(this, "Received a QUIC packet for dcid %s", dcid);
 
   BaseObjectPtr<QuicSession> session = FindSession(dcid);
 
@@ -489,7 +495,7 @@ void QuicSocket::OnReceive(
   // 3. The packet is a stateless reset sent by the peer
   // 4. This is a malicious or malformed packet.
   if (!session) {
-    Debug(this, "There is no existing session for dcid %s", dcid_hex.c_str());
+    Debug(this, "There is no existing session for dcid %s", dcid);
     bool is_short_header = IsShortHeader(pversion, pscid, pscidlen);
 
     // Handle possible reception of a stateless reset token...
