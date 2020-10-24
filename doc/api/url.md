@@ -246,7 +246,7 @@ will be thrown.
 #### `url.origin`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33325
     description: The scheme "gopher" is no longer special and `url.origin` now
                  returns `'null'` for it.
@@ -316,7 +316,7 @@ to percent-encode may vary somewhat from what the [`url.parse()`][] and
 #### `url.port`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33325
     description: The scheme "gopher" is no longer special.
 -->
@@ -423,7 +423,7 @@ Invalid URL protocol values assigned to the `protocol` property are ignored.
 ##### Special schemes
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33325
     description: The scheme "gopher" is no longer special.
 -->
@@ -1286,7 +1286,9 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/8215
     description: The `auth` fields are now kept intact when `from` and `to`
                  refer to the same host.
-  - version: v6.5.0, v4.6.2
+  - version:
+    - v6.5.0
+    - v4.6.2
     pr-url: https://github.com/nodejs/node/pull/8214
     description: The `port` field is copied correctly now.
   - version: v6.0.0
@@ -1370,14 +1372,18 @@ console.log(myURL.origin);
 // Prints https://xn--1xa.example.com
 ```
 
-[`Error`]: errors.html#errors_class_error
+[ICU]: intl.md#intl_options_for_building_node_js
+[Punycode]: https://tools.ietf.org/html/rfc5891#section-4.4
+[WHATWG URL Standard]: https://url.spec.whatwg.org/
+[WHATWG URL]: #url_the_whatwg_url_api
+[`Error`]: errors.md#errors_class_error
 [`JSON.stringify()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
 [`Map`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
-[`TypeError`]: errors.html#errors_class_typeerror
+[`TypeError`]: errors.md#errors_class_typeerror
 [`URLSearchParams`]: #url_class_urlsearchparams
 [`array.toString()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toString
 [`new URL()`]: #url_new_url_input_base
-[`querystring`]: querystring.html
+[`querystring`]: querystring.md
 [`require('url').format()`]: #url_url_format_url_options
 [`url.domainToASCII()`]: #url_url_domaintoascii_domain
 [`url.domainToUnicode()`]: #url_url_domaintounicode_domain
@@ -1389,10 +1395,6 @@ console.log(myURL.origin);
 [`url.toString()`]: #url_url_tostring
 [`urlSearchParams.entries()`]: #url_urlsearchparams_entries
 [`urlSearchParams@@iterator()`]: #url_urlsearchparams_symbol_iterator
-[ICU]: intl.html#intl_options_for_building_node_js
-[Punycode]: https://tools.ietf.org/html/rfc5891#section-4.4
-[WHATWG URL Standard]: https://url.spec.whatwg.org/
-[WHATWG URL]: #url_the_whatwg_url_api
 [examples of parsed URLs]: https://url.spec.whatwg.org/#example-url-parsing
 [host name spoofing]: https://hackerone.com/reports/678487
 [legacy `urlObject`]: #url_legacy_urlobject

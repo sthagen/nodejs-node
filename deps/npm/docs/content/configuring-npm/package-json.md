@@ -58,7 +58,7 @@ Changes to the package should come along with changes to the version. If you don
 plan to publish your package, the name and version fields are optional.
 
 Version must be parseable by
-[node-semver](https://github.com/isaacs/node-semver), which is bundled
+[node-semver](https://github.com/npm/node-semver), which is bundled
 with npm as a dependency.  (`npm install semver` to use it yourself.)
 
 More on version numbers and ranges at [semver](/using-npm/semver).
@@ -272,13 +272,15 @@ Conversely, some files are always ignored:
 * `.hg`
 * `.lock-wscript`
 * `.wafpickle-N`
+* `.*.swp`
 * `.DS_Store`
+* `._*`
 * `npm-debug.log`
 * `.npmrc`
 * `node_modules`
 * `config.gypi`
+* `*.orig`
 * `package-lock.json` (use shrinkwrap instead)
-* All files containing a `*` character (incompatible with Windows)
 
 ### main
 
@@ -531,7 +533,7 @@ See [semver](/using-npm/semver) for more details about specifying version ranges
 * `range1 || range2` Passes if either range1 or range2 are satisfied.
 * `git...` See 'Git URLs as Dependencies' below
 * `user/repo` See 'GitHub URLs' below
-* `tag` A specific version tagged and published as `tag`  See [`npm dist-tag`](/cli-commands/npm-dist-tag)
+* `tag` A specific version tagged and published as `tag`  See [`npm dist-tag`](/cli-commands/dist-tag)
 * `path/path/path` See [Local Paths](#local-paths) below
 
 For example, these are all valid:
@@ -823,8 +825,8 @@ module will run on:
 "os" : [ "darwin", "linux" ]
 ```
 
-You can also blacklist instead of whitelist operating systems,
-just prepend the blacklisted os with a '!':
+You can also block instead of allowing operating systems,
+just prepend the blocked os with a '!':
 
 ```json
 "os" : [ "!win32" ]
@@ -832,7 +834,7 @@ just prepend the blacklisted os with a '!':
 
 The host operating system is determined by `process.platform`
 
-It is allowed to both blacklist, and whitelist, although there isn't any
+It is allowed to both block and allow an item, although there isn't any
 good reason to do this.
 
 ### cpu
@@ -844,7 +846,7 @@ you can specify which ones.
 "cpu" : [ "x64", "ia32" ]
 ```
 
-Like the `os` option, you can also blacklist architectures:
+Like the `os` option, you can also block architectures:
 
 ```json
 "cpu" : [ "!arm", "!mips" ]
@@ -884,6 +886,31 @@ probably matter for the purposes of publishing.
 See [`config`](/using-npm/config) to see the list of config options that can be
 overridden.
 
+### workspaces
+
+The optional `workspaces` field is an array of file patterns that describes
+locations within the local file system that the install client should look up
+to find each [workspace](/using-npm/workspaces) that needs to be symlinked to
+the top level `node_modules` folder.
+
+It can describe either the direct paths of the folders to be used as
+workspaces or it can define globs that will resolve to these same folders.
+
+In the following example, all folders located inside the folder `./packages`
+will be treated as workspaces as long as they have valid `package.json` files
+inside them:
+
+```json
+{
+  "name": "workspace-example",
+  "workspaces": [
+    "./packages/*"
+  ]
+}
+```
+
+See [`workspaces`](/using-npm/workspaces) for more examples.
+
 ### DEFAULT VALUES
 
 npm will default some values based on package contents.
@@ -908,10 +935,11 @@ npm will default some values based on package contents.
 ### SEE ALSO
 
 * [semver](/using-npm/semver)
-* [npm init](/cli-commands/npm-init)
-* [npm version](/cli-commands/npm-version)
-* [npm config](/cli-commands/npm-config)
-* [npm help](/cli-commands/npm-help)
-* [npm install](/cli-commands/npm-install)
-* [npm publish](/cli-commands/npm-publish)
-* [npm uninstall](/cli-commands/npm-uninstall)
+* [workspaces](/using-npm/workspaces)
+* [npm init](/cli-commands/init)
+* [npm version](/cli-commands/version)
+* [npm config](/cli-commands/config)
+* [npm help](/cli-commands/help)
+* [npm install](/cli-commands/install)
+* [npm publish](/cli-commands/publish)
+* [npm uninstall](/cli-commands/uninstall)

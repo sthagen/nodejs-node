@@ -9,6 +9,7 @@ description: Display npm bin folder
 ## Display npm bin folder
 
 ### Synopsis
+
 ```bash
 npm bin [-g|--global]
 ```
@@ -19,8 +20,8 @@ Print the folder where npm will install executables.
 
 ### See Also
 
-* [npm prefix](/cli-commands/npm-prefix)
-* [npm root](/cli-commands/npm-root)
+* [npm prefix](/cli-commands/prefix)
+* [npm root](/cli-commands/root)
 * [npm folders](/configuring-npm/folders)
-* [npm config](/cli-commands/npm-config)
+* [npm config](/cli-commands/config)
 * [npmrc](/configuring-npm/npmrc)

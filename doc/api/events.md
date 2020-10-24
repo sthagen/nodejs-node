@@ -268,6 +268,8 @@ but important side effect: any *additional* listeners registered to the same
 listener that is in the process of being added.
 
 ```js
+class MyEmitter extends EventEmitter {}
+
 const myEmitter = new MyEmitter();
 // Only do this once so we don't loop forever
 myEmitter.once('newListener', (event, listener) => {
@@ -291,7 +293,9 @@ myEmitter.emit('event');
 <!-- YAML
 added: v0.9.3
 changes:
-  - version: v6.1.0, v4.7.0
+  - version:
+    - v6.1.0
+    - v4.7.0
     pr-url: https://github.com/nodejs/node/pull/6394
     description: For listeners attached using `.once()`, the `listener` argument
                  now yields the original listener function.
@@ -305,7 +309,7 @@ The `'removeListener'` event is emitted *after* the `listener` is removed.
 ### `EventEmitter.listenerCount(emitter, eventName)`
 <!-- YAML
 added: v0.9.12
-deprecated: v4.0.0
+deprecated: v3.2.0
 -->
 
 > Stability: 0 - Deprecated: Use [`emitter.listenerCount()`][] instead.
@@ -317,7 +321,7 @@ A class method that returns the number of listeners for the given `eventName`
 registered on the given `emitter`.
 
 ```js
-const myEmitter = new MyEmitter();
+const myEmitter = new EventEmitter();
 myEmitter.on('event', () => {});
 myEmitter.on('event', () => {});
 console.log(EventEmitter.listenerCount(myEmitter, 'event'));
@@ -355,7 +359,7 @@ emitter.once('event', () => {
 });
 ```
 
-The [`--trace-warnings`][] command line flag can be used to display the
+The [`--trace-warnings`][] command-line flag can be used to display the
 stack trace for such warnings.
 
 The emitted warning can be inspected with [`process.on('warning')`][] and will
@@ -1067,9 +1071,15 @@ const ac = new AbortController();
 process.nextTick(() => ac.abort());
 ```
 
+<a id="event-target-and-event-api"></a>
 ## `EventTarget` and `Event` API
 <!-- YAML
 added: v14.5.0
+changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/35496
+    description:
+      The `EventTarget` and `Event` classes are now available as globals.
 -->
 
 > Stability: 1 - Experimental
@@ -1080,7 +1090,7 @@ Neither the `EventTarget` nor `Event` classes are available for end
 user code to create.
 
 ```js
-const target = getEventTargetSomehow();
+const target = new EventTarget();
 
 target.addEventListener('foo', (event) => {
   console.log('foo event happened!');
@@ -1166,7 +1176,7 @@ const handler4 = {
   }
 };
 
-const target = getEventTargetSomehow();
+const target = new EventTarget();
 
 target.addEventListener('foo', handler1);
 target.addEventListener('foo', handler2);
@@ -1187,6 +1197,10 @@ The `EventTarget` does not implement any special default handling for
 ### Class: `Event`
 <!-- YAML
 added: v14.5.0
+changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/35496
+    description: The `Event` class is now available through the global object.
 -->
 
 The `Event` object is an adaptation of the [`Event` Web API][]. Instances
@@ -1339,6 +1353,11 @@ The event type identifier.
 ### Class: `EventTarget`
 <!-- YAML
 added: v14.5.0
+changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/35496
+    description:
+      The `EventTarget` class is now available through the global object.
 -->
 
 #### `eventTarget.addEventListener(type, listener[, options])`
@@ -1372,7 +1391,7 @@ a `listener`. Any individual `listener` may be added once with
 ```js
 function handler(event) {}
 
-const target = getEventTargetSomehow();
+const target = new EventTarget();
 target.addEventListener('foo', handler, { capture: true });  // first
 target.addEventListener('foo', handler, { capture: false }); // second
 
@@ -1526,19 +1545,19 @@ and `removeEventListener()` is that `removeListener()` will return a reference
 to the `EventTarget`.
 
 [WHATWG-EventTarget]: https://dom.spec.whatwg.org/#interface-eventtarget
-[`--trace-warnings`]: cli.html#cli_trace_warnings
+[`--trace-warnings`]: cli.md#cli_trace_warnings
 [`EventEmitter.defaultMaxListeners`]: #events_eventemitter_defaultmaxlisteners
-[`domain`]: domain.html
+[`EventTarget` Web API]: https://dom.spec.whatwg.org/#eventtarget
+[`EventTarget` error handling]: #events_eventtarget_error_handling
+[`Event` Web API]: https://dom.spec.whatwg.org/#event
+[`domain`]: domain.md
 [`emitter.listenerCount()`]: #events_emitter_listenercount_eventname
 [`emitter.removeListener()`]: #events_emitter_removelistener_eventname_listener
 [`emitter.setMaxListeners(n)`]: #events_emitter_setmaxlisteners_n
-[`Event` Web API]: https://dom.spec.whatwg.org/#event
-[`EventTarget` error handling]: #events_eventtarget_error_handling
-[`EventTarget` Web API]: https://dom.spec.whatwg.org/#eventtarget
-[`fs.ReadStream`]: fs.html#fs_class_fs_readstream
-[`net.Server`]: net.html#net_class_net_server
-[`process.on('warning')`]: process.html#process_event_warning
-[stream]: stream.html
+[`fs.ReadStream`]: fs.md#fs_class_fs_readstream
+[`net.Server`]: net.md#net_class_net_server
+[`process.on('warning')`]: process.md#process_event_warning
+[stream]: stream.md
 [capturerejections]: #events_capture_rejections_of_promises
 [rejection]: #events_emitter_symbol_for_nodejs_rejection_err_eventname_args
 [rejectionsymbol]: #events_events_capturerejectionsymbol

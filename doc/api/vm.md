@@ -54,14 +54,14 @@ executed in specific contexts.
 <!-- YAML
 added: v0.3.1
 changes:
+  - version: v10.6.0
+    pr-url: https://github.com/nodejs/node/pull/20300
+    description: The `produceCachedData` is deprecated in favour of
+                 `script.createCachedData()`.
   - version: v5.7.0
     pr-url: https://github.com/nodejs/node/pull/4777
     description: The `cachedData` and `produceCachedData` options are
                  supported now.
-  - version: v10.6.0
-    pr-url: https://github.com/nodejs/node/pull/20300
-    description: The `produceCachedData` is deprecated in favour of
-                 `script.createCachedData()`
 -->
 
 * `code` {string} The JavaScript code to compile.
@@ -87,10 +87,10 @@ changes:
   * `importModuleDynamically` {Function} Called during evaluation of this module
     when `import()` is called. If this option is not specified, calls to
     `import()` will reject with [`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`][].
-    This option is part of the experimental modules API, and should not be
-    considered stable.
+    This option is part of the experimental modules API. We do not recommend
+    using it in a production environment.
     * `specifier` {string} specifier passed to `import()`
-    * `module` {vm.Module}
+    * `script` {vm.Script}
     * Returns: {Module Namespace Object|vm.Module} Returning a `vm.Module` is
       recommended in order to take advantage of error tracking, and to avoid
       issues with namespaces that contain `then` function exports.
@@ -813,14 +813,15 @@ const vm = require('vm');
 <!-- YAML
 added: v10.10.0
 changes:
+  - version: v14.3.0
+    pr-url: https://github.com/nodejs/node/pull/33364
+    description: Removal of `importModuleDynamically` due to compatibility
+                 issues.
   - version:
     - v14.1.0
     - v13.14.0
     pr-url: https://github.com/nodejs/node/pull/32985
     description: The `importModuleDynamically` option is now supported.
-  - version: v14.3.0
-    pr-url: https://github.com/nodejs/node/pull/33364
-    description: Removal of `importModuleDynamically` due to compatibility issues
 -->
 
 * `code` {string} The body of the function to compile.
@@ -980,10 +981,10 @@ changes:
   * `importModuleDynamically` {Function} Called during evaluation of this module
     when `import()` is called. If this option is not specified, calls to
     `import()` will reject with [`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`][].
-    This option is part of the experimental modules API, and should not be
-    considered stable.
+    This option is part of the experimental modules API. We do not recommend
+    using it in a production environment.
     * `specifier` {string} specifier passed to `import()`
-    * `module` {vm.Module}
+    * `script` {vm.Script}
     * Returns: {Module Namespace Object|vm.Module} Returning a `vm.Module` is
       recommended in order to take advantage of error tracking, and to avoid
       issues with namespaces that contain `then` function exports.
@@ -1078,10 +1079,10 @@ changes:
   * `importModuleDynamically` {Function} Called during evaluation of this module
     when `import()` is called. If this option is not specified, calls to
     `import()` will reject with [`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`][].
-    This option is part of the experimental modules API, and should not be
-    considered stable.
+    This option is part of the experimental modules API. We do not recommend
+    using it in a production environment.
     * `specifier` {string} specifier passed to `import()`
-    * `module` {vm.Module}
+    * `script` {vm.Script}
     * Returns: {Module Namespace Object|vm.Module} Returning a `vm.Module` is
       recommended in order to take advantage of error tracking, and to avoid
       issues with namespaces that contain `then` function exports.
@@ -1157,10 +1158,10 @@ changes:
   * `importModuleDynamically` {Function} Called during evaluation of this module
     when `import()` is called. If this option is not specified, calls to
     `import()` will reject with [`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`][].
-    This option is part of the experimental modules API, and should not be
-    considered stable.
+    This option is part of the experimental modules API. We do not recommend
+    using it in a production environment.
     * `specifier` {string} specifier passed to `import()`
-    * `module` {vm.Module}
+    * `script` {vm.Script}
     * Returns: {Module Namespace Object|vm.Module} Returning a `vm.Module` is
       recommended in order to take advantage of error tracking, and to avoid
       issues with namespaces that contain `then` function exports.
@@ -1270,7 +1271,7 @@ vm.runInNewContext(
   { loop, console },
   { timeout: 5 }
 );
-// This prints *before* 'entering loop' (!)
+// This is printed *before* 'entering loop' (!)
 console.log('done executing');
 ```
 
@@ -1308,19 +1309,8 @@ inside a `vm.Context`, functions passed to them will be added to global queues,
 which are shared by all contexts. Therefore, callbacks passed to those functions
 are not controllable through the timeout either.
 
-[`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`]: errors.html#ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING
-[`ERR_VM_MODULE_STATUS`]: errors.html#ERR_VM_MODULE_STATUS
-[`Error`]: errors.html#errors_class_error
-[`URL`]: url.html#url_class_url
-[`eval()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
-[`script.runInContext()`]: #vm_script_runincontext_contextifiedobject_options
-[`script.runInThisContext()`]: #vm_script_runinthiscontext_options
-[`url.origin`]: url.html#url_url_origin
-[`vm.createContext()`]: #vm_vm_createcontext_contextobject_options
-[`vm.runInContext()`]: #vm_vm_runincontext_code_contextifiedobject_options
-[`vm.runInThisContext()`]: #vm_vm_runinthiscontext_code_options
 [Cyclic Module Record]: https://tc39.es/ecma262/#sec-cyclic-module-records
-[ECMAScript Module Loader]: esm.html#esm_modules_ecmascript_modules
+[ECMAScript Module Loader]: esm.md#esm_modules_ecmascript_modules
 [Evaluate() concrete method]: https://tc39.es/ecma262/#sec-moduleevaluation
 [GetModuleNamespace]: https://tc39.es/ecma262/#sec-getmodulenamespace
 [HostResolveImportedModule]: https://tc39.es/ecma262/#sec-hostresolveimportedmodule
@@ -1329,6 +1319,17 @@ are not controllable through the timeout either.
 [Source Text Module Record]: https://tc39.es/ecma262/#sec-source-text-module-records
 [Synthetic Module Record]: https://heycam.github.io/webidl/#synthetic-module-records
 [V8 Embedder's Guide]: https://v8.dev/docs/embed#contexts
+[`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`]: errors.md#ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING
+[`ERR_VM_MODULE_STATUS`]: errors.md#ERR_VM_MODULE_STATUS
+[`Error`]: errors.md#errors_class_error
+[`URL`]: url.md#url_class_url
+[`eval()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
+[`script.runInContext()`]: #vm_script_runincontext_contextifiedobject_options
+[`script.runInThisContext()`]: #vm_script_runinthiscontext_options
+[`url.origin`]: url.md#url_url_origin
+[`vm.createContext()`]: #vm_vm_createcontext_contextobject_options
+[`vm.runInContext()`]: #vm_vm_runincontext_code_contextifiedobject_options
+[`vm.runInThisContext()`]: #vm_vm_runinthiscontext_code_options
 [contextified]: #vm_what_does_it_mean_to_contextify_an_object
 [global object]: https://es5.github.io/#x15.1
 [indirect `eval()` call]: https://es5.github.io/#x10.4.2

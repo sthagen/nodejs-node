@@ -51,7 +51,6 @@ if (process.argv[2] === 'wasi-child') {
 
     const child = cp.spawnSync(process.execPath, [
       '--experimental-wasi-unstable-preview1',
-      '--experimental-wasm-bigint',
       __filename,
       'wasi-child',
       options.test
@@ -84,6 +83,11 @@ if (process.argv[2] === 'wasi-child') {
   runWASI({ test: 'notdir' });
   runWASI({ test: 'poll' });
   runWASI({ test: 'preopen_populates' });
+
+  if (!common.isWindows && process.platform !== 'android') {
+    runWASI({ test: 'readdir' });
+  }
+
   runWASI({ test: 'read_file', stdout: `hello from input.txt${EOL}` });
   runWASI({
     test: 'read_file_twice',

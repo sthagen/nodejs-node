@@ -24,6 +24,13 @@
 /doc/guides/offboarding.md @nodejs/tsc
 /doc/guides/onboarding-extras.md @nodejs/tsc
 
+# streams
+
+/lib/_stream* @nodejs/streams
+/lib/stream.js @nodejs/streams
+/lib/stream/* @nodejs/streams
+/lib/internal/streams/* @nodejs/streams
+
 # net
 
 /deps/cares @nodejs/net
@@ -52,7 +59,7 @@
 /lib/crypto.js @nodejs/crypto
 /lib/tls.js @nodejs/crypto @nodejs/net
 /src/node_crypto* @nodejs/crypto
-/src/node_crypto_common* @nodejs/crypto @nodejs/quic
+/src/crypto/* @nodejs/crypto @nodejs/quic
 
 # http
 
@@ -107,3 +114,13 @@
 /src/node_wasi* @nodejs/wasi
 /test/wasi/ @nodejs/wasi
 /test/fixtures/wasi/ @nodejs/wasi
+
+# Startup
+
+/benchmark/misc/startup.js @nodejs/startup
+/src/node.cc @nodejs/startup
+/src/node_code_cache_stub.cc @nodejs/startup
+/src/node_native_module* @nodejs/startup
+/lib/internal/bootstrap/* @nodejs/startup
+/tools/code_cache/* @nodejs/startup
+/tools/snapshot/* @nodejs/startup

@@ -9,6 +9,7 @@ description: Reduce duplication
 ## Reduce duplication
 
 ### Synopsis
+
 ```bash
 npm dedupe
 npm ddp
@@ -55,13 +56,13 @@ be deleted.
 
 Arguments are ignored. Dedupe always acts on the entire tree.
 
-Modules
-
 Note that this operation transforms the dependency tree, but will never
 result in new modules being installed.
 
+Using `npm find-dupes` will run the command in dryRun mode.
+
 ### See Also
 
-* [npm ls](/cli-commands/npm-ls)
-* [npm update](/cli-commands/npm-update)
-* [npm install](/cli-commands/npm-install)
+* [npm ls](/cli-commands/ls)
+* [npm update](/cli-commands/update)
+* [npm install](/cli-commands/install)

@@ -59,7 +59,7 @@ import xml.etree.ElementTree
 # if empty, use defaults
 _valid_extensions = set([])
 
-__VERSION__ = '1.4.4'
+__VERSION__ = '1.5.0'
 
 try:
   xrange          # Python 2
@@ -518,6 +518,120 @@ _CPP_HEADERS = frozenset([
     'cwctype',
     ])
 
+# C headers
+_C_HEADERS = frozenset([
+    # System C headers
+    'assert.h',
+    'complex.h',
+    'ctype.h',
+    'errno.h',
+    'fenv.h',
+    'float.h',
+    'inttypes.h',
+    'iso646.h',
+    'limits.h',
+    'locale.h',
+    'math.h',
+    'setjmp.h',
+    'signal.h',
+    'stdalign.h',
+    'stdarg.h',
+    'stdatomic.h',
+    'stdbool.h',
+    'stddef.h',
+    'stdint.h',
+    'stdio.h',
+    'stdlib.h',
+    'stdnoreturn.h',
+    'string.h',
+    'tgmath.h',
+    'threads.h',
+    'time.h',
+    'uchar.h',
+    'wchar.h',
+    'wctype.h',
+    # POSIX C headers
+    'aio.h',
+    'arpa/inet.h',
+    'cpio.h',
+    'dirent.h',
+    'dlfcn.h',
+    'fcntl.h',
+    'fmtmsg.h',
+    'fnmatch.h',
+    'ftw.h',
+    'glob.h',
+    'grp.h',
+    'iconv.h',
+    'langinfo.h',
+    'libgen.h',
+    'monetary.h',
+    'mqueue.h',
+    'ndbm.h',
+    'net/if.h',
+    'netdb.h',
+    'netinet/in.h',
+    'netinet/tcp.h',
+    'nl_types.h',
+    'poll.h',
+    'pthread.h',
+    'pwd.h',
+    'regex.h',
+    'sched.h',
+    'search.h',
+    'semaphore.h',
+    'setjmp.h',
+    'signal.h',
+    'spawn.h',
+    'strings.h',
+    'stropts.h',
+    'syslog.h',
+    'tar.h',
+    'termios.h',
+    'trace.h',
+    'ulimit.h',
+    'unistd.h',
+    'utime.h',
+    'utmpx.h',
+    'wordexp.h',
+    # GNUlib headers
+    'a.out.h',
+    'aliases.h',
+    'alloca.h',
+    'ar.h',
+    'argp.h',
+    'argz.h',
+    'byteswap.h',
+    'crypt.h',
+    'endian.h',
+    'envz.h',
+    'err.h',
+    'error.h',
+    'execinfo.h',
+    'fpu_control.h',
+    'fstab.h',
+    'fts.h',
+    'getopt.h',
+    'gshadow.h',
+    'ieee754.h',
+    'ifaddrs.h',
+    'libintl.h',
+    'mcheck.h',
+    'mntent.h',
+    'obstack.h',
+    'paths.h',
+    'printf.h',
+    'pty.h',
+    'resolv.h',
+    'shadow.h',
+    'sysexits.h',
+    'ttyent.h',
+    # Hardware specific headers
+    'arm_neon.h',
+    'emmintrin.h',
+    'xmmintin.h',
+    ])
+
 # Type names
 _TYPES = re.compile(
     r'^(?:'
@@ -604,9 +718,10 @@ _ALT_TOKEN_REPLACEMENT_PATTERN = re.compile(
 # _IncludeState.CheckNextIncludeOrder().
 _C_SYS_HEADER = 1
 _CPP_SYS_HEADER = 2
-_LIKELY_MY_HEADER = 3
-_POSSIBLE_MY_HEADER = 4
-_OTHER_HEADER = 5
+_OTHER_SYS_HEADER = 3
+_LIKELY_MY_HEADER = 4
+_POSSIBLE_MY_HEADER = 5
+_OTHER_HEADER = 6
 
 # These constants define the current inline assembly state
 _NO_ASM = 0       # Outside of inline assembly block
@@ -690,7 +805,7 @@ def unicode_escape_decode(x):
 
 # Treat all headers starting with 'h' equally: .h, .hpp, .hxx etc.
 # This is set by --headers flag.
-_hpp_headers = set(['h', 'hh', 'hpp', 'hxx', 'h++', 'cuh'])
+_hpp_headers = set([])
 
 # {str, bool}: a map from error categories to booleans which indicate if the
 # category should be suppressed for every line.
@@ -699,29 +814,38 @@ _global_error_suppressions = {}
 def ProcessHppHeadersOption(val):
   global _hpp_headers
   try:
-    _hpp_headers = set(val.split(','))
-    # Automatically append to extensions list so it does not have to be set 2 times
-    _valid_extensions.update(_hpp_headers)
+    _hpp_headers = {ext.strip() for ext in val.split(',')}
   except ValueError:
     PrintUsage('Header extensions must be comma separated list.')
 
 def IsHeaderExtension(file_extension):
-  return file_extension in _hpp_headers
+  return file_extension in GetHeaderExtensions()
 
 def GetHeaderExtensions():
-  return _hpp_headers or ['h']
+  if _hpp_headers:
+    return _hpp_headers
+  if _valid_extensions:
+    return {h for h in _valid_extensions if 'h' in h}
+  return set(['h', 'hh', 'hpp', 'hxx', 'h++', 'cuh'])
 
 # The allowed extensions for file names
 # This is set by --extensions flag
 def GetAllExtensions():
-  if not _valid_extensions:
-    return GetHeaderExtensions().union(set(['c', 'cc', 'cpp', 'cxx', 'c++', 'cu']))
-  return _valid_extensions
+  return GetHeaderExtensions().union(_valid_extensions or set(
+    ['c', 'cc', 'cpp', 'cxx', 'c++', 'cu']))
+
+def ProcessExtensionsOption(val):
+  global _valid_extensions
+  try:
+    extensions = [ext.strip() for ext in val.split(',')]
+    _valid_extensions = set(extensions)
+  except ValueError:
+    PrintUsage('Extensions should be a comma-separated list of values;'
+               'for example: extensions=hpp,cpp\n'
+               'This could not be parsed: "%s"' % (val,))
 
 def GetNonHeaderExtensions():
   return GetAllExtensions().difference(GetHeaderExtensions())
-
-
 
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
   """Updates the global list of line error-suppressions.
@@ -854,12 +978,15 @@ class _IncludeState(object):
   _INITIAL_SECTION = 0
   _MY_H_SECTION = 1
   _OTHER_H_SECTION = 2
-  _C_SECTION = 3
-  _CPP_SECTION = 4
+  _OTHER_SYS_SECTION = 3
+  _C_SECTION = 4
+  _CPP_SECTION = 5
+
 
   _TYPE_NAMES = {
       _C_SYS_HEADER: 'C system header',
       _CPP_SYS_HEADER: 'C++ system header',
+      _OTHER_SYS_HEADER: 'other system header',
       _LIKELY_MY_HEADER: 'header this file implements',
       _POSSIBLE_MY_HEADER: 'header this file may implement',
       _OTHER_HEADER: 'other header',
@@ -867,9 +994,10 @@ class _IncludeState(object):
   _SECTION_NAMES = {
       _INITIAL_SECTION: "... nothing. (This can't be an error.)",
       _MY_H_SECTION: 'a header this file implements',
-      _OTHER_H_SECTION: 'other header',
       _C_SECTION: 'C system header',
       _CPP_SECTION: 'C++ system header',
+      _OTHER_SYS_SECTION: 'other system header',
+      _OTHER_H_SECTION: 'other header',
       }
 
   def __init__(self):
@@ -979,6 +1107,12 @@ class _IncludeState(object):
     elif header_type == _CPP_SYS_HEADER:
       if self._section <= self._CPP_SECTION:
         self._section = self._CPP_SECTION
+      else:
+        self._last_header = ''
+        return error_message
+    elif header_type == _OTHER_SYS_HEADER:
+      if self._section <= self._OTHER_SYS_SECTION:
+        self._section = self._OTHER_SYS_SECTION
       else:
         self._last_header = ''
         return error_message
@@ -1129,9 +1263,9 @@ class _CppLintState(object):
     num_failures = len(self._junit_failures)
 
     testsuite = xml.etree.ElementTree.Element('testsuite')
-    testsuite.attrib['name'] = 'cpplint'
     testsuite.attrib['errors'] = str(num_errors)
     testsuite.attrib['failures'] = str(num_failures)
+    testsuite.attrib['name'] = 'cpplint'
 
     if num_errors == 0 and num_failures == 0:
       testsuite.attrib['tests'] = str(1)
@@ -1325,7 +1459,7 @@ class FileInfo(object):
     If we have a real absolute path name here we can try to do something smart:
     detecting the root of the checkout and truncating /path/to/checkout from
     the name so that we get header guards that don't include things like
-    "C:\Documents and Settings\..." or "/home/username/..." in them and thus
+    "C:\\Documents and Settings\\..." or "/home/username/..." in them and thus
     people on different computers who have checked the source out to different
     locations won't see bogus errors.
     """
@@ -3171,7 +3305,8 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
         Search(r'\bstd\s*::\s*initializer_list\b', constructor_args[0]))
     copy_constructor = bool(
         onearg_constructor and
-        Match(r'(const\s+)?%s(\s*<[^>]*>)?(\s+const)?\s*(?:<\w+>\s*)?&'
+        Match(r'((const\s+(volatile\s+)?)?|(volatile\s+(const\s+)?))?'
+              r'%s(\s*<[^>]*>)?(\s+const)?\s*(?:<\w+>\s*)?&'
               % re.escape(base_classname), constructor_args[0].strip()))
 
     if (not is_marked_explicit and
@@ -3343,7 +3478,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
       if Search(r'(;|})', start_line):  # Declarations and trivial functions
         body_found = True
         break                              # ... ignore
-      elif Search(r'{', start_line):
+      if Search(r'{', start_line):
         body_found = True
         function = Search(r'((\w|:)*)\(', line).group(1)
         if Match(r'TEST', function):    # Handle TEST... macros
@@ -3537,8 +3672,8 @@ def CheckSpacing(filename, clean_lines, linenum, nesting_state, error):
   line = clean_lines.elided[linenum]
 
   # You shouldn't have spaces before your brackets, except maybe after
-  # 'delete []' or 'return []() {};'
-  if Search(r'\w\s+\[', line) and not Search(r'(?:delete|return)\s+\[', line):
+  # 'delete []', 'return []() {};', or 'auto [abc, ...] = ...;'.
+  if Search(r'\w\s+\[', line) and not Search(r'(?:auto&?|delete|return)\s+\[', line):
     error(filename, linenum, 'whitespace/braces', 5,
           'Extra space before [')
 
@@ -4056,11 +4191,11 @@ def CheckBraces(filename, clean_lines, linenum, error):
   # its line, and the line after that should have an indent level equal to or
   # lower than the if. We also check for ambiguous if/else nesting without
   # braces.
-  if_else_match = Search(r'\b(if\s*\(|else\b)', line)
+  if_else_match = Search(r'\b(if\s*(|constexpr)\s*\(|else\b)', line)
   if if_else_match and not Match(r'\s*#', line):
     if_indent = GetIndentLevel(line)
     endline, endlinenum, endpos = line, linenum, if_else_match.end()
-    if_match = Search(r'\bif\s*\(', line)
+    if_match = Search(r'\bif\s*(|constexpr)\s*\(', line)
     if if_match:
       # This could be a multiline if condition, so find the end first.
       pos = if_match.end() - 1
@@ -4810,6 +4945,8 @@ def _ClassifyInclude(fileinfo, include, is_system):
     _C_SYS_HEADER
     >>> _ClassifyInclude(FileInfo('foo/foo.cc'), 'string', True)
     _CPP_SYS_HEADER
+    >>> _ClassifyInclude(FileInfo('foo/foo.cc'), 'foo/foo.h', True)
+    _OTHER_SYS_HEADER
     >>> _ClassifyInclude(FileInfo('foo/foo.cc'), 'foo/foo.h', False)
     _LIKELY_MY_HEADER
     >>> _ClassifyInclude(FileInfo('foo/foo_unknown_extension.cc'),
@@ -4822,6 +4959,9 @@ def _ClassifyInclude(fileinfo, include, is_system):
   # those already checked for above.
   is_cpp_h = include in _CPP_HEADERS
 
+  # Mark include as C header if in list or of type 'sys/*.h'.
+  is_c_h = include in _C_HEADERS or Search(r'sys\/.*\.h', include)
+
   # Headers with C++ extensions shouldn't be considered C system headers
   if is_system and os.path.splitext(include)[1] in ['.hpp', '.hxx', '.h++']:
     is_system = False
@@ -4829,8 +4969,10 @@ def _ClassifyInclude(fileinfo, include, is_system):
   if is_system:
     if is_cpp_h:
       return _CPP_SYS_HEADER
-    else:
+    if is_c_h:
       return _C_SYS_HEADER
+    else:
+      return _OTHER_SYS_HEADER
 
   # If the target file and the include we're checking share a
   # basename when we drop common extensions, and the include
@@ -4910,7 +5052,19 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
               'Do not include .' + extension + ' files from other packages')
         return
 
-    if not _THIRD_PARTY_HEADERS_PATTERN.match(include):
+    # We DO want to include a 3rd party looking header if it matches the
+    # filename. Otherwise we get an erroneous error "...should include its
+    # header" error later.
+    third_src_header = False
+    for ext in GetHeaderExtensions():
+      basefilename = filename[0:len(filename) - len(fileinfo.Extension())]
+      headerfile = basefilename + '.' + ext
+      headername = FileInfo(headerfile).RepositoryName()
+      if headername in include or include in headername:
+        third_src_header = True
+        break
+
+    if third_src_header or not _THIRD_PARTY_HEADERS_PATTERN.match(include):
       include_state.include_list[-1].append((include, linenum))
 
       # We want to ensure that headers appear in the right order:
@@ -5708,11 +5862,11 @@ _HEADERS_CONTAINING_TEMPLATES = (
                      )),
     ('<limits>', ('numeric_limits',)),
     ('<list>', ('list',)),
-    ('<map>', ('map', 'multimap',)),
+    ('<map>', ('multimap',)),
     ('<memory>', ('allocator', 'make_shared', 'make_unique', 'shared_ptr',
                   'unique_ptr', 'weak_ptr')),
     ('<queue>', ('queue', 'priority_queue',)),
-    ('<set>', ('set', 'multiset',)),
+    ('<set>', ('multiset',)),
     ('<stack>', ('stack',)),
     ('<string>', ('char_traits', 'basic_string',)),
     ('<tuple>', ('tuple',)),
@@ -5746,6 +5900,16 @@ for _header, _templates in _HEADERS_MAYBE_TEMPLATES:
         (re.compile(r'[^>.]\b' + _template + r'(<.*?>)?\([^\)]'),
             _template,
             _header))
+# Match set<type>, but not foo->set<type>, foo.set<type>
+_re_pattern_headers_maybe_templates.append(
+    (re.compile(r'[^>.]\bset\s*\<'),
+        'set<>',
+        '<set>'))
+# Match 'map<type> var' and 'std::map<type>(...)', but not 'map<type>(...)''
+_re_pattern_headers_maybe_templates.append(
+    (re.compile(r'(std\b::\bmap\s*\<)|(^(std\b::\b)map\b\(\s*\<)'),
+        'map<>',
+        '<map>'))
 
 # Other scripts may reach in and modify this pattern.
 _re_pattern_templates = []
@@ -5828,18 +5992,19 @@ def UpdateIncludeState(filename, include_dict, io=codecs):
   """
   headerfile = None
   try:
-    headerfile = io.open(filename, 'r', 'utf8', 'replace')
+    with io.open(filename, 'r', 'utf8', 'replace') as headerfile:
+      linenum = 0
+      for line in headerfile:
+        linenum += 1
+        clean_line = CleanseComments(line)
+        match = _RE_PATTERN_INCLUDE.search(clean_line)
+        if match:
+          include = match.group(2)
+          include_dict.setdefault(include, linenum)
+    return True
   except IOError:
     return False
-  linenum = 0
-  for line in headerfile:
-    linenum += 1
-    clean_line = CleanseComments(line)
-    match = _RE_PATTERN_INCLUDE.search(clean_line)
-    if match:
-      include = match.group(2)
-      include_dict.setdefault(include, linenum)
-  return True
+
 
 
 def CheckForIncludeWhatYouUse(filename, clean_lines, include_state, error,
@@ -6355,14 +6520,7 @@ def ProcessConfigOverrides(filename):
             except ValueError:
               _cpplint_state.PrintError('Line length must be numeric.')
           elif name == 'extensions':
-            global _valid_extensions
-            try:
-              extensions = [ext.strip() for ext in val.split(',')]
-              _valid_extensions = set(extensions)
-            except ValueError:
-              sys.stderr.write('Extensions should be a comma-separated list of values;'
-                               'for example: extensions=hpp,cpp\n'
-                               'This could not be parsed: "%s"' % (val,))
+            ProcessExtensionsOption(val)
           elif name == 'root':
             global _root
             # root directories are specified relative to CPPLINT.cfg dir.
@@ -6425,7 +6583,8 @@ def ProcessFile(filename, vlevel, extra_check_functions=None):
                                         codecs.getwriter('utf8'),
                                         'replace').read().split('\n')
     else:
-      lines = codecs.open(filename, 'r', 'utf8', 'replace').read().split('\n')
+      with codecs.open(filename, 'r', 'utf8', 'replace') as target_file:
+        lines = target_file.read().split('\n')
 
     # Remove trailing '\r'.
     # The -1 accounts for the extra trailing blank line we get from split()
@@ -6585,11 +6744,7 @@ def ParseArguments(args):
         _excludes = set()
       _excludes.update(glob.glob(val))
     elif opt == '--extensions':
-      global _valid_extensions
-      try:
-        _valid_extensions = set(val.split(','))
-      except ValueError:
-        PrintUsage('Extensions must be comma seperated list.')
+      ProcessExtensionsOption(val)
     elif opt == '--headers':
       ProcessHppHeadersOption(val)
     elif opt == '--recursive':
@@ -6641,15 +6796,35 @@ def _ExpandDirectories(filenames):
   for filename in expanded:
     if os.path.splitext(filename)[1][1:] in GetAllExtensions():
       filtered.append(filename)
-
   return filtered
 
-def _FilterExcludedFiles(filenames):
+def _FilterExcludedFiles(fnames):
   """Filters out files listed in the --exclude command line switch. File paths
   in the switch are evaluated relative to the current working directory
   """
   exclude_paths = [os.path.abspath(f) for f in _excludes]
-  return [f for f in filenames if os.path.abspath(f) not in exclude_paths]
+  # because globbing does not work recursively, exclude all subpath of all excluded entries
+  return [f for f in fnames
+          if not any(e for e in exclude_paths
+                  if _IsParentOrSame(e, os.path.abspath(f)))]
+
+def _IsParentOrSame(parent, child):
+  """Return true if child is subdirectory of parent.
+  Assumes both paths are absolute and don't contain symlinks.
+  """
+  parent = os.path.normpath(parent)
+  child = os.path.normpath(child)
+  if parent == child:
+    return True
+
+  prefix = os.path.commonprefix([parent, child])
+  if prefix != parent:
+    return False
+  # Note: os.path.commonprefix operates on character basis, so
+  # take extra care of situations like '/foo/ba' and '/foo/bar/baz'
+  child_suffix = child[len(prefix):]
+  child_suffix = child_suffix.lstrip(os.sep)
+  return child == os.path.join(prefix, child_suffix)
 
 def main():
   filenames = ParseArguments(sys.argv[1:])

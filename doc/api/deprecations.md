@@ -47,8 +47,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/31164
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v1.6.0
@@ -84,10 +84,10 @@ The `_linklist` module is deprecated. Please use a userland alternative.
 changes:
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/31165
-    description: End-of-Life
+    description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.15
@@ -107,11 +107,11 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/17882
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
-  - version: 0.4.0
+  - version: v0.4.0
     commit: 9c7f89bf56abd37a796fea621ad2e47dd33d2b82
     description: Documentation-only deprecation.
 -->
@@ -167,8 +167,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25279
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.14
@@ -232,7 +232,7 @@ to the `constants` property exposed by the relevant module. For instance,
 changes:
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/31166
-    description: End-of-Life (for `digest === null`)
+    description: End-of-Life (for `digest === null`).
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/22861
     description: Runtime deprecation (for `digest === null`).
@@ -268,8 +268,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/21153
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.13
@@ -289,8 +289,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/21153
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.13
@@ -310,8 +310,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/15412
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.7
@@ -346,14 +346,14 @@ changes:
   - version: v8.0.0
     pr-url: https://github.com/nodejs/node/pull/9683
     description: End-of-Life.
+  - version:
+    - v6.12.0
+    - v4.8.6
+    pr-url: https://github.com/nodejs/node/pull/10116
+    description: A deprecation code has been assigned.
   - version: v6.0.0
     pr-url: https://github.com/nodejs/node/pull/4525
     description: Runtime deprecation.
-  - version:
-    - v4.8.6
-    - v6.12.0
-    pr-url: https://github.com/nodejs/node/pull/10116
-    description: A deprecation code has been assigned.
   - version: v0.1.96
     commit: c93e0aaf062081db3ec40ac45b3e2c979d5759d6
     description: Documentation-only deprecation.
@@ -370,14 +370,14 @@ changes:
   - version: v8.0.0
     pr-url: https://github.com/nodejs/node/pull/9683
     description: End-of-Life.
+  - version:
+    - v6.12.0
+    - v4.8.6
+    pr-url: https://github.com/nodejs/node/pull/10116
+    description: A deprecation code has been assigned.
   - version: v6.0.0
     pr-url: https://github.com/nodejs/node/pull/4525
     description: Runtime deprecation.
-  - version:
-    - v4.8.6
-    - v6.12.0
-    pr-url: https://github.com/nodejs/node/pull/10116
-    description: A deprecation code has been assigned.
   - version: v0.1.96
     commit: c93e0aaf062081db3ec40ac45b3e2c979d5759d6
     description: Documentation-only deprecation.
@@ -393,7 +393,7 @@ The [`fs.readSync()`][] legacy `String` interface is deprecated. Use the
 changes:
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/31167
-    description: End-of-Life
+    description: End-of-Life.
   - version: v6.12.0
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
@@ -426,16 +426,20 @@ See [`Intl.Segmenter`](https://github.com/tc39/proposal-intl-segmenter).
 ### DEP0018: Unhandled promise rejections
 <!-- YAML
 changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/35316
+    description: End-of-Life.
   - version: v7.0.0
     pr-url: https://github.com/nodejs/node/pull/8217
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-Unhandled promise rejections are deprecated. In the future, promise rejections
-that are not handled will terminate the Node.js process with a non-zero exit
-code.
+Unhandled promise rejections are deprecated. By default, promise rejections
+that are not handled terminate the Node.js process with a non-zero exit
+code. To change the way Node.js treats unhandled rejections, use the
+[`--unhandled-rejections`][] command-line option.
 
 ### DEP0019: `require('.')` resolved outside directory
 <!-- YAML
@@ -444,8 +448,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/26973
     description: Removed functionality.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v1.8.1
@@ -461,12 +465,12 @@ This behavior has been removed.
 ### DEP0020: `Server.connections`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33647
     description: Server.connections has been removed.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.9.7
@@ -486,8 +490,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/27127
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.7.12
@@ -523,8 +527,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25280
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.6.0
@@ -556,8 +560,8 @@ The `REPLServer.prototype.convertToContext()` API has been removed.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v1.0.0
@@ -576,8 +580,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25377
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.3
@@ -596,8 +600,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25377
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.3
@@ -616,8 +620,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25377
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.3
@@ -636,8 +640,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/25377
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.3
@@ -685,8 +689,8 @@ API is not useful.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v1.4.2
@@ -702,8 +706,8 @@ The [`domain`][] module is deprecated and should not be used.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v3.2.0
@@ -720,12 +724,12 @@ deprecated. Please use [`emitter.listenerCount(eventName)`][] instead.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v1.0.0
-    pr-url: https://github.com/iojs/io.js/pull/166
+    pr-url: https://github.com/nodejs/node/pull/166
     description: Documentation-only deprecation.
 -->
 
@@ -738,8 +742,8 @@ The [`fs.exists(path, callback)`][] API is deprecated. Please use
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.4.7
@@ -754,8 +758,8 @@ The [`fs.lchmod(path, mode, callback)`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.4.7
@@ -773,8 +777,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/21498
     description: Deprecation revoked.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.4.7
@@ -794,8 +798,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/21498
     description: Deprecation revoked.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.4.7
@@ -811,8 +815,8 @@ revoked because the requisite supporting APIs were added in libuv.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.10.6
@@ -844,8 +848,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/13876
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v3.0.0
@@ -865,8 +869,8 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/17882
     description: End-of-Life.
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version: v0.11.3
@@ -910,13 +914,13 @@ The [`tls.SecurePair`][] class is deprecated. Please use
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -930,13 +934,13 @@ instead.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -949,13 +953,13 @@ The [`util.isBoolean()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -969,13 +973,13 @@ The [`util.isBuffer()`][] API is deprecated. Please use
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -988,13 +992,13 @@ The [`util.isDate()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1007,13 +1011,13 @@ The [`util.isError()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1026,13 +1030,13 @@ The [`util.isFunction()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1045,13 +1049,13 @@ The [`util.isNull()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1064,13 +1068,13 @@ The [`util.isNullOrUndefined()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1079,17 +1083,17 @@ Type: Documentation-only
 
 The [`util.isNumber()`][] API is deprecated.
 
-### DEP0053 `util.isObject()`
+### DEP0053: `util.isObject()`
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1102,13 +1106,13 @@ The [`util.isObject()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1121,13 +1125,13 @@ The [`util.isPrimitive()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1140,13 +1144,13 @@ The [`util.isRegExp()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1159,13 +1163,13 @@ The [`util.isString()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1178,13 +1182,13 @@ The [`util.isSymbol()`][] API is deprecated.
 <!-- YAML
 changes:
   - version:
-    - v4.8.6
     - v6.12.0
+    - v4.8.6
     pr-url: https://github.com/nodejs/node/pull/10116
     description: A deprecation code has been assigned.
   - version:
-    - v3.3.1
     - v4.0.0
+    - v3.3.1
     pr-url: https://github.com/nodejs/node/pull/2447
     description: Documentation-only deprecation.
 -->
@@ -1246,12 +1250,12 @@ alternative.
 ### DEP0062: `node --debug`
 <!-- YAML
 changes:
-  - version: v8.0.0
-    pr-url: https://github.com/nodejs/node/pull/10970
-    description: Runtime deprecation.
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/25828
     description: End-of-Life.
+  - version: v8.0.0
+    pr-url: https://github.com/nodejs/node/pull/10970
+    description: Runtime deprecation.
 -->
 
 Type: End-of-Life
@@ -1370,7 +1374,7 @@ an officially supported API.
 ### DEP0068: `node debug`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33648
     description: The legacy `node debug` command was removed.
   - version: v8.0.0
@@ -1479,7 +1483,7 @@ code, no replacement API is provided.
 ### DEP0074: `REPLServer.bufferedCommand`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33286
     description: End-of-Life.
   - version: v9.0.0
@@ -1495,7 +1499,7 @@ The `REPLServer.bufferedCommand` property was deprecated in favor of
 ### DEP0075: `REPLServer.parseREPLKeyword()`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33286
     description: End-of-Life.
   - version: v9.0.0
@@ -1556,7 +1560,7 @@ supported API.
 ### DEP0078: `REPLServer.turnOffEditorMode()`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33286
     description: End-of-Life.
   - version: v9.0.0
@@ -1620,7 +1624,7 @@ file descriptors.
 ### DEP0082: `REPLServer.prototype.memory()`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33286
     description: End-of-Life.
   - version: v9.0.0
@@ -1693,12 +1697,12 @@ code modification is necessary if that is done.
 ### DEP0085: AsyncHooks sensitive API
 <!-- YAML
 changes:
-  - version: 10.0.0
+  - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/17147
     description: End-of-Life.
   - version:
-    - v8.10.0
     - v9.4.0
+    - v8.10.0
     pr-url: https://github.com/nodejs/node/pull/16972
     description: Runtime deprecation.
 -->
@@ -1712,12 +1716,12 @@ Use the `AsyncResource` API instead. See
 ### DEP0086: Remove `runInAsyncIdScope`
 <!-- YAML
 changes:
-  - version: 10.0.0
+  - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/17147
     description: End-of-Life.
   - version:
-    - v8.10.0
     - v9.4.0
+    - v8.10.0
     pr-url: https://github.com/nodejs/node/pull/16972
     description: Runtime deprecation.
 -->
@@ -1735,7 +1739,7 @@ changes:
     description: Deprecation revoked.
   - version:
       - v9.9.0
-      - v10.0.0
+      - v8.13.0
     pr-url: https://github.com/nodejs/node/pull/17002
     description: Documentation-only deprecation.
 -->
@@ -1744,7 +1748,7 @@ Type: Deprecation revoked
 
 Importing assert directly was not recommended as the exposed functions use
 loose equality checks. The deprecation was revoked because use of the `assert`
-module is not discouraged, and the deprecation caused end user confusion.
+module is not discouraged, and the deprecation caused developer confusion.
 
 ### DEP0090: Invalid GCM authentication tag lengths
 <!-- YAML
@@ -1863,11 +1867,11 @@ should start using the `async_context` variant of `MakeCallback` or
 changes:
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/26530
-    description: End-of-Life
+    description: End-of-Life.
   - version:
-    - v8.12.0
-    - v9.6.0
     - v10.0.0
+    - v9.6.0
+    - v8.12.0
     pr-url: https://github.com/nodejs/node/pull/18632
     description: Runtime deprecation.
 -->
@@ -2077,12 +2081,12 @@ The `produceCachedData` option is deprecated. Use
 ### DEP0111: `process.binding()`
 <!-- YAML
 changes:
-  - version: v10.9.0
-    pr-url: https://github.com/nodejs/node/pull/22004
-    description: Documentation-only deprecation.
   - version: v11.12.0
     pr-url: https://github.com/nodejs/node/pull/26500
     description: Added support for `--pending-deprecation`.
+  - version: v10.9.0
+    pr-url: https://github.com/nodejs/node/pull/22004
+    description: Documentation-only deprecation.
 -->
 
 Type: Documentation-only (supports [`--pending-deprecation`][])
@@ -2139,6 +2143,9 @@ The `crypto._toBuf()` function was not designed to be used by modules outside
 of Node.js core and was removed.
 
 ### DEP0115: `crypto.prng()`, `crypto.pseudoRandomBytes()`, `crypto.rng()`
+
+<!--lint disable nodejs-yaml-comments -->
+
 <!-- YAML
 changes:
   - version: v11.0.0
@@ -2148,6 +2155,8 @@ changes:
     description: Added documentation-only deprecation
                  with `--pending-deprecation` support.
 -->
+
+<!--lint enable nodejs-yaml-comments -->
 
 Type: Documentation-only (supports [`--pending-deprecation`][])
 
@@ -2281,7 +2290,7 @@ Setting the TLS ServerName to an IP address is not permitted by
 ### DEP0124: using `REPLServer.rli`
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/33286
     description: End-of-Life.
   - version: v12.0.0
@@ -2444,6 +2453,7 @@ an officially supported API.
 changes:
   - version: v13.0.0
     pr-url: https://github.com/nodejs/node/pull/29061
+    description: Runtime deprecation.
 -->
 
 Type: Runtime
@@ -2525,12 +2535,14 @@ purpose and is only available on CommonJS environment.
 ### DEP0139: `process.umask()` with no arguments
 <!-- YAML
 changes:
-  - version: v14.0.0
+  - version:
+    - v14.0.0
+    - v12.19.0
     pr-url: https://github.com/nodejs/node/pull/32499
-    description: Runtime deprecation.
+    description: Documentation-only deprecation.
 -->
 
-Type: Runtime
+Type: Documentation-only
 
 Calling `process.umask()` with no argument causes the process-wide umask to be
 written twice. This introduces a race condition between threads, and is a
@@ -2592,7 +2604,9 @@ no longer required due to simplification of the implementation.
 ### DEP0144: `module.parent`
 <!-- YAML
 changes:
-  - version: v14.6.0
+  - version:
+    - v14.6.0
+    - v12.19.0
     pr-url: https://github.com/nodejs/node/pull/32217
     description: Documentation-only deprecation.
 -->
@@ -2646,126 +2660,144 @@ Type: Documentation-only
 The [`crypto.Certificate()` constructor][] is deprecated. Use
 [static methods of `crypto.Certificate()`][] instead.
 
-[`--pending-deprecation`]: cli.html#cli_pending_deprecation
-[`--throw-deprecation`]: cli.html#cli_throw_deprecation
-[`Buffer.allocUnsafeSlow(size)`]: buffer.html#buffer_static_method_buffer_allocunsafeslow_size
-[`Buffer.from(array)`]: buffer.html#buffer_static_method_buffer_from_array
-[`Buffer.from(buffer)`]: buffer.html#buffer_static_method_buffer_from_buffer
-[`Buffer.isBuffer()`]: buffer.html#buffer_static_method_buffer_isbuffer_obj
-[`Cipher`]: crypto.html#crypto_class_cipher
-[`Decipher`]: crypto.html#crypto_class_decipher
-[`EventEmitter.listenerCount(emitter, eventName)`]: events.html#events_eventemitter_listenercount_emitter_eventname
-[`REPLServer.clearBufferedCommand()`]: repl.html#repl_replserver_clearbufferedcommand
-[`ReadStream.open()`]: fs.html#fs_class_fs_readstream
-[`Server.getConnections()`]: net.html#net_server_getconnections_callback
-[`Server.listen({fd: <number>})`]: net.html#net_server_listen_handle_backlog_callback
-[`SlowBuffer`]: buffer.html#buffer_class_slowbuffer
-[`WriteStream.open()`]: fs.html#fs_class_fs_writestream
-[`assert`]: assert.html
-[`asyncResource.runInAsyncScope()`]: async_hooks.html#async_hooks_asyncresource_runinasyncscope_fn_thisarg_args
-[`child_process`]: child_process.html
-[`clearInterval()`]: timers.html#timers_clearinterval_timeout
-[`clearTimeout()`]: timers.html#timers_cleartimeout_timeout
-[`console.error()`]: console.html#console_console_error_data_args
-[`console.log()`]: console.html#console_console_log_data_args
-[`crypto.Certificate()` constructor]: crypto.html#crypto_legacy_api
-[`crypto.DEFAULT_ENCODING`]: crypto.html#crypto_crypto_default_encoding
-[`crypto.createCipher()`]: crypto.html#crypto_crypto_createcipher_algorithm_password_options
-[`crypto.createCipheriv()`]: crypto.html#crypto_crypto_createcipheriv_algorithm_key_iv_options
-[`crypto.createDecipher()`]: crypto.html#crypto_crypto_createdecipher_algorithm_password_options
-[`crypto.createDecipheriv()`]: crypto.html#crypto_crypto_createdecipheriv_algorithm_key_iv_options
-[`crypto.fips`]: crypto.html#crypto_crypto_fips
-[`crypto.pbkdf2()`]: crypto.html#crypto_crypto_pbkdf2_password_salt_iterations_keylen_digest_callback
-[`crypto.randomBytes()`]: crypto.html#crypto_crypto_randombytes_size_callback
-[`crypto.scrypt()`]: crypto.html#crypto_crypto_scrypt_password_salt_keylen_options_callback
-[`decipher.final()`]: crypto.html#crypto_decipher_final_outputencoding
-[`decipher.setAuthTag()`]: crypto.html#crypto_decipher_setauthtag_buffer
-[`domain`]: domain.html
-[`ecdh.setPublicKey()`]: crypto.html#crypto_ecdh_setpublickey_publickey_encoding
-[`emitter.listenerCount(eventName)`]: events.html#events_emitter_listenercount_eventname
-[`fs.FileHandle`]: fs.html#fs_class_filehandle
-[`fs.access()`]: fs.html#fs_fs_access_path_mode_callback
-[`fs.createReadStream()`]: fs.html#fs_fs_createreadstream_path_options
-[`fs.createWriteStream()`]: fs.html#fs_fs_createwritestream_path_options
-[`fs.exists(path, callback)`]: fs.html#fs_fs_exists_path_callback
-[`fs.lchmod(path, mode, callback)`]: fs.html#fs_fs_lchmod_path_mode_callback
-[`fs.lchmodSync(path, mode)`]: fs.html#fs_fs_lchmodsync_path_mode
-[`fs.lchown(path, uid, gid, callback)`]: fs.html#fs_fs_lchown_path_uid_gid_callback
-[`fs.lchownSync(path, uid, gid)`]: fs.html#fs_fs_lchownsync_path_uid_gid
-[`fs.read()`]: fs.html#fs_fs_read_fd_buffer_offset_length_position_callback
-[`fs.readSync()`]: fs.html#fs_fs_readsync_fd_buffer_offset_length_position
-[`fs.stat()`]: fs.html#fs_fs_stat_path_options_callback
-[`http.get()`]: http.html#http_http_get_options_callback
-[`http.request()`]: http.html#http_http_request_options_callback
-[`https.get()`]: https.html#https_https_get_options_callback
-[`https.request()`]: https.html#https_https_request_options_callback
-[`module.createRequire()`]: module.html#module_module_createrequire_filename
-[`os.networkInterfaces()`]: os.html#os_os_networkinterfaces
-[`os.tmpdir()`]: os.html#os_os_tmpdir
-[`process.env`]: process.html#process_process_env
-[`process.mainModule`]: process.html#process_process_mainmodule
-[`punycode`]: punycode.html
-[`require.extensions`]: modules.html#modules_require_extensions
-[`require.main`]: modules.html#modules_accessing_the_main_module
-[`request.abort()`]: http.html#http_request_abort
-[`request.socket`]: http.html#http_request_socket
-[`request.connection`]: http.html#http_request_connection
-[`request.destroy()`]: http.html#http_request_destroy_error
-[`response.socket`]: http.html#http_response_socket
-[`response.connection`]: http.html#http_response_connection
-[`response.end()`]: http.html#http_response_end_data_encoding_callback
-[`response.finished`]: http.html#http_response_finished
-[`response.writableFinished`]: #http_response_writablefinished
-[`response.writableEnded`]: #http_response_writableended
-[`script.createCachedData()`]: vm.html#vm_script_createcacheddata
-[`setInterval()`]: timers.html#timers_setinterval_callback_delay_args
-[`setTimeout()`]: timers.html#timers_settimeout_callback_delay_args
-[`socket.bufferSize`]: net.html#net_socket_buffersize
-[`timeout.ref()`]: timers.html#timers_timeout_ref
-[`timeout.refresh()`]: timers.html#timers_timeout_refresh
-[`timeout.unref()`]: timers.html#timers_timeout_unref
-[`tls.CryptoStream`]: tls.html#tls_class_tls_cryptostream
-[`tls.SecureContext`]: tls.html#tls_tls_createsecurecontext_options
-[`tls.SecurePair`]: tls.html#tls_class_tls_securepair
-[`tls.TLSSocket`]: tls.html#tls_class_tls_tlssocket
-[`tls.checkServerIdentity()`]: tls.html#tls_tls_checkserveridentity_hostname_cert
-[`tls.createSecureContext()`]: tls.html#tls_tls_createsecurecontext_options
-[`url.format()`]: url.html#url_url_format_urlobject
-[`url.parse()`]: url.html#url_url_parse_urlstring_parsequerystring_slashesdenotehost
-[`url.resolve()`]: url.html#url_url_resolve_from_to
-[`util._extend()`]: util.html#util_util_extend_target_source
-[`util.getSystemErrorName()`]: util.html#util_util_getsystemerrorname_err
-[`util.inspect()`]: util.html#util_util_inspect_object_options
-[`util.inspect.custom`]: util.html#util_util_inspect_custom
-[`util.isArray()`]: util.html#util_util_isarray_object
-[`util.isBoolean()`]: util.html#util_util_isboolean_object
-[`util.isBuffer()`]: util.html#util_util_isbuffer_object
-[`util.isDate()`]: util.html#util_util_isdate_object
-[`util.isError()`]: util.html#util_util_iserror_object
-[`util.isFunction()`]: util.html#util_util_isfunction_object
-[`util.isNull()`]: util.html#util_util_isnull_object
-[`util.isNullOrUndefined()`]: util.html#util_util_isnullorundefined_object
-[`util.isNumber()`]: util.html#util_util_isnumber_object
-[`util.isObject()`]: util.html#util_util_isobject_object
-[`util.isPrimitive()`]: util.html#util_util_isprimitive_object
-[`util.isRegExp()`]: util.html#util_util_isregexp_object
-[`util.isString()`]: util.html#util_util_isstring_object
-[`util.isSymbol()`]: util.html#util_util_issymbol_object
-[`util.isUndefined()`]: util.html#util_util_isundefined_object
-[`util.log()`]: util.html#util_util_log_string
-[`util.types`]: util.html#util_util_types
-[`util`]: util.html
-[`worker.exitedAfterDisconnect`]: cluster.html#cluster_worker_exitedafterdisconnect
-[`worker.terminate()`]: worker_threads.html#worker_threads_worker_terminate
-[`writable.writableLength`]: stream.html#stream_writable_writablelength
-[`zlib.bytesWritten`]: zlib.html#zlib_zlib_byteswritten
-[Legacy URL API]: url.html#url_legacy_url_api
+### DEP0147: `fs.rmdir(path, { recursive: true })`
+<!-- YAML
+changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/35562
+    description: Runtime deprecation.
+  - version: v14.14.0
+    pr-url: https://github.com/nodejs/node/pull/35579
+    description: Documentation-only deprecation.
+-->
+
+Type: Runtime
+
+In future versions of Node.js, `fs.rmdir(path, { recursive: true })` will throw
+if `path` does not exist or is a file.
+Use `fs.rm(path, { recursive: true, force: true })` instead.
+
+[Legacy URL API]: url.md#url_legacy_url_api
 [NIST SP 800-38D]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf
 [RFC 6066]: https://tools.ietf.org/html/rfc6066#section-3
-[WHATWG URL API]: url.html#url_the_whatwg_url_api
-[alloc]: buffer.html#buffer_static_method_buffer_alloc_size_fill_encoding
-[alloc_unsafe_size]: buffer.html#buffer_static_method_buffer_allocunsafe_size
-[from_arraybuffer]: buffer.html#buffer_static_method_buffer_from_arraybuffer_byteoffset_length
-[from_string_encoding]: buffer.html#buffer_static_method_buffer_from_string_encoding
-[legacy `urlObject`]: url.html#url_legacy_urlobject
-[static methods of `crypto.Certificate()`]: crypto.html#crypto_class_certificate
+[WHATWG URL API]: url.md#url_the_whatwg_url_api
+[`--pending-deprecation`]: cli.md#cli_pending_deprecation
+[`--throw-deprecation`]: cli.md#cli_throw_deprecation
+[`--unhandled-rejections`]: cli.md#cli_unhandled_rejections_mode
+[`Buffer.allocUnsafeSlow(size)`]: buffer.md#buffer_static_method_buffer_allocunsafeslow_size
+[`Buffer.from(array)`]: buffer.md#buffer_static_method_buffer_from_array
+[`Buffer.from(buffer)`]: buffer.md#buffer_static_method_buffer_from_buffer
+[`Buffer.isBuffer()`]: buffer.md#buffer_static_method_buffer_isbuffer_obj
+[`Cipher`]: crypto.md#crypto_class_cipher
+[`Decipher`]: crypto.md#crypto_class_decipher
+[`EventEmitter.listenerCount(emitter, eventName)`]: events.md#events_eventemitter_listenercount_emitter_eventname
+[`REPLServer.clearBufferedCommand()`]: repl.md#repl_replserver_clearbufferedcommand
+[`ReadStream.open()`]: fs.md#fs_class_fs_readstream
+[`Server.getConnections()`]: net.md#net_server_getconnections_callback
+[`Server.listen({fd: <number>})`]: net.md#net_server_listen_handle_backlog_callback
+[`SlowBuffer`]: buffer.md#buffer_class_slowbuffer
+[`WriteStream.open()`]: fs.md#fs_class_fs_writestream
+[`assert`]: assert.md
+[`asyncResource.runInAsyncScope()`]: async_hooks.md#async_hooks_asyncresource_runinasyncscope_fn_thisarg_args
+[`child_process`]: child_process.md
+[`clearInterval()`]: timers.md#timers_clearinterval_timeout
+[`clearTimeout()`]: timers.md#timers_cleartimeout_timeout
+[`console.error()`]: console.md#console_console_error_data_args
+[`console.log()`]: console.md#console_console_log_data_args
+[`crypto.Certificate()` constructor]: crypto.md#crypto_legacy_api
+[`crypto.DEFAULT_ENCODING`]: crypto.md#crypto_crypto_default_encoding
+[`crypto.createCipher()`]: crypto.md#crypto_crypto_createcipher_algorithm_password_options
+[`crypto.createCipheriv()`]: crypto.md#crypto_crypto_createcipheriv_algorithm_key_iv_options
+[`crypto.createDecipher()`]: crypto.md#crypto_crypto_createdecipher_algorithm_password_options
+[`crypto.createDecipheriv()`]: crypto.md#crypto_crypto_createdecipheriv_algorithm_key_iv_options
+[`crypto.fips`]: crypto.md#crypto_crypto_fips
+[`crypto.pbkdf2()`]: crypto.md#crypto_crypto_pbkdf2_password_salt_iterations_keylen_digest_callback
+[`crypto.randomBytes()`]: crypto.md#crypto_crypto_randombytes_size_callback
+[`crypto.scrypt()`]: crypto.md#crypto_crypto_scrypt_password_salt_keylen_options_callback
+[`decipher.final()`]: crypto.md#crypto_decipher_final_outputencoding
+[`decipher.setAuthTag()`]: crypto.md#crypto_decipher_setauthtag_buffer_encoding
+[`domain`]: domain.md
+[`ecdh.setPublicKey()`]: crypto.md#crypto_ecdh_setpublickey_publickey_encoding
+[`emitter.listenerCount(eventName)`]: events.md#events_emitter_listenercount_eventname
+[`fs.FileHandle`]: fs.md#fs_class_filehandle
+[`fs.access()`]: fs.md#fs_fs_access_path_mode_callback
+[`fs.createReadStream()`]: fs.md#fs_fs_createreadstream_path_options
+[`fs.createWriteStream()`]: fs.md#fs_fs_createwritestream_path_options
+[`fs.exists(path, callback)`]: fs.md#fs_fs_exists_path_callback
+[`fs.lchmod(path, mode, callback)`]: fs.md#fs_fs_lchmod_path_mode_callback
+[`fs.lchmodSync(path, mode)`]: fs.md#fs_fs_lchmodsync_path_mode
+[`fs.lchown(path, uid, gid, callback)`]: fs.md#fs_fs_lchown_path_uid_gid_callback
+[`fs.lchownSync(path, uid, gid)`]: fs.md#fs_fs_lchownsync_path_uid_gid
+[`fs.read()`]: fs.md#fs_fs_read_fd_buffer_offset_length_position_callback
+[`fs.readSync()`]: fs.md#fs_fs_readsync_fd_buffer_offset_length_position
+[`fs.stat()`]: fs.md#fs_fs_stat_path_options_callback
+[`http.get()`]: http.md#http_http_get_options_callback
+[`http.request()`]: http.md#http_http_request_options_callback
+[`https.get()`]: https.md#https_https_get_options_callback
+[`https.request()`]: https.md#https_https_request_options_callback
+[`module.createRequire()`]: module.md#module_module_createrequire_filename
+[`os.networkInterfaces()`]: os.md#os_os_networkinterfaces
+[`os.tmpdir()`]: os.md#os_os_tmpdir
+[`process.env`]: process.md#process_process_env
+[`process.mainModule`]: process.md#process_process_mainmodule
+[`punycode`]: punycode.md
+[`request.abort()`]: http.md#http_request_abort
+[`request.connection`]: http.md#http_request_connection
+[`request.destroy()`]: http.md#http_request_destroy_error
+[`request.socket`]: http.md#http_request_socket
+[`require.extensions`]: modules.md#modules_require_extensions
+[`require.main`]: modules.md#modules_accessing_the_main_module
+[`response.connection`]: http.md#http_response_connection
+[`response.end()`]: http.md#http_response_end_data_encoding_callback
+[`response.finished`]: http.md#http_response_finished
+[`response.socket`]: http.md#http_response_socket
+[`response.writableEnded`]: http.md#http_response_writableended
+[`response.writableFinished`]: http.md#http_response_writablefinished
+[`script.createCachedData()`]: vm.md#vm_script_createcacheddata
+[`setInterval()`]: timers.md#timers_setinterval_callback_delay_args
+[`setTimeout()`]: timers.md#timers_settimeout_callback_delay_args
+[`socket.bufferSize`]: net.md#net_socket_buffersize
+[`timeout.ref()`]: timers.md#timers_timeout_ref
+[`timeout.refresh()`]: timers.md#timers_timeout_refresh
+[`timeout.unref()`]: timers.md#timers_timeout_unref
+[`tls.CryptoStream`]: tls.md#tls_class_tls_cryptostream
+[`tls.SecureContext`]: tls.md#tls_tls_createsecurecontext_options
+[`tls.SecurePair`]: tls.md#tls_class_tls_securepair
+[`tls.TLSSocket`]: tls.md#tls_class_tls_tlssocket
+[`tls.checkServerIdentity()`]: tls.md#tls_tls_checkserveridentity_hostname_cert
+[`tls.createSecureContext()`]: tls.md#tls_tls_createsecurecontext_options
+[`url.format()`]: url.md#url_url_format_urlobject
+[`url.parse()`]: url.md#url_url_parse_urlstring_parsequerystring_slashesdenotehost
+[`url.resolve()`]: url.md#url_url_resolve_from_to
+[`util._extend()`]: util.md#util_util_extend_target_source
+[`util.getSystemErrorName()`]: util.md#util_util_getsystemerrorname_err
+[`util.inspect()`]: util.md#util_util_inspect_object_options
+[`util.inspect.custom`]: util.md#util_util_inspect_custom
+[`util.isArray()`]: util.md#util_util_isarray_object
+[`util.isBoolean()`]: util.md#util_util_isboolean_object
+[`util.isBuffer()`]: util.md#util_util_isbuffer_object
+[`util.isDate()`]: util.md#util_util_isdate_object
+[`util.isError()`]: util.md#util_util_iserror_object
+[`util.isFunction()`]: util.md#util_util_isfunction_object
+[`util.isNull()`]: util.md#util_util_isnull_object
+[`util.isNullOrUndefined()`]: util.md#util_util_isnullorundefined_object
+[`util.isNumber()`]: util.md#util_util_isnumber_object
+[`util.isObject()`]: util.md#util_util_isobject_object
+[`util.isPrimitive()`]: util.md#util_util_isprimitive_object
+[`util.isRegExp()`]: util.md#util_util_isregexp_object
+[`util.isString()`]: util.md#util_util_isstring_object
+[`util.isSymbol()`]: util.md#util_util_issymbol_object
+[`util.isUndefined()`]: util.md#util_util_isundefined_object
+[`util.log()`]: util.md#util_util_log_string
+[`util.types`]: util.md#util_util_types
+[`util`]: util.md
+[`worker.exitedAfterDisconnect`]: cluster.md#cluster_worker_exitedafterdisconnect
+[`worker.terminate()`]: worker_threads.md#worker_threads_worker_terminate
+[`writable.writableLength`]: stream.md#stream_writable_writablelength
+[`zlib.bytesWritten`]: zlib.md#zlib_zlib_byteswritten
+[alloc]: buffer.md#buffer_static_method_buffer_alloc_size_fill_encoding
+[alloc_unsafe_size]: buffer.md#buffer_static_method_buffer_allocunsafe_size
+[from_arraybuffer]: buffer.md#buffer_static_method_buffer_from_arraybuffer_byteoffset_length
+[from_string_encoding]: buffer.md#buffer_static_method_buffer_from_string_encoding
+[legacy `urlObject`]: url.md#url_legacy_urlobject
+[static methods of `crypto.Certificate()`]: crypto.md#crypto_class_certificate

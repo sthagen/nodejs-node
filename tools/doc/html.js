@@ -51,10 +51,12 @@ function navClasses() {
 }
 
 const gtocPath = path.join(docPath, 'api', 'index.md');
-const gtocMD = fs.readFileSync(gtocPath, 'utf8').replace(/^<!--.*?-->/gms, '');
+const gtocMD = fs.readFileSync(gtocPath, 'utf8')
+  .replace(/\(([^#?]+?)\.md\)/ig, (_, filename) => `(${filename}.html)`)
+  .replace(/^<!--.*?-->/gms, '');
 const gtocHTML = unified()
   .use(markdown)
-  .use(remark2rehype, { allowDangerousHTML: true })
+  .use(remark2rehype, { allowDangerousHtml: true })
   .use(raw)
   .use(navClasses)
   .use(htmlStringify)
@@ -126,7 +128,6 @@ function preprocessText({ nodeVersion }) {
 
 // Syscalls which appear in the docs, but which only exist in BSD / macOS.
 const BSD_ONLY_SYSCALLS = new Set(['lchmod']);
-const HAXX_ONLY_SYSCALLS = new Set(['curl']);
 const MAN_PAGE = /(^|\s)([a-z.]+)\((\d)([a-z]?)\)/gm;
 
 // Handle references to man pages, eg "open(2)" or "lchmod(2)".
@@ -142,9 +143,6 @@ function linkManPages(text) {
       if (BSD_ONLY_SYSCALLS.has(name)) {
         return `${beginning}<a href="https://www.freebsd.org/cgi/man.cgi` +
           `?query=${name}&sektion=${number}">${displayAs}</a>`;
-      }
-      if (HAXX_ONLY_SYSCALLS.has(name)) {
-        return `${beginning}<a href="https://${name}.haxx.se/docs/manpage.html">${displayAs}</a>`;
       }
 
       return `${beginning}<a href="http://man7.org/linux/man-pages/man${number}` +
@@ -285,7 +283,7 @@ function parseYAML(text) {
     meta.changes.forEach((change) => {
       const description = unified()
         .use(markdown)
-        .use(remark2rehype, { allowDangerousHTML: true })
+        .use(remark2rehype, { allowDangerousHtml: true })
         .use(raw)
         .use(htmlStringify)
         .processSync(change.description).toString();
@@ -383,7 +381,7 @@ function buildToc({ filename, apilinks }) {
 
     file.toc = unified()
       .use(markdown)
-      .use(remark2rehype, { allowDangerousHTML: true })
+      .use(remark2rehype, { allowDangerousHtml: true })
       .use(raw)
       .use(htmlStringify)
       .processSync(toc).toString();

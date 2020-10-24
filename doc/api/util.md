@@ -217,20 +217,20 @@ fn1(); // Emits a deprecation warning with code DEP0001
 fn2(); // Does not emit a deprecation warning because it has the same code
 ```
 
-If either the `--no-deprecation` or `--no-warnings` command line flags are
+If either the `--no-deprecation` or `--no-warnings` command-line flags are
 used, or if the `process.noDeprecation` property is set to `true` *prior* to
 the first deprecation warning, the `util.deprecate()` method does nothing.
 
-If the `--trace-deprecation` or `--trace-warnings` command line flags are set,
+If the `--trace-deprecation` or `--trace-warnings` command-line flags are set,
 or the `process.traceDeprecation` property is set to `true`, a warning and a
 stack trace are printed to `stderr` the first time the deprecated function is
 called.
 
-If the `--throw-deprecation` command line flag is set, or the
+If the `--throw-deprecation` command-line flag is set, or the
 `process.throwDeprecation` property is set to `true`, then an exception will be
 thrown when the deprecated function is called.
 
-The `--throw-deprecation` command line flag and `process.throwDeprecation`
+The `--throw-deprecation` command-line flag and `process.throwDeprecation`
 property take precedence over `--trace-deprecation` and
 `process.traceDeprecation`.
 
@@ -241,10 +241,6 @@ changes:
   - version: v12.11.0
     pr-url: https://github.com/nodejs/node/pull/29606
     description: The `%c` specifier is ignored now.
-  - version: v11.4.0
-    pr-url: https://github.com/nodejs/node/pull/23708
-    description: The `%d`, `%f` and `%i` specifiers now support Symbols
-                 properly.
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/23162
     description: The `format` argument is now only taken as such if it actually
@@ -256,6 +252,10 @@ changes:
                  first argument. This change removes previously present quotes
                  from strings that were being output when the first argument
                  was not a string.
+  - version: v11.4.0
+    pr-url: https://github.com/nodejs/node/pull/23708
+    description: The `%d`, `%f` and `%i` specifiers now support Symbols
+                 properly.
   - version: v11.4.0
     pr-url: https://github.com/nodejs/node/pull/24806
     description: The `%o` specifier's `depth` has default depth of 4 again.
@@ -450,7 +450,9 @@ stream.write('With ES6');
 <!-- YAML
 added: v0.3.0
 changes:
-  - version: REPLACEME
+  - version:
+    - v14.6.0
+    - v12.19.0
     pr-url: https://github.com/nodejs/node/pull/33690
     description: If `object` is from a different `vm.Context` now, a custom
                  inspection function on it will not receive context-specific
@@ -473,13 +475,13 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/27109
     description: The `compact` options default is changed to `3` and the
                  `breakLength` options default is changed to `80`.
-  - version: v11.11.0
-    pr-url: https://github.com/nodejs/node/pull/26269
-    description: The `compact` option accepts numbers for a new output mode.
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/24971
     description: Internal properties no longer appear in the context argument
                  of a custom inspection function.
+  - version: v11.11.0
+    pr-url: https://github.com/nodejs/node/pull/26269
+    description: The `compact` option accepts numbers for a new output mode.
   - version: v11.7.0
     pr-url: https://github.com/nodejs/node/pull/25006
     description: ArrayBuffers now also show their binary contents.
@@ -492,13 +494,13 @@ changes:
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/22846
     description: The `depth` default changed to `20`.
-  - version: v10.12.0
-    pr-url: https://github.com/nodejs/node/pull/22788
-    description: The `sorted` option is supported now.
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/22756
     description: The inspection output is now limited to about 128 MB. Data
                  above that size will not be fully inspected.
+  - version: v10.12.0
+    pr-url: https://github.com/nodejs/node/pull/22788
+    description: The `sorted` option is supported now.
   - version: v10.6.0
     pr-url: https://github.com/nodejs/node/pull/20725
     description: Inspecting linked lists and similar objects is now possible
@@ -1178,7 +1180,7 @@ is not supported.
 added: v8.3.0
 changes:
   - version: v11.0.0
-    pr-url: v11.0.0
+    pr-url: https://github.com/nodejs/node/pull/22281
     description: The class is now available on the global object.
 -->
 
@@ -1239,7 +1241,7 @@ mark.
 added: v8.3.0
 changes:
   - version: v11.0.0
-    pr-url: v11.0.0
+    pr-url: https://github.com/nodejs/node/pull/22281
     description: The class is now available on the global object.
 -->
 
@@ -1288,6 +1290,10 @@ The encoding supported by the `TextEncoder` instance. Always set to `'utf-8'`.
 ## `util.types`
 <!-- YAML
 added: v10.0.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/34055
+    description: Exposed as `require('util/types')`.
 -->
 
 `util.types` provides type checks for different kinds of built-in objects.
@@ -1298,6 +1304,8 @@ their prototype), and usually have the overhead of calling into C++.
 The result generally does not make any guarantees about what kinds of
 properties or behavior a value exposes in JavaScript. They are primarily
 useful for addon developers who prefer to do type checking in JavaScript.
+
+The API is accessible via `require('util').types` or `require('util/types')`.
 
 ### `util.types.isAnyArrayBuffer(value)`
 <!-- YAML
@@ -2445,15 +2453,22 @@ const util = require('util');
 util.log('Timestamped message.');
 ```
 
-[`'uncaughtException'`]: process.html#process_event_uncaughtexception
-[`'warning'`]: process.html#process_event_warning
+[Common System Errors]: errors.md#errors_common_system_errors
+[Custom inspection functions on objects]: #util_custom_inspection_functions_on_objects
+[Custom promisified functions]: #util_custom_promisified_functions
+[Customizing `util.inspect` colors]: #util_customizing_util_inspect_colors
+[Internationalization]: intl.md
+[Module Namespace Object]: https://tc39.github.io/ecma262/#sec-module-namespace-exotic-objects
+[WHATWG Encoding Standard]: https://encoding.spec.whatwg.org/
+[`'uncaughtException'`]: process.md#process_event_uncaughtexception
+[`'warning'`]: process.md#process_event_warning
 [`Array.isArray()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
 [`ArrayBuffer.isView()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer/isView
 [`ArrayBuffer`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
-[`Buffer.isBuffer()`]: buffer.html#buffer_static_method_buffer_isbuffer_obj
+[`Buffer.isBuffer()`]: buffer.md#buffer_static_method_buffer_isbuffer_obj
 [`DataView`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
 [`Date`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
-[`Error`]: errors.html#errors_class_error
+[`Error`]: errors.md#errors_class_error
 [`Float32Array`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array
 [`Float64Array`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array
 [`Int16Array`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array
@@ -2474,10 +2489,11 @@ util.log('Timestamped message.');
 [`WeakMap`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
 [`WeakSet`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet
 [`WebAssembly.Module`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module
-[`assert.deepStrictEqual()`]: assert.html#assert_assert_deepstrictequal_actual_expected_message
-[`console.error()`]: console.html#console_console_error_data_args
+[`assert.deepStrictEqual()`]: assert.md#assert_assert_deepstrictequal_actual_expected_message
+[`console.error()`]: console.md#console_console_error_data_args
+[`napi_create_external()`]: n-api.md#n_api_napi_create_external
 [`target` and `handler`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy#Terminology
-[`tty.hasColors()`]: tty.html#tty_writestream_hascolors_count_env
+[`tty.hasColors()`]: tty.md#tty_writestream_hascolors_count_env
 [`util.format()`]: #util_util_format_format_args
 [`util.inspect()`]: #util_util_inspect_object_options
 [`util.promisify()`]: #util_util_promisify_original
@@ -2486,19 +2502,11 @@ util.log('Timestamped message.');
 [`util.types.isDate()`]: #util_util_types_isdate_value
 [`util.types.isNativeError()`]: #util_util_types_isnativeerror_value
 [`util.types.isSharedArrayBuffer()`]: #util_util_types_issharedarraybuffer_value
-[Common System Errors]: errors.html#errors_common_system_errors
-[Custom inspection functions on objects]: #util_custom_inspection_functions_on_objects
-[Custom promisified functions]: #util_custom_promisified_functions
-[Customizing `util.inspect` colors]: #util_customizing_util_inspect_colors
-[Internationalization]: intl.html
-[Module Namespace Object]: https://tc39.github.io/ecma262/#sec-module-namespace-exotic-objects
-[WHATWG Encoding Standard]: https://encoding.spec.whatwg.org/
 [async function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
 [compare function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Parameters
 [constructor]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/constructor
 [default sort]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
 [global symbol registry]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/for
-[list of deprecated APIS]: deprecations.html#deprecations_list_of_deprecated_apis
-[`napi_create_external()`]: n-api.html#n_api_napi_create_external
+[list of deprecated APIS]: deprecations.md#deprecations_list_of_deprecated_apis
 [semantically incompatible]: https://github.com/nodejs/node/issues/4179
 [util.inspect.custom]: #util_util_inspect_custom

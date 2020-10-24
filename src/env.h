@@ -215,8 +215,11 @@ constexpr size_t kFsStatsBufferLength =
   V(destroyed_string, "destroyed")                                             \
   V(detached_string, "detached")                                               \
   V(dh_string, "DH")                                                           \
+  V(divisor_length_string, "divisorLength")                                    \
   V(dns_a_string, "A")                                                         \
   V(dns_aaaa_string, "AAAA")                                                   \
+  V(dns_caa_string, "CAA")                                                     \
+  V(dns_critical_string, "critical")                                           \
   V(dns_cname_string, "CNAME")                                                 \
   V(dns_mx_string, "MX")                                                       \
   V(dns_naptr_string, "NAPTR")                                                 \
@@ -277,6 +280,23 @@ constexpr size_t kFsStatsBufferLength =
   V(isclosing_string, "isClosing")                                             \
   V(issuer_string, "issuer")                                                   \
   V(issuercert_string, "issuerCertificate")                                    \
+  V(jwk_d_string, "d")                                                         \
+  V(jwk_dp_string, "dp")                                                       \
+  V(jwk_dq_string, "dq")                                                       \
+  V(jwk_dsa_string, "DSA")                                                     \
+  V(jwk_e_string, "e")                                                         \
+  V(jwk_ec_string, "EC")                                                       \
+  V(jwk_g_string, "g")                                                         \
+  V(jwk_k_string, "k")                                                         \
+  V(jwk_p_string, "p")                                                         \
+  V(jwk_q_string, "q")                                                         \
+  V(jwk_qi_string, "qi")                                                       \
+  V(jwk_kty_string, "kty")                                                     \
+  V(jwk_n_string, "n")                                                         \
+  V(jwk_oct_string, "oct")                                                     \
+  V(jwk_rsa_string, "RSA")                                                     \
+  V(jwk_x_string, "x")                                                         \
+  V(jwk_y_string, "y")                                                         \
   V(kill_signal_string, "killSignal")                                          \
   V(kind_string, "kind")                                                       \
   V(length_string, "length")                                                   \
@@ -290,7 +310,9 @@ constexpr size_t kFsStatsBufferLength =
   V(minttl_string, "minttl")                                                   \
   V(module_string, "module")                                                   \
   V(modulus_string, "modulus")                                                 \
+  V(modulus_length_string, "modulusLength")                                    \
   V(name_string, "name")                                                       \
+  V(named_curve_string, "namedCurve")                                          \
   V(netmask_string, "netmask")                                                 \
   V(next_string, "next")                                                       \
   V(nistcurve_string, "nistCurve")                                             \
@@ -339,6 +361,7 @@ constexpr size_t kFsStatsBufferLength =
   V(promise_string, "promise")                                                 \
   V(psk_string, "psk")                                                         \
   V(pubkey_string, "pubkey")                                                   \
+  V(public_exponent_string, "publicExponent")                                  \
   V(query_string, "query")                                                     \
   V(http3_alpn_string, "h3-29")                                                \
   V(rate_string, "rate")                                                       \
@@ -574,6 +597,7 @@ class IsolateData : public MemoryRetainer {
 #undef VP
   inline v8::Local<v8::String> async_wrap_provider(int index) const;
 
+  size_t max_young_gen_size = 1;
   std::unordered_map<const char*, v8::Eternal<v8::String>> static_str_map;
 
   inline v8::Isolate* isolate() const;
@@ -934,11 +958,13 @@ class Environment : public MemoryRetainer {
   void CreateProperties();
   void DeserializeProperties(const EnvSerializeInfo* info);
 
-  typedef void (*BaseObjectIterator)(size_t, BaseObject*);
-  void ForEachBaseObject(BaseObjectIterator iterator);
   void PrintAllBaseObjects();
+  void VerifyNoStrongBaseObjects();
   // Should be called before InitializeInspector()
   void InitializeDiagnostics();
+
+  std::string GetCwd();
+
 #if HAVE_INSPECTOR
   // If the environment is created for a worker, pass parent_handle and
   // the ownership if transferred into the Environment.
@@ -1160,8 +1186,6 @@ class Environment : public MemoryRetainer {
 
   inline bool filehandle_close_warning() const;
   inline void set_filehandle_close_warning(bool on);
-  inline bool emit_insecure_umask_warning() const;
-  inline void set_emit_insecure_umask_warning(bool on);
 
   inline void set_source_maps_enabled(bool on);
   inline bool source_maps_enabled() const;
@@ -1299,6 +1323,9 @@ class Environment : public MemoryRetainer {
   inline void RemoveCleanupHook(void (*fn)(void*), void* arg);
   void RunCleanup();
 
+  static size_t NearHeapLimitCallback(void* data,
+                                      size_t current_heap_limit,
+                                      size_t initial_heap_limit);
   static void BuildEmbedderGraph(v8::Isolate* isolate,
                                  v8::EmbedderGraph* graph,
                                  void* data);
@@ -1386,7 +1413,6 @@ class Environment : public MemoryRetainer {
   bool emit_env_nonstring_warning_ = true;
   bool emit_err_name_warning_ = true;
   bool emit_filehandle_warning_ = true;
-  bool emit_insecure_umask_warning_ = true;
   bool source_maps_enabled_ = false;
 
   size_t async_callback_scope_depth_ = 0;
@@ -1417,6 +1443,9 @@ class Environment : public MemoryRetainer {
   std::vector<std::string> exec_argv_;
   std::vector<std::string> argv_;
   std::string exec_path_;
+
+  bool is_processing_heap_limit_callback_ = false;
+  int64_t heap_limit_snapshot_taken_ = 0;
 
   uint32_t module_id_counter_ = 0;
   uint32_t script_id_counter_ = 0;

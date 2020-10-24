@@ -95,15 +95,13 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
 // Returns those values as Float64 microseconds in the elements of the array
 // passed to the function.
 static void CPUUsage(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
   uv_rusage_t rusage;
 
   // Call libuv to get the values we'll return.
   int err = uv_getrusage(&rusage);
-  if (err) {
-    // On error, return the strerror version of the error code.
-    Local<String> errmsg = OneByteString(args.GetIsolate(), uv_strerror(err));
-    return args.GetReturnValue().Set(errmsg);
-  }
+  if (err)
+    return env->ThrowUVException(err, "uv_getrusage");
 
   // Get the double array pointer from the Float64Array argument.
   CHECK(args[0]->IsFloat64Array());
@@ -137,8 +135,9 @@ static void Kill(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   Local<Context> context = env->context();
 
-  if (args.Length() != 2)
-    return env->ThrowError("Bad argument.");
+  if (args.Length() < 2) {
+    THROW_ERR_MISSING_ARGS(env, "Bad argument.");
+  }
 
   int pid;
   if (!args[0]->Int32Value(context).To(&pid)) return;
@@ -206,17 +205,6 @@ static void Umask(const FunctionCallbackInfo<Value>& args) {
 
   uint32_t old;
   if (args[0]->IsUndefined()) {
-    if (env->emit_insecure_umask_warning()) {
-      env->set_emit_insecure_umask_warning(false);
-      if (ProcessEmitDeprecationWarning(
-              env,
-              "Calling process.umask() with no arguments is prone to race "
-              "conditions and is a potential security vulnerability.",
-              "DEP0139").IsNothing()) {
-        return;
-      }
-    }
-
     old = umask(0);
     umask(static_cast<mode_t>(old));
   } else {
@@ -303,8 +291,8 @@ static void ResourceUsage(const FunctionCallbackInfo<Value>& args) {
 static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  if (args.Length() != 1) {
-    return env->ThrowError("Invalid number of arguments.");
+  if (args.Length() < 1) {
+    return THROW_ERR_MISSING_ARGS(env, "Invalid number of arguments.");
   }
 
   CHECK(args[0]->IsNumber());
@@ -328,9 +316,8 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   Isolate* isolate = args.GetIsolate();
 
-  if (args.Length() != 1) {
-    env->ThrowError("Invalid number of arguments.");
-    return;
+  if (args.Length() < 1) {
+    return THROW_ERR_MISSING_ARGS(env, "Invalid number of arguments.");
   }
 
   HANDLE process = nullptr;
@@ -470,6 +457,12 @@ class FastHrtime : public BaseObject {
   SET_MEMORY_INFO_NAME(FastHrtime)
   SET_SELF_SIZE(FastHrtime)
 
+  static FastHrtime* FromV8ApiObject(v8::ApiObject api_object) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&api_object);
+    return static_cast<FastHrtime*>(
+        v8_object->GetAlignedPointerFromInternalField(BaseObject::kSlot));
+  }
+
   // This is the legacy version of hrtime before BigInt was introduced in
   // JavaScript.
   // The value returned by uv_hrtime() is a 64-bit int representing nanoseconds,
@@ -479,7 +472,7 @@ class FastHrtime : public BaseObject {
   // broken into the upper/lower 32 bits to be converted back in JS,
   // because there is no Uint64Array in JS.
   // The third entry contains the remaining nanosecond part of the value.
-  static void FastNumber(FastHrtime* receiver) {
+  static void NumberImpl(FastHrtime* receiver) {
     uint64_t t = uv_hrtime();
     uint32_t* fields = static_cast<uint32_t*>(receiver->backing_store_->Data());
     fields[0] = (t / NANOS_PER_SEC) >> 32;
@@ -487,18 +480,26 @@ class FastHrtime : public BaseObject {
     fields[2] = t % NANOS_PER_SEC;
   }
 
-  static void SlowNumber(const FunctionCallbackInfo<Value>& args) {
-    FastNumber(FromJSObject<FastHrtime>(args.Holder()));
+  static void FastNumber(v8::ApiObject receiver) {
+    NumberImpl(FromV8ApiObject(receiver));
   }
 
-  static void FastBigInt(FastHrtime* receiver) {
+  static void SlowNumber(const FunctionCallbackInfo<Value>& args) {
+    NumberImpl(FromJSObject<FastHrtime>(args.Holder()));
+  }
+
+  static void BigIntImpl(FastHrtime* receiver) {
     uint64_t t = uv_hrtime();
     uint64_t* fields = static_cast<uint64_t*>(receiver->backing_store_->Data());
     fields[0] = t;
   }
 
+  static void FastBigInt(v8::ApiObject receiver) {
+    BigIntImpl(FromV8ApiObject(receiver));
+  }
+
   static void SlowBigInt(const FunctionCallbackInfo<Value>& args) {
-    FastBigInt(FromJSObject<FastHrtime>(args.Holder()));
+    BigIntImpl(FromJSObject<FastHrtime>(args.Holder()));
   }
 
   v8::Global<ArrayBuffer> array_buffer_;
@@ -575,17 +576,6 @@ void RegisterProcessMethodsExternalReferences(
 }
 
 }  // namespace node
-
-namespace v8 {
-template <>
-class WrapperTraits<node::FastHrtime> {
- public:
-  static const void* GetTypeInfo() {
-    static const int tag = 0;
-    return reinterpret_cast<const void*>(&tag);
-  }
-};
-}  // namespace v8
 
 NODE_MODULE_CONTEXT_AWARE_INTERNAL(process_methods,
                                    node::InitializeProcessMethods)
