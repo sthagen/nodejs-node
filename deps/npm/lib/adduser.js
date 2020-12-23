@@ -1,14 +1,13 @@
-'use strict'
-
 const log = require('npmlog')
 const npm = require('./npm.js')
 const output = require('./utils/output.js')
 const usageUtil = require('./utils/usage.js')
+const replaceInfo = require('./utils/replace-info.js')
 const authTypes = {
   legacy: require('./auth/legacy.js'),
   oauth: require('./auth/oauth.js'),
   saml: require('./auth/saml.js'),
-  sso: require('./auth/sso.js')
+  sso: require('./auth/sso.js'),
 }
 
 const usage = usageUtil(
@@ -24,9 +23,8 @@ const getRegistry = ({ scope, registry }) => {
   if (scope) {
     const scopedRegistry = npm.config.get(`${scope}:registry`)
     const cliRegistry = npm.config.get('registry', 'cli')
-    if (scopedRegistry && !cliRegistry) {
+    if (scopedRegistry && !cliRegistry)
       return scopedRegistry
-    }
   }
   return registry
 }
@@ -34,9 +32,8 @@ const getRegistry = ({ scope, registry }) => {
 const getAuthType = ({ authType }) => {
   const type = authTypes[authType]
 
-  if (!type) {
+  if (!type)
     throw new Error('no such auth module')
-  }
 
   return type
 }
@@ -44,9 +41,8 @@ const getAuthType = ({ authType }) => {
 const updateConfig = async ({ newCreds, registry, scope }) => {
   npm.config.delete('_token', 'user') // prevent legacy pollution
 
-  if (scope) {
+  if (scope)
     npm.config.set(scope + ':registry', registry, 'user')
-  }
 
   npm.config.setCredentialsByURI(registry, newCreds)
   await npm.config.save('user')
@@ -60,16 +56,19 @@ const adduser = async (args) => {
 
   log.disableProgress()
 
+  log.notice('', `Log in on ${replaceInfo(registry)}`)
+
   const { message, newCreds } = await auth({
+    ...npm.flatOptions,
     creds,
     registry,
-    scope
+    scope,
   })
 
   await updateConfig({
     newCreds,
     registry,
-    scope
+    scope,
   })
 
   output(message)

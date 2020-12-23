@@ -53,31 +53,29 @@ const cmd = (args, cb) => compl(args).then(() => cb()).catch(cb)
 
 // completion for the completion command
 const completion = async (opts, cb) => {
-  if (opts.w > 3) {
+  if (opts.w > 2)
     return cb()
-  }
 
   const { resolve } = require('path')
   const [bashExists, zshExists] = await Promise.all([
     fileExists(resolve(process.env.HOME, '.bashrc')),
-    fileExists(resolve(process.env.HOME, '.zshrc'))
+    fileExists(resolve(process.env.HOME, '.zshrc')),
   ])
   const out = []
-  if (zshExists) {
-    out.push('~/.zshrc')
-  }
-  if (bashExists) {
-    out.push('~/.bashrc')
-  }
+  if (zshExists)
+    out.push(['>>', '~/.zshrc'])
 
-  cb(null, opts.w === 2 ? out.map(m => ['>>', m]) : out)
+  if (bashExists)
+    out.push(['>>', '~/.bashrc'])
+
+  cb(null, out)
 }
 
 const compl = async args => {
   if (isWindowsShell) {
     const msg = 'npm completion supported only in MINGW / Git bash on Windows'
     throw Object.assign(new Error(msg), {
-      code: 'ENOTSUP'
+      code: 'ENOTSUP',
     })
   }
 
@@ -86,19 +84,15 @@ const compl = async args => {
   // if the COMP_* isn't in the env, then just dump the script.
   if (COMP_CWORD === undefined ||
       COMP_LINE === undefined ||
-      COMP_POINT === undefined) {
+      COMP_POINT === undefined)
     return dumpScript()
-  }
 
   // ok we're actually looking at the envs and outputting the suggestions
-  console.error({ COMP_CWORD, COMP_LINE, COMP_POINT })
-
   // get the partial line and partial word,
   // if the point isn't at the end.
   // ie, tabbing at: npm foo b|ar
   const w = +COMP_CWORD
   const words = args.map(unescape)
-  console.error({ words, args, w })
   const word = words[w]
   const line = COMP_LINE
   const point = +COMP_POINT
@@ -107,11 +101,10 @@ const compl = async args => {
 
   // figure out where in that last word the point is.
   const partialWordRaw = args[w]
-  console.error('partial word (args[%i])', w, partialWordRaw, args)
   let i = partialWordRaw.length
-  while (partialWordRaw.substr(0, i) !== partialLine.substr(-1 * i) && i > 0) {
+  while (partialWordRaw.substr(0, i) !== partialLine.substr(-1 * i) && i > 0)
     i--
-  }
+
   const partialWord = unescape(partialWordRaw.substr(0, i))
   partialWords.push(partialWord)
 
@@ -125,22 +118,20 @@ const compl = async args => {
     partialLine,
     partialWords,
     partialWord,
-    raw: args
+    raw: args,
   }
 
-  console.error(opts)
   const wrap = getWrap(opts)
 
   if (partialWords.slice(0, -1).indexOf('--') === -1) {
-    if (word.charAt(0) === '-') {
+    if (word.charAt(0) === '-')
       return wrap(configCompl(opts))
-    }
+
     if (words[w - 1] &&
         words[w - 1].charAt(0) === '-' &&
         !isFlag(words[w - 1])) {
       // awaiting a value for a non-bool config.
       // don't even try to do this for now
-      console.error('configValueCompl')
       return wrap(configValueCompl(opts))
     }
   }
@@ -153,12 +144,9 @@ const compl = async args => {
   const parsed = opts.conf =
     nopt(types, shorthands, partialWords.slice(0, -1), 0)
   // check if there's a command already.
-  console.error('PARSED', parsed)
   const cmd = parsed.argv.remain[1]
-  console.error('CMD', cmd)
-  if (!cmd) {
+  if (!cmd)
     return wrap(cmdCompl(opts))
-  }
 
   Object.keys(parsed).forEach(k => npm.config.set(k, parsed[k]))
 
@@ -184,17 +172,16 @@ const dumpScript = async () => {
   await new Promise((res, rej) => {
     let done = false
     process.stdout.write(d, () => {
-      if (done) {
+      if (done)
         return
-      }
+
       done = true
       res()
     })
 
     process.stdout.on('error', er => {
-      if (done) {
+      if (done)
         return
-      }
 
       done = true
 
@@ -208,11 +195,10 @@ const dumpScript = async () => {
       // Really, one should not be tossing away EPIPE errors, or any
       // errors, so casually.  But, without this, `. <(npm completion)`
       // can never ever work on OS X.
-      if (er.errno === 'EPIPE') {
+      if (er.errno === 'EPIPE')
         res()
-      } else {
+      else
         rej(er)
-      }
     })
   })
 }
@@ -230,24 +216,17 @@ const escape = w => !/\s+/.test(w) ? w
 // Ie, returning ['a', 'b c', ['d', 'e']] would allow it to expand
 // to: 'a', 'b c', or 'd' 'e'
 const getWrap = opts => compls => {
-  console.error('WRAP', opts, compls)
-
-  if (!Array.isArray(compls)) {
+  if (!Array.isArray(compls))
     compls = compls ? [compls] : []
-  }
 
   compls = compls.map(c =>
     Array.isArray(c) ? c.map(escape).join(' ') : escape(c))
 
-  if (opts.partialWord) {
-    console.error('HAS PARTIAL WORD', opts.partialWord, compls)
+  if (opts.partialWord)
     compls = compls.filter(c => c.startsWith(opts.partialWord))
-  }
 
-  console.error(compls, opts.partialWord)
-  if (compls.length > 0) {
+  if (compls.length > 0)
     output(compls.join('\n'))
-  }
 }
 
 // the current word has a dash.  Return the config names,
@@ -258,7 +237,6 @@ const configCompl = opts => {
   const dashes = split[1]
   const no = split[2]
   const flags = configNames.filter(isFlag)
-  console.error(flags)
   return allConfs.map(c => dashes + c)
     .concat(flags.map(f => dashes + (no || 'no-') + f))
 }
@@ -283,17 +261,14 @@ const isFlag = word => {
 // complete against the npm commands
 // if they all resolve to the same thing, just return the thing it already is
 const cmdCompl = opts => {
-  console.error('CMD COMPL', opts.partialWord)
   const matches = fullList.filter(c => c.startsWith(opts.partialWord))
-  console.error('MATCHES', matches)
-  if (!matches.length) {
+  if (!matches.length)
     return matches
-  }
+
   const derefs = new Set([...matches.map(c => deref(c))])
-  if (derefs.size === 1) {
-    console.error('ONLY ONE MATCH', derefs)
+  if (derefs.size === 1)
     return [...derefs]
-  }
+
   return fullList
 }
 

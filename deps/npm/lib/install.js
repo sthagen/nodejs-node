@@ -1,4 +1,3 @@
-'use strict'
 /* eslint-disable camelcase */
 /* eslint-disable standard/no-callback-literal */
 const fs = require('fs')
@@ -6,13 +5,15 @@ const util = require('util')
 const readdir = util.promisify(fs.readdir)
 const npm = require('./npm.js')
 const usageUtil = require('./utils/usage.js')
-const reifyOutput = require('./utils/reify-output.js')
+const reifyFinish = require('./utils/reify-finish.js')
 const log = require('npmlog')
 const { resolve, join } = require('path')
 const Arborist = require('@npmcli/arborist')
 const runScript = require('@npmcli/run-script')
 
-const install = async (args, cb) => {
+const cmd = async (args, cb) => install(args).then(() => cb()).catch(cb)
+
+const install = async args => {
   // the /path/to/node_modules/..
   const globalTop = resolve(npm.globalDir, '..')
   const { ignoreScripts, global: isGlobalInstall } = npm.flatOptions
@@ -22,52 +23,45 @@ const install = async (args, cb) => {
   args = args.filter(a => resolve(a) !== npm.prefix)
 
   // `npm i -g` => "install this package globally"
-  if (where === globalTop && !args.length) {
+  if (where === globalTop && !args.length)
     args = ['.']
-  }
 
   // TODO: Add warnings for other deprecated flags?  or remove this one?
-  if (npm.config.get('dev')) {
+  if (npm.config.get('dev'))
     log.warn('install', 'Usage of the `--dev` option is deprecated. Use `--include=dev` instead.')
-  }
 
   const arb = new Arborist({
     ...npm.flatOptions,
-    path: where
+    path: where,
   })
 
-  try {
-    await arb.reify({
-      ...npm.flatOptions,
-      add: args
-    })
-    if (!args.length && !isGlobalInstall && !ignoreScripts) {
-      const { scriptShell } = npm.flatOptions
-      const scripts = [
-        'preinstall',
-        'install',
-        'postinstall',
-        'prepublish', // XXX should we remove this finally??
-        'preprepare',
-        'prepare',
-        'postprepare'
-      ]
-      for (const event of scripts) {
-        await runScript({
-          path: where,
-          args: [],
-          scriptShell,
-          stdio: 'inherit',
-          stdioString: true,
-          event
-        })
-      }
+  await arb.reify({
+    ...npm.flatOptions,
+    add: args,
+  })
+  if (!args.length && !isGlobalInstall && !ignoreScripts) {
+    const { scriptShell } = npm.flatOptions
+    const scripts = [
+      'preinstall',
+      'install',
+      'postinstall',
+      'prepublish', // XXX should we remove this finally??
+      'preprepare',
+      'prepare',
+      'postprepare',
+    ]
+    for (const event of scripts) {
+      await runScript({
+        path: where,
+        args: [],
+        scriptShell,
+        stdio: 'inherit',
+        stdioString: true,
+        event,
+      })
     }
-    reifyOutput(arb)
-    cb()
-  } catch (er) {
-    cb(er)
   }
+  await reifyFinish(arb)
 }
 
 const usage = usageUtil(
@@ -107,17 +101,16 @@ const completion = async (opts, cb) => {
 
     const annotatePackageDirMatch = async (sibling) => {
       const fullPath = join(partialPath, sibling)
-      if (sibling.slice(0, partialName.length) !== partialName) {
+      if (sibling.slice(0, partialName.length) !== partialName)
         return null // not name match
-      }
 
       try {
         const contents = await readdir(fullPath)
         return {
           fullPath,
-          isPackage: contents.indexOf('package.json') !== -1
+          isPackage: contents.indexOf('package.json') !== -1,
         }
-      } catch {
+      } catch (er) {
         return { isPackage: false }
       }
     }
@@ -137,7 +130,7 @@ const completion = async (opts, cb) => {
         // no matches
         return cb(null, [])
       }
-    } catch {
+    } catch (er) {
       return cb(null, []) // invalid dir: no matching
     }
   }
@@ -147,4 +140,4 @@ const completion = async (opts, cb) => {
   cb()
 }
 
-module.exports = Object.assign(install, { usage, completion })
+module.exports = Object.assign(cmd, { usage, completion })

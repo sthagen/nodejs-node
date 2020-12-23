@@ -503,7 +503,7 @@ wrapper that looks like the following:
 By doing this, Node.js achieves a few things:
 
 * It keeps top-level variables (defined with `var`, `const` or `let`) scoped to
-the module rather than the global object.
+  the module rather than the global object.
 * It helps to provide some global-looking variables that are actually specific
   to the module, such as:
   * The `module` and `exports` objects that the implementor can use to export
@@ -967,7 +967,7 @@ This section was moved to
 [Modules: `module` core module](module.md#module_source_map_v3_support).
 
 <!-- Anchors to make sure old links find a target -->
-* <a id="modules_module_findsourcemap_path_error" href="module.html#module_module_findsourcemap_path_error">`module.findSourceMap(path[, error])`</a>
+* <a id="modules_module_findsourcemap_path_error" href="module.html#module_module_findsourcemap_path">`module.findSourceMap(path)`</a>
 * <a id="modules_class_module_sourcemap" href="module.html#module_class_module_sourcemap">Class: `module.SourceMap`</a>
   * <a id="modules_new_sourcemap_payload" href="module.html#module_new_sourcemap_payload">`new SourceMap(payload)`</a>
   * <a id="modules_sourcemap_payload" href="module.html#module_sourcemap_payload">`sourceMap.payload`</a>

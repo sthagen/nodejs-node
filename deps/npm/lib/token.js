@@ -1,5 +1,3 @@
-'use strict'
-
 const profile = require('npm-profile')
 const npm = require('./npm.js')
 const output = require('./utils/output.js')
@@ -24,7 +22,7 @@ token.usage = usageUtil('token',
 
 const UsageError = (msg) =>
   Object.assign(new Error(`\nUsage: ${msg}\n\n` + token.usage), {
-    code: 'EUSAGE'
+    code: 'EUSAGE',
   })
 
 const InvalidCIDRError = (msg) =>
@@ -34,9 +32,8 @@ token.subcommands = ['list', 'revoke', 'create']
 
 token.completion = function (opts, cb) {
   var argv = opts.conf.argv.remain
-  if (argv.length === 2) {
+  if (argv.length === 2)
     return cb(null, token.subcommands)
-  }
 
   switch (argv[2]) {
     case 'list':
@@ -54,7 +51,8 @@ function withCb (prom, cb) {
 
 function token (args, cb) {
   log.gauge.show('token')
-  if (args.length === 0) return withCb(list([]), cb)
+  if (args.length === 0)
+    return withCb(list([]), cb)
   switch (args[0]) {
     case 'list':
     case 'ls':
@@ -76,43 +74,47 @@ function token (args, cb) {
 
 function generateTokenIds (tokens, minLength) {
   const byId = {}
-  tokens.forEach((token) => {
+  for (const token of tokens) {
     token.id = token.key
     for (let ii = minLength; ii < token.key.length; ++ii) {
-      if (!tokens.some((ot) => ot !== token && ot.key.slice(0, ii) === token.key.slice(0, ii))) {
+      const match = tokens.some(ot =>
+        ot !== token &&
+        ot.key.slice(0, ii) === token.key.slice(0, ii))
+      if (!match) {
         token.id = token.key.slice(0, ii)
         break
       }
     }
     byId[token.id] = token
-  })
+  }
   return byId
 }
 
 function config () {
   const conf = { ...npm.flatOptions }
   const creds = npm.config.getCredentialsByURI(conf.registry)
-  if (creds.token) {
+  if (creds.token)
     conf.auth = { token: creds.token }
-  } else if (creds.username) {
+  else if (creds.username) {
     conf.auth = {
       basic: {
         username: creds.username,
-        password: creds.password
-      }
+        password: creds.password,
+      },
     }
   } else if (creds.auth) {
     const auth = Buffer.from(creds.auth, 'base64').toString().split(':', 2)
     conf.auth = {
       basic: {
         username: auth[0],
-        password: auth[1]
-      }
+        password: auth[1],
+      },
     }
-  } else {
+  } else
     conf.auth = {}
-  }
-  if (conf.otp) conf.auth.otp = conf.otp
+
+  if (conf.otp)
+    conf.auth.otp = conf.otp
   return conf
 }
 
@@ -131,16 +133,17 @@ function list (args) {
           token.token,
           token.created,
           token.readonly ? 'true' : 'false',
-          token.cidr_whitelist ? token.cidr_whitelist.join(',') : ''
+          token.cidr_whitelist ? token.cidr_whitelist.join(',') : '',
         ].join('\t'))
       })
       return
     }
     generateTokenIds(tokens, 6)
-    const idWidth = tokens.reduce((acc, token) => Math.max(acc, token.id.length), 0)
+    const idWidth = tokens.reduce((acc, token) =>
+      Math.max(acc, token.id.length), 0)
     const table = new Table({
       head: ['id', 'token', 'created', 'readonly', 'CIDR whitelist'],
-      colWidths: [Math.max(idWidth, 2) + 2, 9, 12, 10]
+      colWidths: [Math.max(idWidth, 2) + 2, 9, 12, 10],
     })
     tokens.forEach((token) => {
       table.push([
@@ -148,7 +151,7 @@ function list (args) {
         token.token + '…',
         String(token.created).slice(0, 10),
         token.readonly ? 'yes' : 'no',
-        token.cidr_whitelist ? token.cidr_whitelist.join(', ') : ''
+        token.cidr_whitelist ? token.cidr_whitelist.join(', ') : '',
       ])
     })
     output(table.toString())
@@ -156,9 +159,9 @@ function list (args) {
 }
 
 function rm (args) {
-  if (args.length === 0) {
+  if (args.length === 0)
     return Promise.reject(UsageError('`<tokenKey>` argument is required.'))
-  }
+
   const conf = config()
   const toRemove = []
   const progress = log.newItem('removing tokens', toRemove.length)
@@ -166,15 +169,15 @@ function rm (args) {
   return pulseTillDone.withPromise(profile.listTokens(conf).then((tokens) => {
     args.forEach((id) => {
       const matches = tokens.filter((token) => token.key.indexOf(id) === 0)
-      if (matches.length === 1) {
+      if (matches.length === 1)
         toRemove.push(matches[0].key)
-      } else if (matches.length > 1) {
+      else if (matches.length > 1)
         throw new Error(`Token ID "${id}" was ambiguous, a new token may have been created since you last ran \`npm token list\`.`)
-      } else {
-        const tokenMatches = tokens.filter((token) => id.indexOf(token.token) === 0)
-        if (tokenMatches.length === 0) {
+      else {
+        const tokenMatches = tokens.some(t => id.indexOf(t.token) === 0)
+        if (!tokenMatches)
           throw new Error(`Unknown token id or value "${id}".`)
-        }
+
         toRemove.push(id)
       }
     })
@@ -184,13 +187,12 @@ function rm (args) {
       })
     }))
   })).then(() => {
-    if (conf.json) {
+    if (conf.json)
       output(JSON.stringify(toRemove))
-    } else if (conf.parseable) {
+    else if (conf.parseable)
       output(toRemove.join('\t'))
-    } else {
+    else
       output('Removed ' + toRemove.length + ' token' + (toRemove.length !== 1 ? 's' : ''))
-    }
   })
 }
 
@@ -208,25 +210,25 @@ function create (args) {
   }).then((result) => {
     delete result.key
     delete result.updated
-    if (conf.json) {
+    if (conf.json)
       output(JSON.stringify(result))
-    } else if (conf.parseable) {
+    else if (conf.parseable)
       Object.keys(result).forEach((k) => output(k + '\t' + result[k]))
-    } else {
+    else {
       const table = new Table()
-      Object.keys(result).forEach((k) => table.push({ [ansistyles.bright(k)]: String(result[k]) }))
+      for (const k of Object.keys(result))
+        table.push({ [ansistyles.bright(k)]: String(result[k]) })
       output(table.toString())
     }
   })
 }
 
 function validateCIDR (cidr) {
-  if (isCidrV6(cidr)) {
+  if (isCidrV6(cidr))
     throw InvalidCIDRError('CIDR whitelist can only contain IPv4 addresses, ' + cidr + ' is IPv6')
-  }
-  if (!isCidrV4(cidr)) {
+
+  if (!isCidrV4(cidr))
     throw InvalidCIDRError('CIDR whitelist contains invalid CIDR entry: ' + cidr)
-  }
 }
 
 function validateCIDRList (cidrs) {

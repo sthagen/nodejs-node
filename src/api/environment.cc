@@ -231,9 +231,11 @@ void SetIsolateErrorHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
       s.fatal_error_callback : OnFatalError;
   isolate->SetFatalErrorHandler(fatal_error_cb);
 
-  auto* prepare_stack_trace_cb = s.prepare_stack_trace_callback ?
-      s.prepare_stack_trace_callback : PrepareStackTraceCallback;
-  isolate->SetPrepareStackTraceCallback(prepare_stack_trace_cb);
+  if ((s.flags & SHOULD_NOT_SET_PREPARE_STACK_TRACE_CALLBACK) == 0) {
+    auto* prepare_stack_trace_cb = s.prepare_stack_trace_callback ?
+        s.prepare_stack_trace_callback : PrepareStackTraceCallback;
+    isolate->SetPrepareStackTraceCallback(prepare_stack_trace_cb);
+  }
 }
 
 void SetIsolateMiscHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
@@ -262,10 +264,6 @@ void SetIsolateUpForNode(v8::Isolate* isolate,
 void SetIsolateUpForNode(v8::Isolate* isolate) {
   IsolateSettings settings;
   SetIsolateUpForNode(isolate, settings);
-}
-
-Isolate* NewIsolate(ArrayBufferAllocator* allocator, uv_loop_t* event_loop) {
-  return NewIsolate(allocator, event_loop, GetMainThreadMultiIsolatePlatform());
 }
 
 // TODO(joyeecheung): we may want to expose this, but then we need to be
@@ -326,18 +324,6 @@ struct InspectorParentHandleImpl : public InspectorParentHandle {
     : impl(std::move(impl)) {}
 };
 #endif
-
-Environment* CreateEnvironment(IsolateData* isolate_data,
-                               Local<Context> context,
-                               int argc,
-                               const char* const* argv,
-                               int exec_argc,
-                               const char* const* exec_argv) {
-  return CreateEnvironment(
-      isolate_data, context,
-      std::vector<std::string>(argv, argv + argc),
-      std::vector<std::string>(exec_argv, exec_argv + exec_argc));
-}
 
 Environment* CreateEnvironment(
     IsolateData* isolate_data,
@@ -410,16 +396,9 @@ NODE_EXTERN std::unique_ptr<InspectorParentHandle> GetInspectorParentHandle(
 #endif
 }
 
-void LoadEnvironment(Environment* env) {
-  USE(LoadEnvironment(env,
-                      StartExecutionCallback{},
-                      {}));
-}
-
 MaybeLocal<Value> LoadEnvironment(
     Environment* env,
-    StartExecutionCallback cb,
-    std::unique_ptr<InspectorParentHandle> removeme) {
+    StartExecutionCallback cb) {
   env->InitializeLibuv();
   env->InitializeDiagnostics();
 
@@ -428,8 +407,7 @@ MaybeLocal<Value> LoadEnvironment(
 
 MaybeLocal<Value> LoadEnvironment(
     Environment* env,
-    const char* main_script_source_utf8,
-    std::unique_ptr<InspectorParentHandle> removeme) {
+    const char* main_script_source_utf8) {
   CHECK_NOT_NULL(main_script_source_utf8);
   return LoadEnvironment(
       env,
@@ -460,8 +438,12 @@ Environment* GetCurrentEnvironment(Local<Context> context) {
   return Environment::GetCurrent(context);
 }
 
-MultiIsolatePlatform* GetMainThreadMultiIsolatePlatform() {
-  return per_process::v8_platform.Platform();
+IsolateData* GetEnvironmentIsolateData(Environment* env) {
+  return env->isolate_data();
+}
+
+ArrayBufferAllocator* GetArrayBufferAllocator(IsolateData* isolate_data) {
+  return isolate_data->node_allocator();
 }
 
 MultiIsolatePlatform* GetMultiIsolatePlatform(Environment* env) {

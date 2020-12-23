@@ -1,11 +1,9 @@
-// initialize a package.json file
+const initJson = require('init-package-json')
+const npa = require('npm-package-arg')
 
+const npm = require('./npm.js')
 const usageUtil = require('./utils/usage.js')
 const completion = require('./utils/completion/none.js')
-
-const npa = require('npm-package-arg')
-const npm = require('./npm.js')
-const initJson = require('init-package-json')
 const output = require('./utils/output.js')
 
 const usage = usageUtil(
@@ -22,9 +20,9 @@ const init = async args => {
   if (args.length) {
     const initerName = args[0]
     let packageName = initerName
-    if (/^@[^/]+$/.test(initerName)) {
+    if (/^@[^/]+$/.test(initerName))
       packageName = initerName + '/create'
-    } else {
+    else {
       const req = npa(initerName)
       if (req.type === 'git' && req.hosted) {
         const { user, project } = req.hosted
@@ -32,9 +30,8 @@ const init = async args => {
           .replace(user + '/' + project, user + '/create-' + project)
       } else if (req.registry) {
         packageName = req.name.replace(/^(@[^/]+\/)?/, '$1create-')
-        if (req.rawSpec) {
+        if (req.rawSpec)
           packageName += '@' + req.rawSpec
-        }
       } else {
         throw Object.assign(new Error(
           'Unrecognized initializer: ' + initerName +
@@ -44,9 +41,9 @@ const init = async args => {
       }
     }
     npm.config.set('package', [])
-    npm.flatOptions = { ...npm.flatOptions, package: [] }
+    const newArgs = [packageName, ...args.slice(1)]
     return new Promise((res, rej) => {
-      npm.commands.exec([packageName, ...args.slice(1)], er => er ? rej(er) : res())
+      npm.commands.exec(newArgs, er => er ? rej(er) : res())
     })
   }
 
@@ -66,7 +63,7 @@ const init = async args => {
       'Use `npm install <pkg>` afterwards to install a package and',
       'save it as a dependency in the package.json file.',
       '',
-      'Press ^C at any time to quit.'
+      'Press ^C at any time to quit.',
     ].join('\n'))
   }
   // XXX promisify init-package-json
@@ -79,10 +76,10 @@ const init = async args => {
         npm.log.warn('init', 'canceled')
         return res()
       }
-      npm.log.info('init', 'written successfully')
-      if (er) {
+      if (er)
         rej(er)
-      } else {
+      else {
+        npm.log.info('init', 'written successfully')
         res(data)
       }
     })

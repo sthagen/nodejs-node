@@ -276,8 +276,8 @@ if (global.gc) {
   knownGlobals.push(global.gc);
 }
 
-function allowGlobals(...whitelist) {
-  knownGlobals = knownGlobals.concat(whitelist);
+function allowGlobals(...allowlist) {
+  knownGlobals = knownGlobals.concat(allowlist);
 }
 
 if (process.env.NODE_TEST_KNOWN_GLOBALS !== '0') {
@@ -424,7 +424,7 @@ function getCallSite(top) {
   const err = new Error();
   Error.captureStackTrace(err, top);
   // With the V8 Error API, the stack is not formatted until it is accessed
-  err.stack;
+  err.stack; // eslint-disable-line no-unused-expressions
   Error.prepareStackTrace = originalStackFormatter;
   return err.stack;
 }
@@ -697,6 +697,20 @@ function gcUntil(name, condition) {
   });
 }
 
+function requireNoPackageJSONAbove() {
+  let possiblePackage = path.join(__dirname, '..', 'package.json');
+  let lastPackage = null;
+  while (possiblePackage !== lastPackage) {
+    if (fs.existsSync(possiblePackage)) {
+      assert.fail(
+        'This test shouldn\'t load properties from a package.json above ' +
+        `its file location. Found package.json at ${possiblePackage}.`);
+    }
+    lastPackage = possiblePackage;
+    possiblePackage = path.join(possiblePackage, '..', '..', 'package.json');
+  }
+}
+
 const common = {
   allowGlobals,
   buildType,
@@ -736,6 +750,7 @@ const common = {
   platformTimeout,
   printSkipMessage,
   pwdCommand,
+  requireNoPackageJSONAbove,
   runWithInvalidFD,
   skip,
   skipIf32Bits,

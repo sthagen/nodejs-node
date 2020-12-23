@@ -5,8 +5,8 @@ const {
     semver: { type: semver },
     Umask: { type: Umask },
     url: { type: url },
-    path: { type: path }
-  }
+    path: { type: path },
+  },
 } = require('@npmcli/config')
 
 const { version: npmVersion } = require('../../package.json')
@@ -21,7 +21,7 @@ const editor = process.env.EDITOR ||
   (isWindows ? 'notepad.exe' : 'vi')
 
 const shell = isWindows ? process.env.ComSpec || 'cmd'
-  : process.env.SHELL || 'bash'
+  : process.env.SHELL || 'sh'
 
 const { tmpdir, networkInterfaces } = require('os')
 const getLocalAddresses = () => {
@@ -52,6 +52,7 @@ const defaults = {
   'always-auth': false,
   audit: true,
   'audit-level': null,
+  _auth: null,
   'auth-type': 'legacy',
   before: null,
   'bin-links': true,
@@ -119,7 +120,6 @@ const defaults = {
   long: false,
   maxsockets: 50,
   message: '%s',
-  'metrics-registry': null,
   'node-options': null,
   'node-version': process.version,
   noproxy: null,
@@ -158,7 +158,6 @@ const defaults = {
   searchlimit: 20,
   searchopts: '',
   searchstaleness: 15 * 60,
-  'send-metrics': false,
   shell,
   shrinkwrap: true,
   'sign-git-commit': false,
@@ -183,7 +182,7 @@ const defaults = {
   userconfig: '~/.npmrc',
   version: false,
   versions: false,
-  viewer: isWindows ? 'browser' : 'man'
+  viewer: isWindows ? 'browser' : 'man',
 }
 
 const types = {
@@ -191,6 +190,7 @@ const types = {
   all: Boolean,
   'allow-same-version': Boolean,
   also: [null, 'dev', 'development'],
+  _auth: [null, String],
   'always-auth': Boolean,
   audit: Boolean,
   'audit-level': ['low', 'moderate', 'high', 'critical', 'none', null],
@@ -265,13 +265,12 @@ const types = {
     'timing',
     'info',
     'verbose',
-    'silly'
+    'silly',
   ],
   'logs-max': Number,
   long: Boolean,
   maxsockets: Number,
   message: String,
-  'metrics-registry': [null, String],
   'node-options': [null, String],
   'node-version': [null, semver],
   noproxy: [null, String, Array],
@@ -310,7 +309,6 @@ const types = {
   searchlimit: Number,
   searchopts: String,
   searchstaleness: Number,
-  'send-metrics': Boolean,
   shell: String,
   shrinkwrap: Boolean,
   'sign-git-commit': Boolean,
@@ -331,7 +329,7 @@ const types = {
   userconfig: path,
   version: Boolean,
   versions: Boolean,
-  viewer: String
+  viewer: String,
 }
 
 const shorthands = {
@@ -372,7 +370,7 @@ const shorthands = {
   silent: ['--loglevel', 'silent'],
   v: ['--version'],
   verbose: ['--loglevel', 'verbose'],
-  y: ['--yes']
+  y: ['--yes'],
 }
 
 module.exports = { defaults, types, shorthands }

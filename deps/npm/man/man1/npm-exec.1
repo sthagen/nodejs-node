@@ -1,4 +1,4 @@
-.TH "NPM\-EXEC" "1" "October 2020" "" ""
+.TH "NPM\-EXEC" "1" "December 2020" "" ""
 .SH "NAME"
 \fBnpm-exec\fR \- Run a command from a local or remote npm package
 .SS Synopsis
@@ -6,18 +6,21 @@
 .RS 2
 .nf
 npm exec \-\- <pkg>[@<version>] [args\.\.\.]
-npm exec \-p <pkg>[@<version>] \-\- <cmd> [args\.\.\.]
+npm exec \-\-package=<pkg>[@<version>] \-\- <cmd> [args\.\.\.]
 npm exec \-c '<cmd> [args\.\.\.]'
-npm exec \-p foo \-c '<cmd> [args\.\.\.]'
+npm exec \-\-package=foo \-c '<cmd> [args\.\.\.]'
 
 npx <pkg>[@<specifier>] [args\.\.\.]
 npx \-p <pkg>[@<specifier>] <cmd> [args\.\.\.]
 npx \-c '<cmd> [args\.\.\.]'
 npx \-p <pkg>[@<specifier>] \-c '<cmd> [args\.\.\.]'
+Run without \-\-call or positional args to open interactive subshell
 
 alias: npm x, npx
 
-\-p <pkg> \-\-package=<pkg> (may be specified multiple times)
+common options:
+\-\-package=<pkg> (may be specified multiple times)
+\-p is a shorthand for \-\-package only when using npx executable
 \-c <cmd> \-\-call=<cmd> (may not be mixed with positional arguments)
 .fi
 .RE
@@ -27,9 +30,14 @@ This command allows you to run an arbitrary command from an npm package
 (either one installed locally, or fetched remotely), in a similar context
 as running it via \fBnpm run\fP\|\.
 .P
-Whatever packages are specified by the \fB\-\-package\fP or \fB\-p\fP option will be
+Run without positional arguments or \fB\-\-call\fP, this allows you to
+interactively run commands in the same sort of shell environment that
+\fBpackage\.json\fP scripts are run\.  Interactive mode is not supported in CI
+environments when standard input is a TTY, to prevent hangs\.
+.P
+Whatever packages are specified by the \fB\-\-package\fP option will be
 provided in the \fBPATH\fP of the executed command, along with any locally
-installed package executables\.  The \fB\-\-package\fP or \fB\-p\fP option may be
+installed package executables\.  The \fB\-\-package\fP option may be
 specified multiple times, to execute the supplied command in an environment
 where all specified packages are available\.
 .P
@@ -45,14 +53,15 @@ only be considered a match if they have the exact same name and version as
 the local dependency\.
 .P
 If no \fB\-c\fP or \fB\-\-call\fP option is provided, then the positional arguments
-are used to generate the command string\.  If no \fB\-p\fP or \fB\-\-package\fP options
+are used to generate the command string\.  If no \fB\-\-package\fP options
 are provided, then npm will attempt to determine the executable name from
 the package specifier provided as the first positional argument according
 to the following heuristic:
 .RS 0
 .IP \(bu 2
 If the package has a single entry in its \fBbin\fP field in \fBpackage\.json\fP,
-then that command will be used\.
+or if all entries are aliases of the same command, then that command
+will be used\.
 .IP \(bu 2
 If the package has multiple \fBbin\fP entries, and one of them matches the
 unscoped portion of the \fBname\fP field, then that command will be used\.

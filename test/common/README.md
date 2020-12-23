@@ -40,12 +40,12 @@ The `benchmark` module is used by tests to run benchmarks.
 The `common` module is used by tests for consistency across repeated
 tasks.
 
-### `allowGlobals(...whitelist)`
+### `allowGlobals(...allowlist)`
 
-* `whitelist` [&lt;Array>][] Array of Globals
+* `allowlist` [&lt;Array>][] Array of Globals
 * return [&lt;Array>][]
 
-Takes `whitelist` and concats that with predefined `knownGlobals`.
+Takes `allowlist` and concats that with predefined `knownGlobals`.
 
 ### `canCreateSymLink()`
 
@@ -378,6 +378,11 @@ const { spawn } = require('child_process');
 spawn(...common.pwdCommand, { stdio: ['pipe'] });
 ```
 
+### `requireNoPackageJSONAbove()`
+
+Throws an `AssertionError` if a `package.json` file is in any ancestor
+directory. Such files may interfere with proper test functionality.
+
 ### `runWithInvalidFD(func)`
 
 * `func` [&lt;Function>][]
@@ -596,7 +601,7 @@ If set, crypto tests are skipped.
 ### `NODE_TEST_KNOWN_GLOBALS`
 
 A comma-separated list of variables names that are appended to the global
-variable whitelist. Alternatively, if `NODE_TEST_KNOWN_GLOBALS` is set to `'0'`,
+variable allowlist. Alternatively, if `NODE_TEST_KNOWN_GLOBALS` is set to `'0'`,
 global leak detection is disabled.
 
 ## Fixtures Module

@@ -11,6 +11,7 @@ let openTokenDepth,
   starExportMap,
   lastStarExportSpecifier,
   _exports,
+  unsafeGetters,
   reexports;
 
 function resetState () {
@@ -27,6 +28,7 @@ function resetState () {
   lastStarExportSpecifier = null;
 
   _exports = new Set();
+  unsafeGetters = new Set();
   reexports = new Set();
 }
 
@@ -37,7 +39,7 @@ const ExportStar = 2;
 
 const strictReserved = new Set(['implements', 'interface', 'let', 'package', 'private', 'protected', 'public', 'static', 'yield', 'enum']);
 
-module.exports = function parseCJS (source, name = '@') {
+function parseCJS (source, name = '@') {
   resetState();
   try {
     parseSource(source);
@@ -47,7 +49,7 @@ module.exports = function parseCJS (source, name = '@') {
     e.loc = pos;
     throw e;
   }
-  const result = { exports: [..._exports], reexports: [...reexports] };
+  const result = { exports: [..._exports].filter(expt => !unsafeGetters.has(expt)), reexports: [...reexports] };
   resetState();
   return result;
 }
@@ -260,28 +262,121 @@ function tryParseObjectDefineOrKeys (keys) {
     pos++;
     ch = commentWhitespace();
     if (ch === 100/*d*/ && source.startsWith('efineProperty', pos + 1)) {
-      pos += 14;
-      revertPos = pos - 1;
-      ch = commentWhitespace();
-      if (ch !== 40/*(*/) {
-        pos = revertPos;
-        return;
-      }
-      pos++;
-      ch = commentWhitespace();
-      if (readExportsOrModuleDotExports(ch)) {
+      let expt;
+      while (true) {
+        pos += 14;
+        revertPos = pos - 1;
         ch = commentWhitespace();
-        if (ch === 44/*,*/) {
+        if (ch !== 40/*(*/) break;
+        pos++;
+        ch = commentWhitespace();
+        if (!readExportsOrModuleDotExports(ch)) break;
+        ch = commentWhitespace();
+        if (ch !== 44/*,*/) break;
+        pos++;
+        ch = commentWhitespace();
+        if (ch !== 39/*'*/ && ch !== 34/*"*/) break;
+        let quot = ch;
+        const exportPos = ++pos;
+        if (!identifier() || source.charCodeAt(pos) !== quot) break;
+        expt = source.slice(exportPos, pos);
+        pos++;
+        ch = commentWhitespace();
+        if (ch !== 44/*,*/) break;
+        pos++;
+        ch = commentWhitespace();
+        if (ch !== 123/*{*/) break;
+        pos++;
+        ch = commentWhitespace();
+        if (ch === 101/*e*/) {
+          if (!source.startsWith('numerable', pos + 1)) break;
+          pos += 10;
+          ch = commentWhitespace();
+          if (ch !== 58/*:*/) break;
           pos++;
           ch = commentWhitespace();
-          if (ch === 39/*'*/ || ch === 34/*"*/) {
-            const exportPos = ++pos;
-            if (identifier() && source.charCodeAt(pos) === ch) {
-              // revert for "("
-              addExport(source.slice(exportPos, pos));
-            }
-          }
+          if (ch !== 116/*t*/ || !source.startsWith('rue', pos + 1)) break;
+          pos += 4;
+          ch = commentWhitespace();
+          if (ch !== 44) break;
+          pos++;
+          ch = commentWhitespace();
         }
+        if (ch === 118/*v*/) {
+          if (!source.startsWith('alue', pos + 1)) break;
+          pos += 5;
+          ch = commentWhitespace();
+          if (ch !== 58/*:*/) break;
+          addExport(expt);
+          pos = revertPos;
+          return;
+        }
+        else if (ch === 103/*g*/) {
+          if (!source.startsWith('et', pos + 1)) break;
+          pos += 3;
+          ch = commentWhitespace();
+          if (ch === 58/*:*/) {
+            pos++;
+            ch = commentWhitespace();
+            if (ch !== 102/*f*/) break;
+            if (!source.startsWith('unction', pos + 1)) break;
+            pos += 8;
+            let lastPos = pos;
+            ch = commentWhitespace();
+            if (ch !== 40 && (lastPos === pos || !identifier())) break;
+            ch = commentWhitespace();
+          }
+          if (ch !== 40/*(*/) break;
+          pos++;
+          ch = commentWhitespace();
+          if (ch !== 41/*)*/) break;
+          pos++;
+          ch = commentWhitespace();
+          if (ch !== 123/*{*/) break;
+          pos++;
+          ch = commentWhitespace();
+          if (ch !== 114/*r*/) break;
+          if (!source.startsWith('eturn', pos + 1)) break;
+          pos += 6;
+          ch = commentWhitespace();
+          if (!identifier()) break;
+          ch = commentWhitespace();
+          if (ch === 46/*.*/) {
+            pos++;
+            commentWhitespace();
+            if (!identifier()) break;
+            ch = commentWhitespace();
+          }
+          else if (ch === 91/*[*/) {
+            pos++;
+            ch = commentWhitespace();
+            if (ch === 39/*'*/) singleQuoteString();
+            else if (ch === 34/*"*/) doubleQuoteString();
+            else break;
+            pos++;
+            ch = commentWhitespace();
+            if (ch !== 93/*]*/) break;
+            pos++;
+            ch = commentWhitespace();
+          }
+          if (ch === 59/*;*/) {
+            pos++;
+            ch = commentWhitespace();
+          }
+          if (ch !== 125/*}*/) break;
+          pos++;
+          ch = commentWhitespace();
+          if (ch !== 125/*}*/) break;
+          pos++;
+          ch = commentWhitespace();
+          if (ch !== 41/*)*/) break;
+          addExport(expt);
+          return;
+        }
+        break;
+      }
+      if (expt) {
+        unsafeGetters.add(expt);
       }
     }
     else if (keys && ch === 107/*k*/ && source.startsWith('eys', pos + 1)) {
@@ -810,7 +905,7 @@ function tryParseLiteralExports () {
 
 // --- Extracted from AcornJS ---
 //(https://github.com/acornjs/acorn/blob/master/acorn/src/identifier.js#L23
-// 
+//
 // MIT License
 
 // Copyright (C) 2012-2018 by various contributors (see AUTHORS)
@@ -945,7 +1040,7 @@ function throwIfImportStatement () {
     case 46/*.*/:
       throw new Error('Unexpected import.meta in CJS module.');
       return;
-    
+
     default:
       // no space after "import" -> not an import keyword
       if (pos === startPos + 6)
@@ -1114,7 +1209,7 @@ function readPrecedingKeyword (pos, match) {
 }
 
 function readPrecedingKeyword1 (pos, ch) {
-  return source.charCodeAt(pos) === ch && (pos === 0 || isBrOrWsOrPunctuatorNotDot(source.charCodeAt(pos - 1)));  
+  return source.charCodeAt(pos) === ch && (pos === 0 || isBrOrWsOrPunctuatorNotDot(source.charCodeAt(pos - 1)));
 }
 
 // Detects one of case, debugger, delete, do, else, in, instanceof, new,
@@ -1185,7 +1280,7 @@ function isExpressionKeyword (pos) {
           // throw
           return readPrecedingKeyword(pos - 2, 'thr');
         default:
-          return false; 
+          return false;
       }
   }
   return false;
@@ -1231,3 +1326,8 @@ function isExpressionTerminator (curPos) {
   }
   return false;
 }
+
+const initPromise = Promise.resolve();
+
+module.exports.init = () => initPromise;
+module.exports.parse = parseCJS;

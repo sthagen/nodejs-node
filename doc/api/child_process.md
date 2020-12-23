@@ -250,6 +250,9 @@ lsExample();
 <!-- YAML
 added: v0.1.91
 changes:
+  - version: v15.4.0
+    pr-url: https://github.com/nodejs/node/pull/36308
+    description: AbortSignal support was added.
   - version: v8.8.0
     pr-url: https://github.com/nodejs/node/pull/15380
     description: The `windowsHide` option is supported now.
@@ -277,6 +280,7 @@ changes:
     `'/bin/sh'` on Unix, and `process.env.ComSpec` on Windows. A different
     shell can be specified as a string. See [Shell requirements][] and
     [Default Windows shell][]. **Default:** `false` (no shell).
+  * `signal` {AbortSignal} allows aborting the execFile using an AbortSignal.
 * `callback` {Function} Called with the output when process terminates.
   * `error` {Error}
   * `stdout` {string|Buffer}
@@ -329,6 +333,19 @@ getVersion();
 **If the `shell` option is enabled, do not pass unsanitized user input to this
 function. Any input containing shell metacharacters may be used to trigger
 arbitrary command execution.**
+
+If the `signal` option is enabled, calling `.abort()` on the corresponding
+`AbortController` is similar to calling `.kill()` on the child process except
+the error passed to the callback will be an `AbortError`:
+
+```js
+const controller = new AbortController();
+const { signal } = controller;
+const child = execFile('node', ['--version'], { signal }, (error) => {
+  console.log(error); // an AbortError
+});
+controller.abort();
+```
 
 ### `child_process.fork(modulePath[, args][, options])`
 <!-- YAML
@@ -407,6 +424,9 @@ The `shell` option available in [`child_process.spawn()`][] is not supported by
 <!-- YAML
 added: v0.1.90
 changes:
+  - version: v15.5.0
+    pr-url: https://github.com/nodejs/node/pull/36432
+    description: AbortSignal support was added.
   - version:
       - v13.2.0
       - v12.16.0
@@ -449,6 +469,8 @@ changes:
     when `shell` is specified and is CMD. **Default:** `false`.
   * `windowsHide` {boolean} Hide the subprocess console window that would
     normally be created on Windows systems. **Default:** `false`.
+  * `signal` {AbortSignal} allows aborting the execFile using an AbortSignal.
+
 * Returns: {ChildProcess}
 
 The `child_process.spawn()` method spawns a new process using the given
@@ -469,7 +491,10 @@ const defaults = {
 ```
 
 Use `cwd` to specify the working directory from which the process is spawned.
-If not given, the default is to inherit the current working directory.
+If not given, the default is to inherit the current working directory. If given,
+but the path does not exist, the child process emits an `ENOENT` error
+and exits immediately. `ENOENT` is also emitted when the command
+does not exist.
 
 Use `env` to specify environment variables that will be visible to the new
 process, the default is [`process.env`][].
@@ -551,6 +576,20 @@ Node.js currently overwrites `argv[0]` with `process.execPath` on startup, so
 `process.argv[0]` in a Node.js child process will not match the `argv0`
 parameter passed to `spawn` from the parent, retrieve it with the
 `process.argv0` property instead.
+
+If the `signal` option is enabled, calling `.abort()` on the corresponding
+`AbortController` is similar to calling `.kill()` on the child process except
+the error passed to the callback will be an `AbortError`:
+
+```js
+const controller = new AbortController();
+const { signal } = controller;
+const grep = spawn('grep', ['ssh'], { signal });
+grep.on('error', (err) => {
+  // This will be called with err being an AbortError if the controller aborts
+});
+controller.abort(); // stops the process
+```
 
 #### `options.detached`
 <!-- YAML
@@ -1035,6 +1074,21 @@ If the `serialization` option was set to `'advanced'` used when spawning the
 child process, the `message` argument can contain data that JSON is not able
 to represent.
 See [Advanced serialization][] for more details.
+
+### Event: `'spawn'`
+<!-- YAML
+added: v15.1.0
+-->
+
+The `'spawn'` event is emitted once the child process has spawned successfully.
+
+If emitted, the `'spawn'` event comes before all other events and before any
+data is received via `stdout` or `stderr`.
+
+The `'spawn'` event will fire regardless of whether an error occurs **within**
+the spawned process. For example, if `bash some-command` spawns successfully,
+the `'spawn'` event will fire, though `bash` may fail to spawn `some-command`.
+This caveat also applies when using `{ shell: true }`.
 
 ### `subprocess.channel`
 <!-- YAML

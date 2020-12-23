@@ -34,12 +34,17 @@ typedef int mode_t;
 
 namespace node {
 
+using v8::ApiObject;
 using v8::Array;
 using v8::ArrayBuffer;
 using v8::BackingStore;
+using v8::CFunction;
+using v8::ConstructorBehavior;
 using v8::Context;
 using v8::Float64Array;
 using v8::FunctionCallbackInfo;
+using v8::FunctionTemplate;
+using v8::Global;
 using v8::HeapStatistics;
 using v8::Integer;
 using v8::Isolate;
@@ -47,6 +52,9 @@ using v8::Local;
 using v8::NewStringType;
 using v8::Number;
 using v8::Object;
+using v8::ObjectTemplate;
+using v8::SideEffectType;
+using v8::Signature;
 using v8::String;
 using v8::Uint32;
 using v8::Value;
@@ -89,6 +97,16 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
   }
 }
 
+inline Local<ArrayBuffer> get_fields_array_buffer(
+    const FunctionCallbackInfo<Value>& args,
+    size_t index,
+    size_t array_length) {
+  CHECK(args[index]->IsFloat64Array());
+  Local<Float64Array> arr = args[index].As<Float64Array>();
+  CHECK_EQ(arr->Length(), array_length);
+  return arr->Buffer();
+}
+
 // CPUUsage use libuv's uv_getrusage() this-process resource usage accessor,
 // to access ru_utime (user CPU time used) and ru_stime (system CPU time used),
 // which are uv_timeval_t structs (long tv_sec, long tv_usec).
@@ -104,10 +122,7 @@ static void CPUUsage(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowUVException(err, "uv_getrusage");
 
   // Get the double array pointer from the Float64Array argument.
-  CHECK(args[0]->IsFloat64Array());
-  Local<Float64Array> array = args[0].As<Float64Array>();
-  CHECK_EQ(array->Length(), 2);
-  Local<ArrayBuffer> ab = array->Buffer();
+  Local<ArrayBuffer> ab = get_fields_array_buffer(args, 0, 2);
   double* fields = static_cast<double*>(ab->GetBackingStore()->Data());
 
   // Set the Float64Array elements to be user / system values in microseconds.
@@ -174,10 +189,7 @@ static void MemoryUsage(const FunctionCallbackInfo<Value>& args) {
       env->isolate_data()->node_allocator();
 
   // Get the double array pointer from the Float64Array argument.
-  CHECK(args[0]->IsFloat64Array());
-  Local<Float64Array> array = args[0].As<Float64Array>();
-  CHECK_EQ(array->Length(), 5);
-  Local<ArrayBuffer> ab = array->Buffer();
+  Local<ArrayBuffer> ab = get_fields_array_buffer(args, 0, 5);
   double* fields = static_cast<double*>(ab->GetBackingStore()->Data());
 
   fields[0] = rss;
@@ -263,10 +275,7 @@ static void ResourceUsage(const FunctionCallbackInfo<Value>& args) {
   if (err)
     return env->ThrowUVException(err, "uv_getrusage");
 
-  CHECK(args[0]->IsFloat64Array());
-  Local<Float64Array> array = args[0].As<Float64Array>();
-  CHECK_EQ(array->Length(), 16);
-  Local<ArrayBuffer> ab = array->Buffer();
+  Local<ArrayBuffer> ab = get_fields_array_buffer(args, 0, 16);
   double* fields = static_cast<double*>(ab->GetBackingStore()->Data());
 
   fields[0] = MICROS_PER_SEC * rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec;
@@ -405,22 +414,21 @@ static void ReallyExit(const FunctionCallbackInfo<Value>& args) {
 class FastHrtime : public BaseObject {
  public:
   static Local<Object> New(Environment* env) {
-    Local<v8::FunctionTemplate> ctor =
-        v8::FunctionTemplate::New(env->isolate());
+    Local<FunctionTemplate> ctor = FunctionTemplate::New(env->isolate());
     ctor->Inherit(BaseObject::GetConstructorTemplate(env));
-    Local<v8::ObjectTemplate> otmpl = ctor->InstanceTemplate();
+    Local<ObjectTemplate> otmpl = ctor->InstanceTemplate();
     otmpl->SetInternalFieldCount(FastHrtime::kInternalFieldCount);
 
     auto create_func = [env](auto fast_func, auto slow_func) {
-      auto cfunc = v8::CFunction::Make(fast_func);
-      return v8::FunctionTemplate::New(env->isolate(),
-                                       slow_func,
-                                       Local<Value>(),
-                                       Local<v8::Signature>(),
-                                       0,
-                                       v8::ConstructorBehavior::kThrow,
-                                       v8::SideEffectType::kHasNoSideEffect,
-                                       &cfunc);
+      auto cfunc = CFunction::Make(fast_func);
+      return FunctionTemplate::New(env->isolate(),
+                                   slow_func,
+                                   Local<Value>(),
+                                   Local<Signature>(),
+                                   0,
+                                   ConstructorBehavior::kThrow,
+                                   SideEffectType::kHasNoSideEffect,
+                                   &cfunc);
     };
 
     otmpl->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "hrtime"),
@@ -457,8 +465,8 @@ class FastHrtime : public BaseObject {
   SET_MEMORY_INFO_NAME(FastHrtime)
   SET_SELF_SIZE(FastHrtime)
 
-  static FastHrtime* FromV8ApiObject(v8::ApiObject api_object) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&api_object);
+  static FastHrtime* FromV8ApiObject(ApiObject api_object) {
+    Object* v8_object = reinterpret_cast<Object*>(&api_object);
     return static_cast<FastHrtime*>(
         v8_object->GetAlignedPointerFromInternalField(BaseObject::kSlot));
   }
@@ -480,7 +488,7 @@ class FastHrtime : public BaseObject {
     fields[2] = t % NANOS_PER_SEC;
   }
 
-  static void FastNumber(v8::ApiObject receiver) {
+  static void FastNumber(ApiObject receiver) {
     NumberImpl(FromV8ApiObject(receiver));
   }
 
@@ -494,7 +502,7 @@ class FastHrtime : public BaseObject {
     fields[0] = t;
   }
 
-  static void FastBigInt(v8::ApiObject receiver) {
+  static void FastBigInt(ApiObject receiver) {
     BigIntImpl(FromV8ApiObject(receiver));
   }
 
@@ -502,7 +510,7 @@ class FastHrtime : public BaseObject {
     BigIntImpl(FromJSObject<FastHrtime>(args.Holder()));
   }
 
-  v8::Global<ArrayBuffer> array_buffer_;
+  Global<ArrayBuffer> array_buffer_;
   std::shared_ptr<BackingStore> backing_store_;
 };
 

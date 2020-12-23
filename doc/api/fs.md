@@ -600,7 +600,9 @@ Stop watching for changes on the given `fs.FSWatcher`. Once stopped, the
 
 ### `watcher.ref()`
 <!-- YAML
-added: v14.3.0
+added:
+  - v14.3.0
+  - v12.20.0
 -->
 
 * Returns: {fs.FSWatcher}
@@ -615,7 +617,9 @@ called previously.
 
 ### `watcher.unref()`
 <!-- YAML
-added: v14.3.0
+added:
+  - v14.3.0
+  - v12.20.0
 -->
 
 * Returns: {fs.FSWatcher}
@@ -628,7 +632,9 @@ no effect.
 
 ## Class: `fs.StatWatcher`
 <!-- YAML
-added: v14.3.0
+added:
+  - v14.3.0
+  - v12.20.0
 -->
 
 * Extends {EventEmitter}
@@ -638,7 +644,9 @@ object.
 
 ### `watcher.ref()`
 <!-- YAML
-added: v14.3.0
+added:
+  - v14.3.0
+  - v12.20.0
 -->
 
 * Returns: {fs.StatWatcher}
@@ -653,7 +661,9 @@ called previously.
 
 ### `watcher.unref()`
 <!-- YAML
-added: v14.3.0
+added:
+  - v14.3.0
+  - v12.20.0
 -->
 
 * Returns: {fs.StatWatcher}
@@ -825,6 +835,10 @@ added: v0.1.10
 * Returns: {boolean}
 
 Returns `true` if the `fs.Stats` object describes a file system directory.
+
+If the `fs.Stats` object was obtained from [`fs.lstat()`][], this method will
+always return `false`. This is because [`fs.lstat()`][] returns information
+about a symbolic link itself and not the path it resolves to.
 
 ### `stats.isFIFO()`
 <!-- YAML
@@ -1511,16 +1525,16 @@ the permissions for the file owner. The middle digit (`6` in the example),
 specifies permissions for the group. The right-most digit (`5` in the example),
 specifies the permissions for others.
 
-| Number  |       Description        |
-| ------- | ------------------------ |
-|   `7`   | read, write, and execute |
-|   `6`   | read and write           |
-|   `5`   | read and execute         |
-|   `4`   | read only                |
-|   `3`   | write and execute        |
-|   `2`   | write only               |
-|   `1`   | execute only             |
-|   `0`   | no permission            |
+| Number | Description              |
+| ------ | ------------------------ |
+| `7`    | read, write, and execute |
+| `6`    | read and write           |
+| `5`    | read and execute         |
+| `4`    | read only                |
+| `3`    | write and execute        |
+| `2`    | write only               |
+| `1`    | execute only             |
+| `0`    | no permission            |
 
 For example, the octal value `0o765` means:
 
@@ -1674,13 +1688,13 @@ OR of two or more values (e.g.
 `fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE`).
 
 * `fs.constants.COPYFILE_EXCL`: The copy operation will fail if `dest` already
-exists.
+  exists.
 * `fs.constants.COPYFILE_FICLONE`: The copy operation will attempt to create a
-copy-on-write reflink. If the platform does not support copy-on-write, then a
-fallback copy mechanism is used.
+  copy-on-write reflink. If the platform does not support copy-on-write, then a
+  fallback copy mechanism is used.
 * `fs.constants.COPYFILE_FICLONE_FORCE`: The copy operation will attempt to
-create a copy-on-write reflink. If the platform does not support copy-on-write,
-then the operation will fail.
+  create a copy-on-write reflink. If the platform does not support
+  copy-on-write, then the operation will fail.
 
 ```js
 const fs = require('fs');
@@ -1723,13 +1737,13 @@ OR of two or more values (e.g.
 `fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE`).
 
 * `fs.constants.COPYFILE_EXCL`: The copy operation will fail if `dest` already
-exists.
+  exists.
 * `fs.constants.COPYFILE_FICLONE`: The copy operation will attempt to create a
-copy-on-write reflink. If the platform does not support copy-on-write, then a
-fallback copy mechanism is used.
+  copy-on-write reflink. If the platform does not support copy-on-write, then a
+  fallback copy mechanism is used.
 * `fs.constants.COPYFILE_FICLONE_FORCE`: The copy operation will attempt to
-create a copy-on-write reflink. If the platform does not support copy-on-write,
-then the operation will fail.
+  create a copy-on-write reflink. If the platform does not support
+  copy-on-write, then the operation will fail.
 
 ```js
 const fs = require('fs');
@@ -1747,6 +1761,10 @@ fs.copyFileSync('source.txt', 'destination.txt', COPYFILE_EXCL);
 <!-- YAML
 added: v0.1.31
 changes:
+  - version:
+     - v15.4.0
+    pr-url: https://github.com/nodejs/node/pull/35922
+    description: The `fd` option accepts FileHandle arguments.
   - version:
      - v13.6.0
      - v12.17.0
@@ -1776,9 +1794,9 @@ changes:
 * `path` {string|Buffer|URL}
 * `options` {string|Object}
   * `flags` {string} See [support of file system `flags`][]. **Default:**
-  `'r'`.
+    `'r'`.
   * `encoding` {string} **Default:** `null`
-  * `fd` {integer} **Default:** `null`
+  * `fd` {integer|FileHandle} **Default:** `null`
   * `mode` {integer} **Default:** `0o666`
   * `autoClose` {boolean} **Default:** `true`
   * `emitClose` {boolean} **Default:** `false`
@@ -1855,6 +1873,10 @@ If `options` is a string, then it specifies the encoding.
 added: v0.1.31
 changes:
   - version:
+     - v15.4.0
+    pr-url: https://github.com/nodejs/node/pull/35922
+    description: The `fd` option accepts FileHandle arguments.
+  - version:
      - v13.6.0
      - v12.17.0
     pr-url: https://github.com/nodejs/node/pull/29083
@@ -1881,9 +1903,9 @@ changes:
 * `path` {string|Buffer|URL}
 * `options` {string|Object}
   * `flags` {string} See [support of file system `flags`][]. **Default:**
-  `'w'`.
+    `'w'`.
   * `encoding` {string} **Default:** `'utf8'`
-  * `fd` {integer} **Default:** `null`
+  * `fd` {integer|FileHandle} **Default:** `null`
   * `mode` {integer} **Default:** `0o666`
   * `autoClose` {boolean} **Default:** `true`
   * `emitClose` {boolean} **Default:** `false`
@@ -2564,6 +2586,9 @@ changes:
 * `options` {Object}
   * `bigint` {boolean} Whether the numeric values in the returned
     [`fs.Stats`][] object should be `bigint`. **Default:** `false`.
+  * `throwIfNoEntry` {boolean} Whether an exception will be thrown
+    if no file system entry exists, rather than returning `undefined`.
+    **Default:** `true`.
 * Returns: {fs.Stats}
 
 Synchronous lstat(2).
@@ -3031,6 +3056,10 @@ If `options.withFileTypes` is set to `true`, the result will contain
 <!-- YAML
 added: v0.1.29
 changes:
+  - version: v15.2.0
+    pr-url: https://github.com/nodejs/node/pull/35911
+    description: The options argument may include an AbortSignal to abort an
+                 ongoing readFile request.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/12562
     description: The `callback` parameter is no longer optional. Not passing
@@ -3056,6 +3085,7 @@ changes:
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `null`
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'r'`.
+  * `signal` {AbortSignal} allows aborting an in-progress readFile
 * `callback` {Function}
   * `err` {Error}
   * `data` {string|Buffer}
@@ -3097,18 +3127,34 @@ fs.readFile('<directory>', (err, data) => {
 });
 ```
 
+It is possible to abort an ongoing request using an `AbortSignal`. If a
+request is aborted the callback is called with an `AbortError`:
+
+```js
+const controller = new AbortController();
+const signal = controller.signal;
+fs.readFile(fileInfo[0].name, { signal }, (err, buf) => {
+  // ...
+});
+// When you want to abort the request
+controller.abort();
+```
+
 The `fs.readFile()` function buffers the entire file. To minimize memory costs,
 when possible prefer streaming via `fs.createReadStream()`.
+
+Aborting an ongoing request does not abort individual operating
+system requests but rather the internal buffering `fs.readFile` performs.
 
 ### File descriptors
 
 1. Any specified file descriptor has to support reading.
 2. If a file descriptor is specified as the `path`, it will not be closed
-automatically.
+   automatically.
 3. The reading will begin at the current position. For example, if the file
-already had `'Hello World`' and six bytes are read with the file descriptor,
-the call to `fs.readFile()` with the same file descriptor, would give
-`'World'`, rather than `'Hello World'`.
+   already had `'Hello World`' and six bytes are read with the file descriptor,
+   the call to `fs.readFile()` with the same file descriptor, would give
+   `'World'`, rather than `'Hello World'`.
 
 ## `fs.readFileSync(path[, options])`
 <!-- YAML
@@ -3785,6 +3831,9 @@ changes:
 * `options` {Object}
   * `bigint` {boolean} Whether the numeric values in the returned
     [`fs.Stats`][] object should be `bigint`. **Default:** `false`.
+  * `throwIfNoEntry` {boolean} Whether an exception will be thrown
+    if no file system entry exists, rather than returning `undefined`.
+    **Default:** `true`.
 * Returns: {fs.Stats}
 
 Synchronous stat(2).
@@ -4360,6 +4409,10 @@ details.
 <!-- YAML
 added: v0.1.29
 changes:
+  - version: v15.2.0
+    pr-url: https://github.com/nodejs/node/pull/35993
+    description: The options argument may include an AbortSignal to abort an
+                 ongoing writeFile request.
   - version: v14.12.0
     pr-url: https://github.com/nodejs/node/pull/34993
     description: The `data` parameter will stringify an object with an
@@ -4394,6 +4447,7 @@ changes:
   * `encoding` {string|null} **Default:** `'utf8'`
   * `mode` {integer} **Default:** `0o666`
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'w'`.
+  * `signal` {AbortSignal} allows aborting an in-progress writeFile
 * `callback` {Function}
   * `err` {Error}
 
@@ -4424,6 +4478,28 @@ fs.writeFile('message.txt', 'Hello Node.js', 'utf8', callback);
 It is unsafe to use `fs.writeFile()` multiple times on the same file without
 waiting for the callback. For this scenario, [`fs.createWriteStream()`][] is
 recommended.
+
+Similarly to `fs.readFile` - `fs.writeFile` is a convenience method that
+performs multiple `write` calls internally to write the buffer passed to it.
+For performance sensitive code consider using [`fs.createWriteStream()`][].
+
+It is possible to use an {AbortSignal} to cancel an `fs.writeFile()`.
+Cancelation is "best effort", and some amount of data is likely still
+to be written.
+
+```js
+const controller = new AbortController();
+const { signal } = controller;
+const data = new Uint8Array(Buffer.from('Hello Node.js'));
+fs.writeFile('message.txt', data, { signal }, (err) => {
+  // When a request is aborted - the callback is called with an AbortError
+});
+// When the request should be aborted
+controller.abort();
+```
+
+Aborting an ongoing request does not abort individual operating
+system requests but rather the internal buffering `fs.writeFile` performs.
 
 ### Using `fs.writeFile()` with file descriptors
 
@@ -4594,6 +4670,21 @@ For detailed information, see the documentation of the asynchronous version of
 this API: [`fs.writev()`][].
 
 ## `fs` Promises API
+<!-- YAML
+added: v10.0.0
+changes:
+  - version: v14.0.0
+    pr-url: https://github.com/nodejs/node/pull/31553
+    description: Exposed as `require('fs/promises')`.
+  - version:
+    - v11.14.0
+    - v10.17.0
+    pr-url: https://github.com/nodejs/node/pull/26581
+    description: This API is no longer experimental.
+  - version: v10.1.0
+    pr-url: https://github.com/nodejs/node/pull/20504
+    description: The API is accessible via `require('fs').promises` only.
+-->
 
 The `fs.promises` API provides an alternative set of asynchronous file system
 methods that return `Promise` objects rather than using callbacks. The
@@ -4623,6 +4714,14 @@ so on), a numeric file descriptor is not used by the promise-based API. Instead,
 the promise-based API uses the `FileHandle` class in order to help avoid
 accidental leaking of unclosed file descriptors after a `Promise` is resolved or
 rejected.
+
+#### Event: `'close'`
+<!-- YAML
+added: v15.4.0
+-->
+
+The `'close'` event is emitted when the `FileHandle` and any of its underlying
+resources (a file descriptor, for example) have been closed.
 
 #### `filehandle.appendFile(data, options)`
 <!-- YAML
@@ -4756,6 +4855,7 @@ added: v10.0.0
 
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `null`
+  * `signal` {AbortSignal} allows aborting an in-progress readFile
 * Returns: {Promise}
 
 Asynchronously reads the entire contents of a file.
@@ -5159,13 +5259,13 @@ OR of two or more values (e.g.
 `fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE`).
 
 * `fs.constants.COPYFILE_EXCL`: The copy operation will fail if `dest` already
-exists.
+  exists.
 * `fs.constants.COPYFILE_FICLONE`: The copy operation will attempt to create a
-copy-on-write reflink. If the platform does not support copy-on-write, then a
-fallback copy mechanism is used.
+  copy-on-write reflink. If the platform does not support copy-on-write, then a
+  fallback copy mechanism is used.
 * `fs.constants.COPYFILE_FICLONE_FORCE`: The copy operation will attempt to
-create a copy-on-write reflink. If the platform does not support copy-on-write,
-then the operation will fail.
+  create a copy-on-write reflink. If the platform does not support
+  copy-on-write, then the operation will fail.
 
 ```js
 const {
@@ -5423,12 +5523,18 @@ print('./').catch(console.error);
 ### `fsPromises.readFile(path[, options])`
 <!-- YAML
 added: v10.0.0
+changes:
+  - version: v15.2.0
+    pr-url: https://github.com/nodejs/node/pull/35911
+    description: The options argument may include an AbortSignal to abort an
+                 ongoing readFile request.
 -->
 
 * `path` {string|Buffer|URL|FileHandle} filename or `FileHandle`
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `null`
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'r'`.
+  * `signal` {AbortSignal} allows aborting an in-progress readFile
 * Returns: {Promise}
 
 Asynchronously reads the entire contents of a file.
@@ -5443,6 +5549,20 @@ When the `path` is a directory, the behavior of `fsPromises.readFile()` is
 platform-specific. On macOS, Linux, and Windows, the promise will be rejected
 with an error. On FreeBSD, a representation of the directory's contents will be
 returned.
+
+It is possible to abort an ongoing `readFile` using an `AbortSignal`. If a
+request is aborted the promise returned is rejected with an `AbortError`:
+
+```js
+const controller = new AbortController();
+const signal = controller.signal;
+readFile(fileName, { signal }).then((file) => { /* ... */ });
+// Abort the request
+controller.abort();
+```
+
+Aborting an ongoing request does not abort individual operating
+system requests but rather the internal buffering `fs.readFile` performs.
 
 Any specified `FileHandle` has to support reading.
 
@@ -5520,8 +5640,6 @@ changes:
                   now supported.
 -->
 
-> Stability: 1 - Recursive removal is experimental.
-
 * `path` {string|Buffer|URL}
 * `options` {Object}
   * `maxRetries` {integer} If an `EBUSY`, `EMFILE`, `ENFILE`, `ENOTEMPTY`, or
@@ -5550,7 +5668,7 @@ that represent files will be deleted. The permissive behavior of the
 `recursive` option is deprecated, `ENOTDIR` and `ENOENT` will be thrown in
 the future.
 
-## `fsPromises.rm(path[, options])`
+### `fsPromises.rm(path[, options])`
 <!-- YAML
 added: v14.14.0
 -->
@@ -5656,6 +5774,10 @@ The `atime` and `mtime` arguments follow these rules:
 <!-- YAML
 added: v10.0.0
 changes:
+  - version: v15.2.0
+    pr-url: https://github.com/nodejs/node/pull/35993
+    description: The options argument may include an AbortSignal to abort an
+                 ongoing writeFile request.
   - version: v14.12.0
     pr-url: https://github.com/nodejs/node/pull/34993
     description: The `data` parameter will stringify an object with an
@@ -5672,6 +5794,7 @@ changes:
   * `encoding` {string|null} **Default:** `'utf8'`
   * `mode` {integer} **Default:** `0o666`
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'w'`.
+  * `signal` {AbortSignal} allows aborting an in-progress writeFile
 * Returns: {Promise}
 
 Asynchronously writes data to a file, replacing the file if it already exists.
@@ -5685,7 +5808,34 @@ If `options` is a string, then it specifies the encoding.
 Any specified `FileHandle` has to support writing.
 
 It is unsafe to use `fsPromises.writeFile()` multiple times on the same file
-without waiting for the `Promise` to be resolved (or rejected).
+without waiting for the `Promise` to be fulfilled (or rejected).
+
+Similarly to `fsPromises.readFile` - `fsPromises.writeFile` is a convenience
+method that performs multiple `write` calls internally to write the buffer
+passed to it. For performance sensitive code consider using
+[`fs.createWriteStream()`][].
+
+It is possible to use an {AbortSignal} to cancel an `fsPromises.writeFile()`.
+Cancelation is "best effort", and some amount of data is likely still
+to be written.
+
+```js
+const controller = new AbortController();
+const { signal } = controller;
+const data = new Uint8Array(Buffer.from('Hello Node.js'));
+(async () => {
+  try {
+    await fs.writeFile('message.txt', data, { signal });
+  } catch (err) {
+  // When a request is aborted - err is an AbortError
+  }
+})();
+// When the request should be aborted
+controller.abort();
+```
+
+Aborting an ongoing request does not abort individual operating
+system requests but rather the internal buffering `fs.writeFile` performs.
 
 ## FS constants
 
@@ -6013,7 +6163,7 @@ string.
 * `'wx'`: Like `'w'` but fails if the path exists.
 
 * `'w+'`: Open file for reading and writing.
-The file is created (if it does not exist) or truncated (if it exists).
+  The file is created (if it does not exist) or truncated (if it exists).
 
 * `'wx+'`: Like `'w+'` but fails if the path exists.
 

@@ -12,7 +12,6 @@ const shorthands = {
   c: 'config',
   s: 'search',
   se: 'search',
-  unstar: 'star', // same function
   tst: 'test',
   t: 'test',
   ddp: 'dedupe',
@@ -21,7 +20,7 @@ const shorthands = {
   'clean-install': 'ci',
   'clean-install-test': 'cit',
   x: 'exec',
-  why: 'explain'
+  why: 'explain',
 }
 
 const affordances = {
@@ -60,7 +59,7 @@ const affordances = {
   rum: 'run-script',
   sit: 'cit',
   urn: 'run-script',
-  ogr: 'org'
+  ogr: 'org',
 }
 
 // these are filenames in .
@@ -88,6 +87,7 @@ const cmdList = [
   'publish',
   'star',
   'stars',
+  'unstar',
   'adduser',
   'login', // This is an alias for `adduser` but it can be confusing
   'logout',
@@ -127,10 +127,11 @@ const cmdList = [
   'start',
   'restart',
   'run-script',
+  'set-script',
   'completion',
   'doctor',
   'exec',
-  'explain'
+  'explain',
 ]
 
 const plumbing = ['birthday', 'help-search']
@@ -139,5 +140,5 @@ module.exports = {
   shorthands,
   affordances,
   cmdList,
-  plumbing
+  plumbing,
 }

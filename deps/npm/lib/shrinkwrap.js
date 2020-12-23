@@ -1,13 +1,14 @@
-const Arborist = require('@npmcli/arborist')
-const npm = require('./npm.js')
-const usageUtil = require('./utils/usage.js')
-const usage = usageUtil('shrinkwrap', 'npm shrinkwrap')
 const { resolve, basename } = require('path')
+const { promises: { unlink } } = require('fs')
+const Arborist = require('@npmcli/arborist')
 const log = require('npmlog')
 
-const cmd = (args, cb) => shrinkwrap().then(() => cb()).catch(cb)
-
+const npm = require('./npm.js')
 const completion = require('./utils/completion/none.js')
+const usageUtil = require('./utils/usage.js')
+const usage = usageUtil('shrinkwrap', 'npm shrinkwrap')
+
+const cmd = (args, cb) => shrinkwrap().then(() => cb()).catch(cb)
 
 const shrinkwrap = async () => {
   // if has a npm-shrinkwrap.json, nothing to do
@@ -31,22 +32,20 @@ const shrinkwrap = async () => {
   const newFile = meta.hiddenLockfile || !meta.loadedFromDisk
   const oldFilename = meta.filename
   const notSW = !newFile && basename(oldFilename) !== 'npm-shrinkwrap.json'
-  const { promises: { unlink } } = require('fs')
 
   meta.hiddenLockfile = false
   meta.filename = sw
   await meta.save()
 
-  if (newFile) {
+  if (newFile)
     log.notice('', 'created a lockfile as npm-shrinkwrap.json')
-  } else if (notSW) {
+  else if (notSW) {
     await unlink(oldFilename)
     log.notice('', 'package-lock.json has been renamed to npm-shrinkwrap.json')
-  } else if (meta.originalLockfileVersion !== npm.lockfileVersion) {
+  } else if (meta.originalLockfileVersion !== npm.lockfileVersion)
     log.notice('', `npm-shrinkwrap.json updated to version ${npm.lockfileVersion}`)
-  } else {
+  else
     log.notice('', 'npm-shrinkwrap.json up to date')
-  }
 }
 
 module.exports = Object.assign(cmd, { usage, completion })

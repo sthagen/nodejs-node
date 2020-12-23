@@ -694,10 +694,13 @@ class Http2Session : public AsyncWrap,
   // The JavaScript API
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Consume(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void Receive(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Destroy(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Settings(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Request(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void SetNextStreamID(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void SetLocalWindowSize(
+      const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Goaway(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void UpdateChunksSent(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void RefreshState(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -1114,6 +1117,7 @@ class Origins {
   V(NGHTTP2_ERR_STREAM_ID_NOT_AVAILABLE)                                       \
   V(NGHTTP2_ERR_INVALID_ARGUMENT)                                              \
   V(NGHTTP2_ERR_STREAM_CLOSED)                                                 \
+  V(NGHTTP2_ERR_NOMEM)                                                         \
   V(STREAM_OPTION_EMPTY_PAYLOAD)                                               \
   V(STREAM_OPTION_GET_TRAILERS)
 

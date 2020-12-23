@@ -8,6 +8,7 @@
 exports[`test/lib/utils/config.js TAP no process.umask() method > must match snapshot 1`] = `
 Object {
   "defaults": Object {
+    "_auth": null,
     "access": null,
     "all": false,
     "allow-same-version": false,
@@ -81,7 +82,6 @@ Object {
     "long": false,
     "maxsockets": 50,
     "message": "%s",
-    "metrics-registry": null,
     "node-options": null,
     "node-version": "v14.8.0",
     "noproxy": null,
@@ -119,7 +119,6 @@ Object {
     "searchlimit": 20,
     "searchopts": "",
     "searchstaleness": 900,
-    "send-metrics": false,
     "shell": "cmd.exe",
     "shrinkwrap": true,
     "sign-git-commit": false,
@@ -267,6 +266,10 @@ Object {
     ],
   },
   "types": Object {
+    "_auth": Array [
+      null,
+      "{String TYPE}",
+    ],
     "access": Array [
       null,
       "restricted",
@@ -418,10 +421,6 @@ Object {
     "long": "{Boolean TYPE}",
     "maxsockets": "{Number TYPE}",
     "message": "{String TYPE}",
-    "metrics-registry": Array [
-      null,
-      "{String TYPE}",
-    ],
     "node-options": Array [
       null,
       "{String TYPE}",
@@ -504,7 +503,6 @@ Object {
     "searchlimit": "{Number TYPE}",
     "searchopts": "{String TYPE}",
     "searchstaleness": "{Number TYPE}",
-    "send-metrics": "{Boolean TYPE}",
     "shell": "{String TYPE}",
     "shrinkwrap": "{Boolean TYPE}",
     "sign-git-commit": "{Boolean TYPE}",
@@ -537,6 +535,7 @@ Object {
 exports[`test/lib/utils/config.js TAP no working network interfaces, on windows > must match snapshot 1`] = `
 Object {
   "defaults": Object {
+    "_auth": null,
     "access": null,
     "all": false,
     "allow-same-version": false,
@@ -610,7 +609,6 @@ Object {
     "long": false,
     "maxsockets": 50,
     "message": "%s",
-    "metrics-registry": null,
     "node-options": null,
     "node-version": "v14.8.0",
     "noproxy": null,
@@ -648,7 +646,6 @@ Object {
     "searchlimit": 20,
     "searchopts": "",
     "searchstaleness": 900,
-    "send-metrics": false,
     "shell": "cmd.exe",
     "shrinkwrap": true,
     "sign-git-commit": false,
@@ -796,6 +793,10 @@ Object {
     ],
   },
   "types": Object {
+    "_auth": Array [
+      null,
+      "{String TYPE}",
+    ],
     "access": Array [
       null,
       "restricted",
@@ -947,10 +948,6 @@ Object {
     "long": "{Boolean TYPE}",
     "maxsockets": "{Number TYPE}",
     "message": "{String TYPE}",
-    "metrics-registry": Array [
-      null,
-      "{String TYPE}",
-    ],
     "node-options": Array [
       null,
       "{String TYPE}",
@@ -1033,7 +1030,6 @@ Object {
     "searchlimit": "{Number TYPE}",
     "searchopts": "{String TYPE}",
     "searchstaleness": "{Number TYPE}",
-    "send-metrics": "{Boolean TYPE}",
     "shell": "{String TYPE}",
     "shrinkwrap": "{Boolean TYPE}",
     "sign-git-commit": "{Boolean TYPE}",
@@ -1066,6 +1062,7 @@ Object {
 exports[`test/lib/utils/config.js TAP working network interfaces, not windows > must match snapshot 1`] = `
 Object {
   "defaults": Object {
+    "_auth": null,
     "access": null,
     "all": false,
     "allow-same-version": false,
@@ -1139,7 +1136,6 @@ Object {
     "long": false,
     "maxsockets": 50,
     "message": "%s",
-    "metrics-registry": null,
     "node-options": null,
     "node-version": "v14.8.0",
     "noproxy": null,
@@ -1177,7 +1173,6 @@ Object {
     "searchlimit": 20,
     "searchopts": "",
     "searchstaleness": 900,
-    "send-metrics": false,
     "shell": "/usr/local/bin/bash",
     "shrinkwrap": true,
     "sign-git-commit": false,
@@ -1325,6 +1320,10 @@ Object {
     ],
   },
   "types": Object {
+    "_auth": Array [
+      null,
+      "{String TYPE}",
+    ],
     "access": Array [
       null,
       "restricted",
@@ -1478,10 +1477,6 @@ Object {
     "long": "{Boolean TYPE}",
     "maxsockets": "{Number TYPE}",
     "message": "{String TYPE}",
-    "metrics-registry": Array [
-      null,
-      "{String TYPE}",
-    ],
     "node-options": Array [
       null,
       "{String TYPE}",
@@ -1564,7 +1559,6 @@ Object {
     "searchlimit": "{Number TYPE}",
     "searchopts": "{String TYPE}",
     "searchstaleness": "{Number TYPE}",
-    "send-metrics": "{Boolean TYPE}",
     "shell": "{String TYPE}",
     "shrinkwrap": "{Boolean TYPE}",
     "sign-git-commit": "{Boolean TYPE}",

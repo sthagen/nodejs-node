@@ -1,11 +1,8 @@
 ---
-section: using-npm
 title: workspaces
+section: 7
 description: Working with workspaces
 ---
-# scope(7)
-
-## Workspaces
 
 ### Description
 
@@ -21,13 +18,13 @@ order to add references to packages that should be symlinked into the current
 
 We also refer to these packages being auto-symlinked during `npm install` as a
 single **workspace**, meaning it's a nested package within the current local
-file system that is explicitly defined in the [`package.json`](/using-npm/package-json)
+file system that is explicitly defined in the [`package.json`](/configuring-npm/package-json#workspaces)
 `workspaces` configuration.
 
 ### Installing workspaces
 
 Workspaces are usually defined via the `workspaces` property of the
-[`package.json`](/using-npm/package-json) file, e.g:
+[`package.json`](/configuring-npm/package-json#workspaces) file, e.g:
 
 ```json
 {
@@ -88,10 +85,11 @@ When running it with:
 
 This demonstrates how the nature of `node_modules` resolution allows for
 **workspaces** to enable a portable workflow for requiring each **workspace**
-in such a way that is also easy to [publish](/cli-commands/publish) these
+in such a way that is also easy to [publish](/commands/npm-publish) these
 nested workspaces to be consumed elsewhere.
 
 ### See also
 
-* [npm install](/cli-commands/install)
-* [npm publish](/cli-commands/publish)
+* [npm install](/commands/npm-install)
+* [npm publish](/commands/npm-publish)
+

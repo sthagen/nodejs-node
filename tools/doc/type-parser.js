@@ -40,6 +40,10 @@ const customTypesMap = {
   'WebAssembly.Instance':
     `${jsDocPrefix}Reference/Global_Objects/WebAssembly/Instance`,
 
+  'BroadcastChannel':
+    'worker_threads.html#worker_threads_class_broadcastchannel_' +
+    'extends_eventtarget',
+
   'Iterable':
     `${jsDocPrefix}Reference/Iteration_protocols#The_iterable_protocol`,
   'Iterator':
@@ -110,6 +114,8 @@ const customTypesMap = {
   'NodeScryptParams': 'webcrypto.html#webcrypto_class_nodescryptparams',
 
   'dgram.Socket': 'dgram.html#dgram_class_dgram_socket',
+
+  'Channel': 'diagnostics_channel.html#diagnostics_channel_class_channel',
 
   'Domain': 'domain.html#domain_class_domain',
 

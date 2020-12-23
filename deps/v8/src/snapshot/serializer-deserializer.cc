@@ -30,14 +30,18 @@ void SerializerDeserializer::Iterate(Isolate* isolate, RootVisitor* visitor) {
 }
 
 bool SerializerDeserializer::CanBeDeferred(HeapObject o) {
-  // ArrayBuffer instances are serialized by first re-assigning a index
-  // to the backing store field, then serializing the object, and then
-  // storing the actual backing store address again (and the same for the
-  // ArrayBufferExtension). If serialization of the object itself is deferred,
-  // the real backing store address is written into the snapshot, which cannot
-  // be processed when deserializing.
-  return !o.IsString() && !o.IsScript() && !o.IsJSTypedArray() &&
-         !o.IsJSArrayBuffer();
+  // 1. Maps cannot be deferred as objects are expected to have a valid map
+  // immediately.
+  // 2. Internalized strings cannot be deferred as they might be
+  // converted to thin strings during post processing, at which point forward
+  // references to the now-thin string will already have been written.
+  // 3. JS objects with embedder fields cannot be deferred because the
+  // serialize/deserialize callbacks need the back reference immediately to
+  // identify the object.
+  // TODO(leszeks): Could we defer string serialization if forward references
+  // were resolved after object post processing?
+  return !o.IsMap() && !o.IsInternalizedString() &&
+         !(o.IsJSObject() && JSObject::cast(o).GetEmbedderFieldCount() > 0);
 }
 
 void SerializerDeserializer::RestoreExternalReferenceRedirectors(

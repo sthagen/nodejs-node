@@ -1,10 +1,11 @@
-const Arborist = require('@npmcli/arborist')
-const npm = require('./npm.js')
-const usageUtil = require('./utils/usage.js')
 const { resolve } = require('path')
-const output = require('./utils/output.js')
+const Arborist = require('@npmcli/arborist')
 const npa = require('npm-package-arg')
 const semver = require('semver')
+
+const npm = require('./npm.js')
+const usageUtil = require('./utils/usage.js')
+const output = require('./utils/output.js')
 
 const cmd = (args, cb) => rebuild(args).then(() => cb()).catch(cb)
 
@@ -17,7 +18,7 @@ const rebuild = async args => {
   const where = npm.flatOptions.global ? globalTop : npm.prefix
   const arb = new Arborist({
     ...npm.flatOptions,
-    path: where
+    path: where,
   })
 
   if (args.length) {
@@ -25,11 +26,10 @@ const rebuild = async args => {
     const tree = await arb.loadActual()
     const filter = getFilterFn(args)
     await arb.rebuild({
-      nodes: tree.inventory.filter(filter)
+      nodes: tree.inventory.filter(filter),
     })
-  } else {
+  } else
     await arb.rebuild()
-  }
 
   output('rebuilt dependencies successfully')
 }
@@ -37,14 +37,27 @@ const rebuild = async args => {
 const getFilterFn = args => {
   const specs = args.map(arg => {
     const spec = npa(arg)
-    if (spec.type === 'tag' && spec.rawSpec === '') { return spec }
-    if (spec.type !== 'range' && spec.type !== 'version') { throw new Error('`npm rebuild` only supports SemVer version/range specifiers') }
+    if (spec.type === 'tag' && spec.rawSpec === '')
+      return spec
+
+    if (spec.type !== 'range' && spec.type !== 'version' && spec.type !== 'directory')
+      throw new Error('`npm rebuild` only supports SemVer version/range specifiers')
+
     return spec
   })
+
   return node => specs.some(spec => {
+    if (spec.type === 'directory')
+      return node.path === spec.fetchSpec
+
+    if (spec.name !== node.name)
+      return false
+
+    if (spec.rawSpec === '' || spec.rawSpec === '*')
+      return true
+
     const { version } = node.package
-    if (spec.name !== node.name) { return false }
-    if (spec.rawSpec === '' || spec.rawSpec === '*') { return true }
+    // TODO: add tests for a package with missing version
     return semver.satisfies(version, spec.fetchSpec)
   })
 }

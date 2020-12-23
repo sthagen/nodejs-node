@@ -1,5 +1,3 @@
-'use strict'
-
 const { readdir } = require('fs')
 const { resolve } = require('path')
 
@@ -10,7 +8,7 @@ const semver = require('semver')
 
 const npm = require('./npm.js')
 const usageUtil = require('./utils/usage.js')
-const reifyOutput = require('./utils/reify-output.js')
+const reifyFinish = require('./utils/reify-finish.js')
 
 const completion = (opts, cb) => {
   const dir = npm.globalDir
@@ -67,9 +65,8 @@ const missingArgsFromTree = (tree, args) => {
 
   // remote nodes from the loaded tree in order
   // to avoid dropping them later when reifying
-  for (const node of foundNodes) {
+  for (const node of foundNodes)
     node.parent = null
-  }
 
   return missing
 }
@@ -82,14 +79,14 @@ const linkInstall = async args => {
     ...npm.flatOptions,
     path: globalTop,
     global: true,
-    prune: false
+    prune: false,
   }
   const globalArb = new Arborist(globalOpts)
 
   // get only current top-level packages from the global space
   const globals = await globalArb.loadActual({
     filter: (node, kid) =>
-      !node.isRoot || args.some(a => npa(a).name === kid)
+      !node.isRoot || args.some(a => npa(a).name === kid),
   })
 
   // any extra arg that is missing from the current
@@ -98,7 +95,7 @@ const linkInstall = async args => {
   if (missing.length) {
     await globalArb.reify({
       ...globalOpts,
-      add: missing
+      add: missing,
     })
   }
 
@@ -113,17 +110,26 @@ const linkInstall = async args => {
     )
   }
 
+  // npm link should not save=true by default unless you're
+  // using any of --save-dev or other types
+  const save =
+    Boolean(npm.config.find('save') !== 'default' || npm.flatOptions.saveType)
+
   // create a new arborist instance for the local prefix and
   // reify all the pending names as symlinks there
   const localArb = new Arborist({
     ...npm.flatOptions,
-    path: npm.prefix
+    path: npm.prefix,
+    save,
   })
   await localArb.reify({
-    add: names.map(l => `file:${resolve(globalTop, 'node_modules', l)}`)
+    ...npm.flatOptions,
+    path: npm.prefix,
+    add: names.map(l => `file:${resolve(globalTop, 'node_modules', l)}`),
+    save,
   })
 
-  reifyOutput(localArb)
+  await reifyFinish(localArb)
 }
 
 const linkPkg = async () => {
@@ -131,10 +137,10 @@ const linkPkg = async () => {
   const arb = new Arborist({
     ...npm.flatOptions,
     path: globalTop,
-    global: true
+    global: true,
   })
   await arb.reify({ add: [`file:${npm.prefix}`] })
-  reifyOutput(arb)
+  await reifyFinish(arb)
 }
 
 module.exports = Object.assign(cmd, { completion, usage })

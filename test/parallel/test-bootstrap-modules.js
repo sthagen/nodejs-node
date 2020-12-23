@@ -49,6 +49,8 @@ const expectedModules = new Set([
   'NativeModule internal/fixed_queue',
   'NativeModule internal/fs/dir',
   'NativeModule internal/fs/utils',
+  'NativeModule internal/fs/promises',
+  'NativeModule internal/fs/rimraf',
   'NativeModule internal/idna',
   'NativeModule internal/linkedlist',
   'NativeModule internal/modules/run_main',
@@ -76,6 +78,7 @@ const expectedModules = new Set([
   'NativeModule internal/process/warning',
   'NativeModule internal/querystring',
   'NativeModule internal/source_map/source_map_cache',
+  'NativeModule internal/streams/add-abort-signal',
   'NativeModule internal/streams/buffer_list',
   'NativeModule internal/streams/destroy',
   'NativeModule internal/streams/duplex',
@@ -92,6 +95,7 @@ const expectedModules = new Set([
   'NativeModule internal/util',
   'NativeModule internal/util/debuglog',
   'NativeModule internal/util/inspect',
+  'NativeModule internal/util/iterable_weak_map',
   'NativeModule internal/util/types',
   'NativeModule internal/validators',
   'NativeModule internal/vm/module',
@@ -108,6 +112,7 @@ const expectedModules = new Set([
 if (!common.isMainThread) {
   [
     'Internal Binding messaging',
+    'Internal Binding performance',
     'Internal Binding symbols',
     'Internal Binding worker',
     'NativeModule internal/streams/duplex',

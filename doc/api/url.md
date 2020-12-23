@@ -24,7 +24,7 @@ Node.js specific, and a newer API that implements the same
 [WHATWG URL Standard][] used by web browsers.
 
 A comparison between the WHATWG and Legacy APIs is provided below. Above the URL
-`'http://user:pass@sub.example.com:8080/p/a/t/h?query=string#hash'`, properties
+`'https://user:pass@sub.example.com:8080/p/a/t/h?query=string#hash'`, properties
 of an object returned by the legacy `url.parse()` are shown. Below it are
 properties of a WHATWG `URL` object.
 
@@ -210,9 +210,15 @@ const myURL = new URL('https://example.org:81/foo');
 console.log(myURL.hostname);
 // Prints example.org
 
+// Setting the hostname does not change the port
 myURL.hostname = 'example.com:82';
 console.log(myURL.href);
 // Prints https://example.com:81/foo
+
+// Use myURL.host to change the hostname and port
+myURL.host = 'example.org:82';
+console.log(myURL.href);
+// Prints https://example.org:82/foo
 ```
 
 Invalid host name values assigned to the `hostname` property are ignored.

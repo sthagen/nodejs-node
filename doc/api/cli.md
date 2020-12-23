@@ -210,7 +210,7 @@ changes:
     description: --experimental-abortcontroller is no longer required.
 -->
 
-Experimental `AbortController` and `AbortSignal` support is enabled by default.
+`AbortController` and `AbortSignal` support is enabled by default.
 Use of this command-line flag is no longer required.
 
 ### `--experimental-import-meta-resolve`
@@ -234,7 +234,7 @@ Enable experimental JSON support for the ES Module loader.
 added: v9.0.0
 -->
 
-Specify the `module` of a custom [experimental ECMAScript Module loader][].
+Specify the `module` of a custom experimental [ECMAScript Module loader][].
 `module` may be either a path to a file, or an ECMAScript Module name.
 
 ### `--experimental-modules`
@@ -300,14 +300,14 @@ Enable experimental WebAssembly System Interface (WASI) support.
 added: v12.3.0
 -->
 
+Enable experimental WebAssembly module support.
+
 ### `--force-context-aware`
 <!-- YAML
 added: v12.12.0
 -->
 
 Disable loading native addons that are not [context-aware][].
-
-Enable experimental WebAssembly module support.
 
 ### `--force-fips`
 <!-- YAML
@@ -335,7 +335,7 @@ be added.
 
 ### `--heapsnapshot-near-heap-limit=max_count`
 <!-- YAML
-added: REPLACEME
+added: v15.1.0
 -->
 
 > Stability: 1 - Experimental
@@ -1059,8 +1059,13 @@ Track heap object allocations for heap snapshots.
 ### `--unhandled-rejections=mode`
 <!-- YAML
 added:
- - v12.0.0
- - v10.17.0
+  - v12.0.0
+  - v10.17.0
+changes:
+  - version: v15.0.0
+    pr-url: https://github.com/nodejs/node/pull/33021
+    description: Changed default mode to `throw`. Previously, a warning was
+                 emitted.
 -->
 
 Using this flag allows to change what should happen when an unhandled rejection
@@ -1642,6 +1647,7 @@ $ node --max-old-space-size=1536 index.js
 ```
 
 [Chrome DevTools Protocol]: https://chromedevtools.github.io/devtools-protocol/
+[ECMAScript Module loader]: esm.md#esm_loaders
 [REPL]: repl.md
 [ScriptCoverage]: https://chromedevtools.github.io/devtools-protocol/tot/Profiler#type-ScriptCoverage
 [Source Map]: https://sourcemaps.info/spec.html
@@ -1662,7 +1668,6 @@ $ node --max-old-space-size=1536 index.js
 [debugger]: debugger.md
 [debugging security implications]: https://nodejs.org/en/docs/guides/debugging-getting-started/#security-implications
 [emit_warning]: process.md#process_process_emitwarning_warning_type_code_ctor
-[experimental ECMAScript Module loader]: esm.md#esm_experimental_loaders
 [jitless]: https://v8.dev/blog/jitless
 [libuv threadpool documentation]: https://docs.libuv.org/en/latest/threadpool.html
 [remote code execution]: https://www.owasp.org/index.php/Code_Injection

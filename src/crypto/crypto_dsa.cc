@@ -113,14 +113,14 @@ WebCryptoKeyExportStatus DSAKeyExportTraits::DoExport(
   switch (format) {
     case kWebCryptoKeyFormatRaw:
       // Not supported for RSA keys of either type
-      return WebCryptoKeyExportStatus::ERR_FAILED;
+      return WebCryptoKeyExportStatus::FAILED;
     case kWebCryptoKeyFormatPKCS8:
       if (key_data->GetKeyType() != kKeyTypePrivate)
-        return WebCryptoKeyExportStatus::ERR_INVALID_KEY_TYPE;
+        return WebCryptoKeyExportStatus::INVALID_KEY_TYPE;
       return PKEY_PKCS8_Export(key_data.get(), out);
     case kWebCryptoKeyFormatSPKI:
       if (key_data->GetKeyType() != kKeyTypePublic)
-        return WebCryptoKeyExportStatus::ERR_INVALID_KEY_TYPE;
+        return WebCryptoKeyExportStatus::INVALID_KEY_TYPE;
       return PKEY_SPKI_Export(key_data.get(), out);
     default:
       UNREACHABLE();
@@ -192,7 +192,7 @@ std::shared_ptr<KeyObjectData> ImportJWKDsaKey(
       !q_value->IsString() ||
       !q_value->IsString() ||
       (!x_value->IsUndefined() && !x_value->IsString())) {
-    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JSK DSA key");
+    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK DSA key");
     return std::shared_ptr<KeyObjectData>();
   }
 
@@ -210,14 +210,14 @@ std::shared_ptr<KeyObjectData> ImportJWKDsaKey(
                     p.ToBN().release(),
                     q.ToBN().release(),
                     g.ToBN().release())) {
-    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JSK DSA key");
+    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK DSA key");
     return std::shared_ptr<KeyObjectData>();
   }
 
   if (type == kKeyTypePrivate) {
     ByteSource x = ByteSource::FromEncodedString(env, x_value.As<String>());
     if (!DSA_set0_key(dsa.get(), nullptr, x.ToBN().release())) {
-      THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JSK DSA key");
+      THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK DSA key");
       return std::shared_ptr<KeyObjectData>();
     }
   }

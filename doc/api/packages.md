@@ -5,6 +5,7 @@
 changes:
   - version:
     - v14.13.0
+    - v12.20.0
     pr-url: https://github.com/nodejs/node/pull/34718
     description: Add support for `"exports"` patterns.
   - version: v14.6.0
@@ -252,8 +253,6 @@ absolute subpath of the package such as
 
 ### Subpath exports
 
-> Stability: 1 - Experimental
-
 When using the [`"exports"`][] field, custom subpaths can be defined along
 with the main entry point by treating the main entry point as the
 `"."` subpath:
@@ -283,8 +282,6 @@ import submodule from 'es-module-package/private-module.js';
 ```
 
 ### Subpath imports
-
-> Stability: 1 - Experimental
 
 In addition to the [`"exports"`][] field, it is possible to define internal
 package import maps that only apply to import specifiers from within the package
@@ -322,8 +319,6 @@ The resolution rules for the imports field are otherwise
 analogous to the exports field.
 
 ### Subpath patterns
-
-> Stability: 1 - Experimental
 
 For packages with a small number of exports or imports, we recommend
 explicitly listing each exports subpath entry. But for packages that have
@@ -369,9 +364,48 @@ treating the right hand side target pattern as a `**` glob against the list of
 files within the package. Because `node_modules` paths are forbidden in exports
 targets, this expansion is dependent on only the files of the package itself.
 
-### Exports sugar
+### Subpath folder mappings
+<!-- YAML
+changes:
+  - version: v15.1.0
+    pr-url: https://github.com/nodejs/node/pull/35746
+    description: Runtime deprecation.
+  - version:
+    - v14.13.0
+    - v12.20.0
+    pr-url: https://github.com/nodejs/node/pull/34718
+    description: Documentation-only deprecation.
+-->
 
-> Stability: 1 - Experimental
+> Stability: 0 - Deprecated: Use subpath patterns instead.
+
+Before subpath patterns were supported, a trailing `"/"` suffix was used to
+support folder mappings:
+
+```json
+{
+  "exports": {
+    "./features/": "./features/"
+  }
+}
+```
+
+_This feature will be removed in a future release._
+
+Instead, use direct [subpath patterns][]:
+
+```json
+{
+  "exports": {
+    "./features/*": "./features/*.js"
+  }
+}
+```
+
+The benefit of patterns over folder exports is that packages can always be
+imported by consumers without subpath file extensions being necessary.
+
+### Exports sugar
 
 If the `"."` export is the only export, the [`"exports"`][] field provides sugar
 for this case being the direct [`"exports"`][] field value.
@@ -396,8 +430,6 @@ can be written:
 ```
 
 ### Conditional exports
-
-> Stability: 1 - Experimental
 
 Conditional exports provide a way to map to different paths depending on
 certain conditions. They are supported for both CommonJS and ES module imports.
@@ -476,8 +508,6 @@ order to support packages with conditional exports. For this reason, using
 `"node"` and `"browser"` condition branches.
 
 ### Nested conditions
-
-> Stability: 1 - Experimental
 
 In addition to direct mappings, Node.js also supports nested condition objects.
 
@@ -906,8 +936,6 @@ changes:
     description: Unflag `--experimental-modules`.
 -->
 
-> Stability: 1 - Experimental
-
 * Type: {string}
 
 The `"type"` field defines the module format that Node.js uses for all
@@ -974,8 +1002,6 @@ changes:
     description: Implement conditional exports.
 -->
 
-> Stability: 1 - Experimental
-
 * Type: {Object} | {string} | {string[]}
 
 ```json
@@ -1001,8 +1027,6 @@ All paths defined in the `"exports"` must be relative file URLs starting with
 <!-- YAML
 added: v14.6.0
 -->
-
-> Stability: 1 - Experimental
 
 * Type: {Object}
 
@@ -1044,5 +1068,6 @@ This field defines [subpath imports][] for the current package.
 [self-reference]: #packages_self_referencing_a_package_using_its_name
 [subpath exports]: #packages_subpath_exports
 [subpath imports]: #packages_subpath_imports
+[subpath patterns]: #packages_subpath_patterns
 [the full specifier path]: esm.md#esm_mandatory_file_extensions
 [the dual CommonJS/ES module packages section]: #packages_dual_commonjs_es_module_packages

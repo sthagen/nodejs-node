@@ -644,7 +644,7 @@ added: v0.3.2
 -->
 
 * `callback` {Function} A listener callback that will be registered to listen
-for the server instance's `'close'` event.
+  for the server instance's `'close'` event.
 * Returns: {tls.Server}
 
 The `server.close()` method stops the server from accepting new connections.
@@ -975,8 +975,8 @@ added: v9.9.0
 -->
 
 * Returns: {Buffer|undefined} The latest `Finished` message that has been
-sent to the socket as part of a SSL/TLS handshake, or `undefined` if
-no `Finished` message has been sent yet.
+  sent to the socket as part of a SSL/TLS handshake, or `undefined` if
+  no `Finished` message has been sent yet.
 
 As the `Finished` messages are message digests of the complete handshake
 (with a total of 192 bits for TLS 1.0 and more for SSL 3.0), they can
@@ -1033,7 +1033,7 @@ certificate.
    `'2A:7A:C2:DD:...'`.
 * `ext_key_usage` {Array} (Optional) The extended key usage, a set of OIDs.
 * `subjectaltname` {string} (Optional) A string containing concatenated names
- for the subject, an alternative to the `subject` names.
+   for the subject, an alternative to the `subject` names.
 * `infoAccess` {Array} (Optional) An array describing the AuthorityInfoAccess,
    used with OCSP.
 * `issuerCertificate` {Object} (Optional) The issuer certificate object. For
@@ -1099,8 +1099,8 @@ added: v9.9.0
 -->
 
 * Returns: {Buffer|undefined} The latest `Finished` message that is expected
-or has actually been received from the socket as part of a SSL/TLS handshake,
-or `undefined` if there is no `Finished` message so far.
+  or has actually been received from the socket as part of a SSL/TLS handshake,
+  or `undefined` if there is no `Finished` message so far.
 
 As the `Finished` messages are message digests of the complete handshake
 (with a total of 192 bits for TLS 1.0 and more for SSL 3.0), they can
@@ -1155,7 +1155,7 @@ added: v12.11.0
 -->
 
 * Returns: {Array} List of signature algorithms shared between the server and
-the client in the order of decreasing preference.
+  the client in the order of decreasing preference.
 
 See
 [SSL_get_shared_sigalgs](https://www.openssl.org/docs/man1.1.1/man3/SSL_get_shared_sigalgs.html)
@@ -1170,8 +1170,8 @@ added:
 
 * `length` {number} number of bytes to retrieve from keying material
 * `label` {string} an application specific label, typically this will be a
-value from the
-[IANA Exporter Label Registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#exporter-labels).
+  value from the
+  [IANA Exporter Label Registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#exporter-labels).
 * `context` {Buffer} Optionally provide a context.
 
 * Returns: {Buffer} requested bytes of the keying material
@@ -1343,6 +1343,9 @@ being issued by trusted CA (`options.ca`).
 <!-- YAML
 added: v0.11.3
 changes:
+  - version: v15.1.0
+    pr-url: https://github.com/nodejs/node/pull/35753
+    description: Added `onread` option.
   - version:
     - v14.1.0
     - v13.14.0
@@ -1456,6 +1459,10 @@ changes:
     [`tls.createSecureContext()`][]. If a `secureContext` is _not_ provided, one
     will be created by passing the entire `options` object to
     `tls.createSecureContext()`.
+  * `onread` {Object} If the `socket` option is missing, incoming data is
+    stored in a single `buffer` and passed to the supplied `callback` when
+    data arrives on the socket, otherwise the option is ignored. See the
+    `onread` option of [`net.Socket`][] for details.
   * ...: [`tls.createSecureContext()`][] options that are used if the
     `secureContext` option is missing, otherwise they are ignored.
   * ...: Any [`socket.connect()`][] option not already listed.

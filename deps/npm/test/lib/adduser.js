@@ -8,66 +8,82 @@ let result = ''
 const _flatOptions = {
   authType: 'legacy',
   registry: 'https://registry.npmjs.org/',
-  scope: ''
+  scope: '',
+  fromFlatOptions: true,
 }
 
 let failSave = false
 let deletedConfig = {}
+let registryOutput = ''
 let setConfig = {}
-const authDummy = () => Promise.resolve({
-  message: 'success',
-  newCreds: {
-    username: 'u',
-    password: 'p',
-    email: 'u@npmjs.org',
-    alwaysAuth: false
-  }
-})
+const authDummy = (options) => {
+  if (!options.fromFlatOptions)
+    throw new Error('did not pass full flatOptions to auth function')
+
+  return Promise.resolve({
+    message: 'success',
+    newCreds: {
+      username: 'u',
+      password: 'p',
+      email: 'u@npmjs.org',
+      alwaysAuth: false,
+    },
+  })
+}
 
 const deleteMock = (key, where) => {
   deletedConfig = {
     ...deletedConfig,
-    [key]: where
+    [key]: where,
   }
 }
 const adduser = requireInject('../../lib/adduser.js', {
   npmlog: {
-    disableProgress: () => null
+    disableProgress: () => null,
+    notice: (_, msg) => {
+      registryOutput = msg
+    },
   },
   '../../lib/npm.js': {
     flatOptions: _flatOptions,
     config: {
       delete: deleteMock,
       get (key, where) {
-        if (!where || where === 'user') {
+        if (!where || where === 'user')
           return _flatOptions[key]
-        }
       },
       getCredentialsByURI,
       async save () {
-        if (failSave) {
+        if (failSave)
           throw new Error('error saving user config')
-        }
       },
       set (key, value, where) {
         setConfig = {
           ...setConfig,
           [key]: {
             value,
-            where
-          }
+            where,
+          },
         }
       },
-      setCredentialsByURI
-    }
+      setCredentialsByURI,
+    },
   },
-  '../../lib/utils/output.js': msg => { result = msg },
-  '../../lib/auth/legacy.js': authDummy
+  '../../lib/utils/output.js': msg => {
+    result = msg
+  },
+  '../../lib/auth/legacy.js': authDummy,
 })
 
 test('simple login', (t) => {
   adduser([], (err) => {
     t.ifError(err, 'npm adduser')
+
+    t.equal(
+      registryOutput,
+      'Log in on https://registry.npmjs.org/',
+      'should have correct message result'
+    )
 
     t.deepEqual(
       deletedConfig,
@@ -80,7 +96,7 @@ test('simple login', (t) => {
         _authtoken: 'user',
         _authToken: 'user',
         '//registry.npmjs.org/:-authtoken': undefined,
-        '//registry.npmjs.org/:_authToken': 'user'
+        '//registry.npmjs.org/:_authToken': 'user',
       },
       'should delete token in user config'
     )
@@ -91,7 +107,7 @@ test('simple login', (t) => {
         '//registry.npmjs.org/:_password': { value: 'cA==', where: 'user' },
         '//registry.npmjs.org/:username': { value: 'u', where: 'user' },
         '//registry.npmjs.org/:email': { value: 'u@npmjs.org', where: 'user' },
-        '//registry.npmjs.org/:always-auth': { value: false, where: 'user' }
+        '//registry.npmjs.org/:always-auth': { value: false, where: 'user' },
       },
       'should set expected user configs'
     )
@@ -102,6 +118,7 @@ test('simple login', (t) => {
       'should output auth success msg'
     )
 
+    registryOutput = ''
     deletedConfig = {}
     setConfig = {}
     result = ''

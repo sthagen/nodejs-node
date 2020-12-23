@@ -1,4 +1,3 @@
-'use strict'
 const npm = require('../npm.js')
 const output = require('./output.js')
 const opener = require('opener')
@@ -20,7 +19,7 @@ module.exports = function open (url, errMsg, cb, browser = npm.config.get('brows
     const alternateMsg = json
       ? JSON.stringify({
         title: errMsg,
-        url
+        url,
       }, null, 2)
       : `${errMsg}:\n  ${url}\n`
 
@@ -32,17 +31,15 @@ module.exports = function open (url, errMsg, cb, browser = npm.config.get('brows
     return cb()
   }
 
-  if (!isUrlValid(url)) {
+  if (!isUrlValid(url))
     return cb(new Error('Invalid URL: ' + url))
-  }
 
   const command = browser === true ? null : browser
   opener(url, { command }, (er) => {
     if (er && er.code === 'ENOENT') {
       printAlternateMsg()
       return cb()
-    } else {
+    } else
       return cb(er)
-    }
   })
 }

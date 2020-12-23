@@ -118,7 +118,9 @@ changes:
     - v12.19.0
     pr-url: https://github.com/nodejs/node/pull/33617
     description: Add `maxTotalSockets` option to agent constructor.
-  - version: v14.5.0
+  - version:
+      - v14.5.0
+      - v12.20.0
     pr-url: https://github.com/nodejs/node/pull/33278
     description: Add `scheduling` option to specify the free socket
                  scheduling strategy.
@@ -253,13 +255,17 @@ Destroy any sockets that are currently in use by the agent.
 
 It is usually not necessary to do this. However, if using an
 agent with `keepAlive` enabled, then it is best to explicitly shut down
-the agent when it will no longer be used. Otherwise,
-sockets may hang open for quite a long time before the server
+the agent when it is no longer needed. Otherwise,
+sockets might stay open for quite a long time before the server
 terminates them.
 
 ### `agent.freeSockets`
 <!-- YAML
 added: v0.11.4
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/36409
+    description: The property now has a `null` prototype.
 -->
 
 * {Object}
@@ -326,6 +332,10 @@ can have open. Unlike `maxSockets`, this parameter applies across all origins.
 ### `agent.requests`
 <!-- YAML
 added: v0.5.9
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/36409
+    description: The property now has a `null` prototype.
 -->
 
 * {Object}
@@ -336,6 +346,10 @@ sockets. Do not modify.
 ### `agent.sockets`
 <!-- YAML
 added: v0.3.6
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/36409
+    description: The property now has a `null` prototype.
 -->
 
 * {Object}
@@ -1595,13 +1609,17 @@ added: v0.4.0
 
 * `name` {string}
 * `value` {any}
+* Returns: {http.ServerResponse}
+
+Returns the response object.
 
 Sets a single header value for implicit headers. If this header already exists
 in the to-be-sent headers, its value will be replaced. Use an array of strings
 here to send multiple headers with the same name. Non-string values will be
 stored without modification. Therefore, [`response.getHeader()`][] may return
 non-string values. However, the non-string values will be converted to strings
-for network transmission.
+for network transmission. The same response object is returned to the caller,
+to enable call chaining.
 
 ```js
 response.setHeader('Content-Type', 'text/html');
@@ -1997,9 +2015,9 @@ Duplicates in raw headers are handled in the following ways, depending on the
 header name:
 
 * Duplicates of `age`, `authorization`, `content-length`, `content-type`,
-`etag`, `expires`, `from`, `host`, `if-modified-since`, `if-unmodified-since`,
-`last-modified`, `location`, `max-forwards`, `proxy-authorization`, `referer`,
-`retry-after`, `server`, or `user-agent` are discarded.
+  `etag`, `expires`, `from`, `host`, `if-modified-since`, `if-unmodified-since`,
+  `last-modified`, `location`, `max-forwards`, `proxy-authorization`, `referer`,
+  `retry-after`, `server`, or `user-agent` are discarded.
 * `set-cookie` is always an array. Duplicates are added to the array.
 * For duplicate `cookie` headers, the values are joined together with '; '.
 * For all other headers, the values are joined together with ', '.
@@ -2336,6 +2354,9 @@ This can be overridden for servers and client requests by passing the
 <!-- YAML
 added: v0.3.6
 changes:
+  - version: v15.3.0
+    pr-url: https://github.com/nodejs/node/pull/36048
+    description: It is possible to abort a request with an AbortSignal.
   - version:
      - v13.8.0
      - v12.15.0
@@ -2403,6 +2424,8 @@ changes:
      or `port` is specified, those specify a TCP Socket).
   * `timeout` {number}: A number specifying the socket timeout in milliseconds.
     This will set the timeout before the socket is connected.
+  * `signal` {AbortSignal}: An AbortSignal that may be used to abort an ongoing
+    request.
 * `callback` {Function}
 * Returns: {http.ClientRequest}
 
@@ -2595,6 +2618,10 @@ events will be emitted in the following order:
 
 Setting the `timeout` option or using the `setTimeout()` function will
 not abort the request or do anything besides add a `'timeout'` event.
+
+Passing an `AbortSignal` and then calling `abort` on the corresponding
+`AbortController` will behave the same way as calling `.destroy()` on the
+request itself.
 
 ## `http.validateHeaderName(name)`
 <!-- YAML

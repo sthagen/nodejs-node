@@ -13,7 +13,8 @@ require('graceful-fs').gracefulify(require('fs'))
 
 const procLogListener = require('./utils/proc-log-listener.js')
 
-const hasOwnProperty = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
+const hasOwnProperty = (obj, key) =>
+  Object.prototype.hasOwnProperty.call(obj, key)
 
 // the first time `npm.commands.xyz` is loaded, it gets added
 // to the cmds object, so we don't have to load it again.
@@ -21,9 +22,8 @@ const proxyCmds = (npm) => {
   const cmds = {}
   return new Proxy(cmds, {
     get: (prop, cmd) => {
-      if (hasOwnProperty(cmds, cmd)) {
+      if (hasOwnProperty(cmds, cmd))
         return cmds[cmd]
-      }
 
       const actual = deref(cmd)
       if (!actual) {
@@ -37,7 +37,7 @@ const proxyCmds = (npm) => {
       cmds[actual] = makeCmd(actual)
       cmds[cmd] = cmds[actual]
       return cmds[cmd]
-    }
+    },
   })
 }
 
@@ -55,6 +55,7 @@ const _runCmd = Symbol('_runCmd')
 const _load = Symbol('_load')
 const _flatOptions = Symbol('_flatOptions')
 const _tmpFolder = Symbol('_tmpFolder')
+const _title = Symbol('_title')
 const npm = module.exports = new class extends EventEmitter {
   constructor () {
     super()
@@ -62,7 +63,7 @@ const npm = module.exports = new class extends EventEmitter {
     this.modes = {
       exec: 0o755,
       file: 0o644,
-      umask: 0o22
+      umask: 0o22,
     }
     this.started = Date.now()
     this.command = null
@@ -74,8 +75,9 @@ const npm = module.exports = new class extends EventEmitter {
       npmPath: dirname(__dirname),
       types,
       defaults,
-      shorthands
+      shorthands,
     })
+    this[_title] = process.title
     this.updateNotification = null
   }
 
@@ -93,7 +95,12 @@ const npm = module.exports = new class extends EventEmitter {
     }
 
     process.emit('time', `command:${cmd}`)
-    this.command = cmd
+    // since 'test', 'start', 'stop', etc. commands re-enter this function
+    // to call the run-script command, we need to only set it one time.
+    if (!this.command) {
+      process.env.npm_command = cmd
+      this.command = cmd
+    }
 
     // Options are prefixed by a hyphen-minus (-, \u2d).
     // Other dash-type chars look similar but are invalid.
@@ -119,17 +126,17 @@ const npm = module.exports = new class extends EventEmitter {
   // call with parsed CLI options and a callback when done loading
   // XXX promisify this and stop taking a callback
   load (cb) {
-    if (!cb || typeof cb !== 'function') {
+    if (!cb || typeof cb !== 'function')
       throw new TypeError('must call as: npm.load(callback)')
-    }
+
     this.once('load', cb)
     if (this.loaded || this.loadErr) {
       this.emit('load', this.loadErr)
       return
     }
-    if (this.loading) {
+    if (this.loading)
       return
-    }
+
     this.loading = true
 
     process.emit('time', 'npm:load')
@@ -137,13 +144,12 @@ const npm = module.exports = new class extends EventEmitter {
     return this[_load]().catch(er => er).then((er) => {
       this.loading = false
       this.loadErr = er
-      if (!er && this.config.get('force')) {
+      if (!er && this.config.get('force'))
         this.log.warn('using --force', 'Recommended protections disabled.')
-      }
-      if (!er && !this[_flatOptions]) {
+
+      if (!er && !this[_flatOptions])
         this[_flatOptions] = require('./utils/flat-options.js')(this)
-        process.env.npm_command = this.command
-      }
+
       process.emit('timeEnd', 'npm:load')
       this.emit('load', er)
     })
@@ -151,6 +157,15 @@ const npm = module.exports = new class extends EventEmitter {
 
   get loaded () {
     return this.config.loaded
+  }
+
+  get title () {
+    return this[_title]
+  }
+
+  set title (t) {
+    process.title = t
+    this[_title] = t
   }
 
   async [_load] () {
@@ -163,6 +178,15 @@ const npm = module.exports = new class extends EventEmitter {
 
     await this.config.load()
     this.argv = this.config.parsedArgv.remain
+    // note: this MUST be shorter than the actual argv length, because it
+    // uses the same memory, so node will truncate it if it's too long.
+    // if it's a token revocation, then the argv contains a secret, so
+    // don't show that.  (Regrettable historical choice to put it there.)
+    // Any other secrets are configs only, so showing only the positional
+    // args keeps those from being leaked.
+    const tokrev = deref(this.argv[0]) === 'token' && this.argv[1] === 'revoke'
+    this.title = tokrev ? 'npm token revoke' + (this.argv[2] ? ' ***' : '')
+      : ['npm', ...this.argv].join(' ')
 
     this.color = setupLog(this.config, this)
     process.env.COLOR = this.color ? '1' : '0'
@@ -174,17 +198,15 @@ const npm = module.exports = new class extends EventEmitter {
     this.modes = {
       exec: 0o777 & (~umask),
       file: 0o666 & (~umask),
-      umask
+      umask,
     }
 
     const configScope = this.config.get('scope')
-    if (configScope && !/^@/.test(configScope)) {
+    if (configScope && !/^@/.test(configScope))
       this.config.set('scope', `@${configScope}`, this.config.find('scope'))
-    }
+
     this.projectScope = this.config.get('scope') ||
       getProjectScope(this.prefix)
-
-    startMetrics()
   }
 
   get flatOptions () {
@@ -273,7 +295,6 @@ const npm = module.exports = new class extends EventEmitter {
 
 const log = require('npmlog')
 const { promisify } = require('util')
-const startMetrics = require('./utils/metrics.js').start
 
 const which = promisify(require('which'))
 
@@ -282,6 +303,5 @@ const setupLog = require('./utils/setup-log.js')
 const cleanUpLogFiles = require('./utils/cleanup-log-files.js')
 const getProjectScope = require('./utils/get-project-scope.js')
 
-if (require.main === module) {
+if (require.main === module)
   require('./cli.js')(process)
-}

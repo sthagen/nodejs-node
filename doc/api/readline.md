@@ -77,7 +77,7 @@ added: v0.1.98
 
 The `'line'` event is emitted whenever the `input` stream receives an
 end-of-line input (`\n`, `\r`, or `\r\n`). This usually occurs when the user
-presses the `<Enter>`, or `<Return>` keys.
+presses <kbd>Enter</kbd> or <kbd>Return</kbd>.
 
 The listener function is called with a string containing the single line of
 received input.
@@ -282,6 +282,15 @@ added: v0.1.98
 
 The `rl.setPrompt()` method sets the prompt that will be written to `output`
 whenever `rl.prompt()` is called.
+
+### `rl.getPrompt()`
+<!-- YAML
+added: v15.3.0
+-->
+
+* Returns: {string} the current prompt string
+
+The `rl.getPrompt()` method returns the current prompt used by `rl.prompt()`.
 
 ### `rl.write(data[, key])`
 <!-- YAML

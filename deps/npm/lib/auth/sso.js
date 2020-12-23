@@ -1,5 +1,3 @@
-'use strict'
-
 // XXX: To date, npm Enterprise Legacy is the only system that ever
 // implemented support for this type of login.  A better way to do
 // SSO is to use the WebLogin type of login supported by the npm-login
@@ -30,9 +28,8 @@ const pollForSession = ({ registry, token, opts }) => {
         return sleep(opts.ssoPollFrequency).then(() => {
           return pollForSession({ registry, token, opts })
         })
-      } else {
+      } else
         throw err
-      }
     }
   )
 }
@@ -47,9 +44,8 @@ const login = async ({ creds, registry, scope }) => {
   const opts = { ...npm.flatOptions, creds, registry, scope }
   const { ssoType } = opts
 
-  if (!ssoType) {
+  if (!ssoType)
     throw new Error('Missing option: sso-type')
-  }
 
   // We're reusing the legacy login endpoint, so we need some dummy
   // stuff here to pass validation. They're never used.
@@ -57,15 +53,17 @@ const login = async ({ creds, registry, scope }) => {
     username: 'npm_' + ssoType + '_auth_dummy_user',
     password: 'placeholder',
     email: 'support@npmjs.com',
-    authType: ssoType
+    authType: ssoType,
   }
 
   const { token, sso } = await otplease(opts,
     opts => profile.loginCouch(auth.username, auth.password, opts)
   )
 
-  if (!token) { throw new Error('no SSO token returned') }
-  if (!sso) { throw new Error('no SSO URL returned by services') }
+  if (!token)
+    throw new Error('no SSO token returned')
+  if (!sso)
+    throw new Error('no SSO URL returned by services')
 
   await openUrl(sso, 'to complete your login please visit')
 
@@ -78,7 +76,7 @@ const login = async ({ creds, registry, scope }) => {
 
   return {
     message,
-    newCreds: { token }
+    newCreds: { token },
   }
 }
 

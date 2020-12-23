@@ -1,12 +1,8 @@
 ---
-section: configuring-npm
 title: package.json
+section: 5
 description: Specifics of npm's package.json handling
 ---
-
-# package.json(5)
-
-## Specifics of npm's package.json handling
 
 ### Description
 
@@ -533,7 +529,7 @@ See [semver](/using-npm/semver) for more details about specifying version ranges
 * `range1 || range2` Passes if either range1 or range2 are satisfied.
 * `git...` See 'Git URLs as Dependencies' below
 * `user/repo` See 'GitHub URLs' below
-* `tag` A specific version tagged and published as `tag`  See [`npm dist-tag`](/cli-commands/dist-tag)
+* `tag` A specific version tagged and published as `tag`  See [`npm dist-tag`](/commands/npm-dist-tag)
 * `path/path/path` See [Local Paths](#local-paths) below
 
 For example, these are all valid:
@@ -719,6 +715,30 @@ Assuming the host complies with [semver](https://semver.org/), only changes in
 the host package's major version will break your plugin. Thus, if you've worked
 with every 1.x version of the host package, use `"^1.0"` or `"1.x"` to express
 this. If you depend on features introduced in 1.5.2, use `">= 1.5.2 < 2"`.
+
+### peerDependenciesMeta
+
+When a user installs your package, npm will emit warnings if packages specified in `peerDependencies` are not already installed. The `peerDependenciesMeta` field serves to provide npm more information on how your peer dependencies are to be used. Specifically, it allows peer dependencies to be marked as optional.
+
+For example:
+
+```json
+{
+  "name": "tea-latte",
+  "version": "1.3.5",
+  "peerDependencies": {
+    "tea": "2.x",
+    "soy-milk": "1.2"
+  },
+  "peerDependenciesMeta": {
+    "soy-milk": {
+      "optional": true
+    }
+  }
+}
+```
+
+Marking a peer dependency as optional ensures npm will not emit a warning if the `soy-milk` package is not installed on the host. This allows you to integrate and interact with a variety of host packages without requiring all of them to be installed.
 
 ### bundledDependencies
 
@@ -936,10 +956,10 @@ npm will default some values based on package contents.
 
 * [semver](/using-npm/semver)
 * [workspaces](/using-npm/workspaces)
-* [npm init](/cli-commands/init)
-* [npm version](/cli-commands/version)
-* [npm config](/cli-commands/config)
-* [npm help](/cli-commands/help)
-* [npm install](/cli-commands/install)
-* [npm publish](/cli-commands/publish)
-* [npm uninstall](/cli-commands/uninstall)
+* [npm init](/commands/npm-init)
+* [npm version](/commands/npm-version)
+* [npm config](/commands/npm-config)
+* [npm help](/commands/npm-help)
+* [npm install](/commands/npm-install)
+* [npm publish](/commands/npm-publish)
+* [npm uninstall](/commands/npm-uninstall)

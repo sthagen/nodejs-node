@@ -96,12 +96,13 @@ void IsolateData::DeserializeProperties(const std::vector<size_t>* indexes) {
 #define VS(PropertyName, StringValue) V(String, PropertyName)
 #define V(TypeName, PropertyName)                                              \
   do {                                                                         \
-    MaybeLocal<TypeName> field =                                               \
+    MaybeLocal<TypeName> maybe_field =                                         \
         isolate_->GetDataFromSnapshotOnce<TypeName>((*indexes)[i++]);          \
-    if (field.IsEmpty()) {                                                     \
+    Local<TypeName> field;                                                     \
+    if (!maybe_field.ToLocal(&field)) {                                        \
       fprintf(stderr, "Failed to deserialize " #PropertyName "\n");            \
     }                                                                          \
-    PropertyName##_.Set(isolate_, field.ToLocalChecked());                     \
+    PropertyName##_.Set(isolate_, field);                                      \
   } while (0);
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
@@ -112,12 +113,13 @@ void IsolateData::DeserializeProperties(const std::vector<size_t>* indexes) {
 #undef VP
 
   for (size_t j = 0; j < AsyncWrap::PROVIDERS_LENGTH; j++) {
-    MaybeLocal<String> field =
+    MaybeLocal<String> maybe_field =
         isolate_->GetDataFromSnapshotOnce<String>((*indexes)[i++]);
-    if (field.IsEmpty()) {
+    Local<String> field;
+    if (!maybe_field.ToLocal(&field)) {
       fprintf(stderr, "Failed to deserialize AsyncWrap provider %zu\n", j);
     }
-    async_wrap_providers_[j].Set(isolate_, field.ToLocalChecked());
+    async_wrap_providers_[j].Set(isolate_, field);
   }
 }
 
@@ -209,10 +211,7 @@ void IsolateData::MemoryInfo(MemoryTracker* tracker) const {
 #define V(PropertyName, StringValue)                                           \
   tracker->TrackField(#PropertyName, PropertyName());
   PER_ISOLATE_SYMBOL_PROPERTIES(V)
-#undef V
 
-#define V(PropertyName, StringValue)                                           \
-  tracker->TrackField(#PropertyName, PropertyName());
   PER_ISOLATE_STRING_PROPERTIES(V)
 #undef V
 
@@ -225,10 +224,6 @@ void IsolateData::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackFieldWithSize(
       "platform", sizeof(*platform_), "MultiIsolatePlatform");
   // TODO(joyeecheung): implement MemoryRetainer in the option classes.
-}
-
-void InitThreadLocalOnce() {
-  CHECK_EQ(0, uv_key_create(&Environment::thread_local_env));
 }
 
 void TrackingTraceStateObserver::UpdateTraceCategoryState() {
@@ -369,10 +364,6 @@ Environment::Environment(IsolateData* isolate_data,
   // We can only create the inspector agent after having cloned the options.
   inspector_agent_ = std::make_unique<inspector::Agent>(this);
 #endif
-
-  static uv_once_t init_once = UV_ONCE_INIT;
-  uv_once(&init_once, InitThreadLocalOnce);
-  uv_key_set(&thread_local_env, this);
 
   if (tracing::AgentWriterHandle* writer = GetTracingAgentWriter()) {
     trace_state_observer_ = std::make_unique<TrackingTraceStateObserver>(this);
@@ -545,6 +536,8 @@ void Environment::InitializeLibuv() {
       [](uv_async_t* async) {
         Environment* env = ContainerOf(
             &Environment::task_queues_async_, async);
+        HandleScope handle_scope(env->isolate());
+        Context::Scope context_scope(env->context());
         env->RunAndClearNativeImmediates();
       });
   uv_unref(reinterpret_cast<uv_handle_t*>(&task_queues_async_));
@@ -1143,8 +1136,6 @@ void AsyncHooks::grow_async_ids_stack() {
       async_ids_stack_.GetJSArray()).Check();
 }
 
-uv_key_t Environment::thread_local_env = {};
-
 void Environment::Exit(int exit_code) {
   if (options()->trace_exit) {
     HandleScope handle_scope(isolate());
@@ -1354,17 +1345,17 @@ void Environment::DeserializeProperties(const EnvSerializeInfo* info) {
   const std::vector<PropInfo>& templates = info->persistent_templates;
   size_t i = 0;  // index to the array
   size_t id = 0;
-#define V(PropertyName, TypeName)                                              \
+#define SetProperty(PropertyName, TypeName, vector, type, from)                \
   do {                                                                         \
-    if (templates.size() > i && id == templates[i].id) {                       \
-      const PropInfo& d = templates[i];                                        \
+    if (vector.size() > i && id == vector[i].id) {                             \
+      const PropInfo& d = vector[i];                                           \
       DCHECK_EQ(d.name, #PropertyName);                                        \
       MaybeLocal<TypeName> maybe_field =                                       \
-          isolate_->GetDataFromSnapshotOnce<TypeName>(d.index);                \
+          from->GetDataFromSnapshotOnce<TypeName>(d.index);                    \
       Local<TypeName> field;                                                   \
       if (!maybe_field.ToLocal(&field)) {                                      \
         fprintf(stderr,                                                        \
-                "Failed to deserialize environment template " #PropertyName    \
+                "Failed to deserialize environment " #type " " #PropertyName   \
                 "\n");                                                         \
       }                                                                        \
       set_##PropertyName(field);                                               \
@@ -1372,32 +1363,19 @@ void Environment::DeserializeProperties(const EnvSerializeInfo* info) {
     }                                                                          \
   } while (0);                                                                 \
   id++;
+#define V(PropertyName, TypeName) SetProperty(PropertyName, TypeName,          \
+                                              templates, template, isolate_)
   ENVIRONMENT_STRONG_PERSISTENT_TEMPLATES(V);
 #undef V
 
   i = 0;  // index to the array
   id = 0;
   const std::vector<PropInfo>& values = info->persistent_values;
-#define V(PropertyName, TypeName)                                              \
-  do {                                                                         \
-    if (values.size() > i && id == values[i].id) {                             \
-      const PropInfo& d = values[i];                                           \
-      DCHECK_EQ(d.name, #PropertyName);                                        \
-      MaybeLocal<TypeName> maybe_field =                                       \
-          ctx->GetDataFromSnapshotOnce<TypeName>(d.index);                     \
-      Local<TypeName> field;                                                   \
-      if (!maybe_field.ToLocal(&field)) {                                      \
-        fprintf(stderr,                                                        \
-                "Failed to deserialize environment value " #PropertyName       \
-                "\n");                                                         \
-      }                                                                        \
-      set_##PropertyName(field);                                               \
-      i++;                                                                     \
-    }                                                                          \
-  } while (0);                                                                 \
-  id++;
+#define V(PropertyName, TypeName) SetProperty(PropertyName, TypeName,          \
+                                              values, value, ctx)
   ENVIRONMENT_STRONG_PERSISTENT_VALUES(V);
 #undef V
+#undef SetProperty
 
   MaybeLocal<Context> maybe_ctx_from_snapshot =
       ctx->GetDataFromSnapshotOnce<Context>(info->context);
