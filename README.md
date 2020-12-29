@@ -53,7 +53,7 @@ Looking for help? Check out the
 * **LTS**: Releases that receive Long-term Support, with a focus on stability
   and security. Every even-numbered major version will become an LTS release.
   LTS releases receive 12 months of _Active LTS_ support and a further 18 months
-  of _Maintenance_. LTS release lines have alphabetically-ordered codenames,
+  of _Maintenance_. LTS release lines have alphabetically-ordered code names,
   beginning with v4 Argon. There are no breaking changes or feature additions,
   except in some special circumstances.
 * **Nightly**: Code from the Current branch built every 24-hours when there are
@@ -431,6 +431,8 @@ For information about the governance of the Node.js project, see
 **Thomas Watson** &lt;w@tson.dk&gt;
 * [XadillaX](https://github.com/XadillaX) -
 **Khaidi Chu** &lt;i@2333.moe&gt; (he/him)
+* [yashLadha](https://github.com/yashLadha) -
+**Yash Ladha** &lt;yash@yashladha.in&gt; (he/him)
 * [yhwang](https://github.com/yhwang) -
 **Yihong Wang** &lt;yh.wang@ibm.com&gt;
 * [yorkie](https://github.com/yorkie) -
