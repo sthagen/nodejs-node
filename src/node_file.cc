@@ -51,6 +51,7 @@ namespace node {
 namespace fs {
 
 using v8::Array;
+using v8::BigInt;
 using v8::Boolean;
 using v8::Context;
 using v8::EscapableHandleScope;
@@ -1832,8 +1833,8 @@ static void WriteBuffer(const FunctionCallbackInfo<Value>& args) {
   CHECK_LE(static_cast<uint64_t>(off_64), buffer_length);
   const size_t off = static_cast<size_t>(off_64);
 
-  CHECK(args[3]->IsInt32());
-  const size_t len = static_cast<size_t>(args[3].As<Int32>()->Value());
+  CHECK(IsSafeJsInt(args[3]));
+  const size_t len = static_cast<size_t>(args[3].As<Integer>()->Value());
   CHECK(Buffer::IsWithinBounds(off, len, buffer_length));
   CHECK_LE(len, buffer_length);
   CHECK_GE(off + len, off);
@@ -2038,8 +2039,10 @@ static void Read(const FunctionCallbackInfo<Value>& args) {
   const size_t len = static_cast<size_t>(args[3].As<Int32>()->Value());
   CHECK(Buffer::IsWithinBounds(off, len, buffer_length));
 
-  CHECK(IsSafeJsInt(args[4]));
-  const int64_t pos = args[4].As<Integer>()->Value();
+  CHECK(IsSafeJsInt(args[4]) || args[4]->IsBigInt());
+  const int64_t pos = args[4]->IsNumber() ?
+                      args[4].As<Integer>()->Value() :
+                      args[4].As<BigInt>()->Int64Value();
 
   char* buf = buffer_data + off;
   uv_buf_t uvbuf = uv_buf_init(buf, len);
@@ -2471,13 +2474,7 @@ void Initialize(Local<Object> target,
   fst->InstanceTemplate()->SetInternalFieldCount(
       FSReqBase::kInternalFieldCount);
   fst->Inherit(AsyncWrap::GetConstructorTemplate(env));
-  Local<String> wrapString =
-      FIXED_ONE_BYTE_STRING(isolate, "FSReqCallback");
-  fst->SetClassName(wrapString);
-  target
-      ->Set(context, wrapString,
-            fst->GetFunction(env->context()).ToLocalChecked())
-      .Check();
+  env->SetConstructorFunction(target, "FSReqCallback", fst);
 
   // Create FunctionTemplate for FileHandleReadWrap. There’s no need
   // to do anything in the constructor, so we only store the instance template.
@@ -2508,14 +2505,8 @@ void Initialize(Local<Object> target,
   env->SetProtoMethod(fd, "releaseFD", FileHandle::ReleaseFD);
   Local<ObjectTemplate> fdt = fd->InstanceTemplate();
   fdt->SetInternalFieldCount(StreamBase::kInternalFieldCount);
-  Local<String> handleString =
-       FIXED_ONE_BYTE_STRING(isolate, "FileHandle");
-  fd->SetClassName(handleString);
   StreamBase::AddMethods(env, fd);
-  target
-      ->Set(context, handleString,
-            fd->GetFunction(env->context()).ToLocalChecked())
-      .Check();
+  env->SetConstructorFunction(target, "FileHandle", fd);
   env->set_fd_constructor_template(fdt);
 
   // Create FunctionTemplate for FileHandle::CloseReq

@@ -59,6 +59,7 @@ using EVPMDPointer = DeleteFnPtr<EVP_MD_CTX, EVP_MD_CTX_free>;
 using RSAPointer = DeleteFnPtr<RSA, RSA_free>;
 using ECPointer = DeleteFnPtr<EC_KEY, EC_KEY_free>;
 using BignumPointer = DeleteFnPtr<BIGNUM, BN_free>;
+using BignumCtxPointer = DeleteFnPtr<BN_CTX, BN_CTX_free>;
 using NetscapeSPKIPointer = DeleteFnPtr<NETSCAPE_SPKI, NETSCAPE_SPKI_free>;
 using ECGroupPointer = DeleteFnPtr<EC_GROUP, EC_GROUP_free>;
 using ECPointPointer = DeleteFnPtr<EC_POINT, EC_POINT_free>;
@@ -349,17 +350,11 @@ class CryptoJob : public AsyncWrap, public ThreadPoolWork {
       Environment* env,
       v8::Local<v8::Object> target) {
     v8::Local<v8::FunctionTemplate> job = env->NewFunctionTemplate(new_fn);
-    v8::Local<v8::String> class_name =
-        OneByteString(env->isolate(), CryptoJobTraits::JobName);
-    job->SetClassName(class_name);
     job->Inherit(AsyncWrap::GetConstructorTemplate(env));
     job->InstanceTemplate()->SetInternalFieldCount(
         AsyncWrap::kInternalFieldCount);
     env->SetProtoMethod(job, "run", Run);
-    target->Set(
-        env->context(),
-        class_name,
-        job->GetFunction(env->context()).ToLocalChecked()).Check();
+    env->SetConstructorFunction(target, CryptoJobTraits::JobName, job);
   }
 
  private:
@@ -654,6 +649,7 @@ std::vector<T> CopyBuffer(v8::Local<v8::Value> buf) {
 v8::MaybeLocal<v8::Value> EncodeBignum(
     Environment* env,
     const BIGNUM* bn,
+    int size,
     v8::Local<v8::Value>* error);
 
 v8::Maybe<bool> SetEncodedValue(

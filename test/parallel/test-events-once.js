@@ -23,6 +23,18 @@ async function onceAnEvent() {
   strictEqual(ee.listenerCount('myevent'), 0);
 }
 
+async function onceAnEventWithNullOptions() {
+  const ee = new EventEmitter();
+
+  process.nextTick(() => {
+    ee.emit('myevent', 42);
+  });
+
+  const [value] = await once(ee, 'myevent', null);
+  strictEqual(value, 42);
+}
+
+
 async function onceAnEventWithTwoArgs() {
   const ee = new EventEmitter();
 
@@ -157,6 +169,19 @@ async function abortSignalAfterEvent() {
   await once(ee, 'foo', { signal: ac.signal });
 }
 
+async function abortSignalRemoveListener() {
+  const ee = new EventEmitter();
+  const ac = new AbortController();
+
+  try {
+    process.nextTick(() => ac.abort());
+    await once(ee, 'test', { signal: ac.signal });
+  } catch {
+    strictEqual(ee.listeners('test').length, 0);
+    strictEqual(ee.listeners('error').length, 0);
+  }
+}
+
 async function eventTargetAbortSignalBefore() {
   const et = new EventTarget();
   const ac = new AbortController();
@@ -195,6 +220,7 @@ async function eventTargetAbortSignalAfterEvent() {
 
 Promise.all([
   onceAnEvent(),
+  onceAnEventWithNullOptions(),
   onceAnEventWithTwoArgs(),
   catchesErrors(),
   stopListeningAfterCatchingError(),
@@ -205,6 +231,7 @@ Promise.all([
   abortSignalBefore(),
   abortSignalAfter(),
   abortSignalAfterEvent(),
+  abortSignalRemoveListener(),
   eventTargetAbortSignalBefore(),
   eventTargetAbortSignalAfter(),
   eventTargetAbortSignalAfterEvent(),

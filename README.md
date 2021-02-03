@@ -289,6 +289,8 @@ For information about the governance of the Node.js project, see
 **David Carlier** &lt;devnexen@gmail.com&gt;
 * [devsnek](https://github.com/devsnek) -
 **Gus Caplan** &lt;me@gus.host&gt; (they/them)
+* [dnlup](https://github.com/dnlup)
+**Daniele Belardi** &lt;dwon.dnl@gmail.com&gt; (he/him)
 * [edsadr](https://github.com/edsadr) -
 **Adrian Estrada** &lt;edsadr@gmail.com&gt; (he/him)
 * [eugeneo](https://github.com/eugeneo) -
@@ -323,6 +325,8 @@ For information about the governance of the Node.js project, see
 **Zeyu Yang** &lt;himself65@outlook.com&gt; (he/him)
 * [hiroppy](https://github.com/hiroppy) -
 **Yuta Hiroto** &lt;hello@hiroppy.me&gt; (he/him)
+* [iansu](https://github.com/iansu) -
+**Ian Sutherland** &lt;ian@iansutherland.ca&gt;
 * [indutny](https://github.com/indutny) -
 **Fedor Indutny** &lt;fedor.indutny@gmail.com&gt;
 * [JacksonTian](https://github.com/JacksonTian) -
@@ -351,12 +355,16 @@ For information about the governance of the Node.js project, see
 **Luigi Pinca** &lt;luigipinca@gmail.com&gt; (he/him)
 * [lundibundi](https://github.com/lundibundi) -
 **Denys Otrishko** &lt;shishugi@gmail.com&gt; (he/him)
+* [Lxxyx](https://github.com/Lxxyx) -
+**Zijian Liu** &lt;lxxyxzj@gmail.com&gt; (he/him)
 * [mafintosh](https://github.com/mafintosh) -
 **Mathias Buus** &lt;mathiasbuus@gmail.com&gt; (he/him)
 * [mcollina](https://github.com/mcollina) -
 **Matteo Collina** &lt;matteo.collina@gmail.com&gt; (he/him)
 * [mhdawson](https://github.com/mhdawson) -
 **Michael Dawson** &lt;midawson@redhat.com&gt; (he/him)
+* [miladfarca](https://github.com/miladfarca) -
+**Milad Fa** &lt;mfarazma@redhat.com&gt; (he/him)
 * [mildsunrise](https://github.com/mildsunrise) -
 **Alba Mendez** &lt;me@alba.sh&gt; (she/her)
 * [misterdjules](https://github.com/misterdjules) -
@@ -371,6 +379,8 @@ For information about the governance of the Node.js project, see
 **Ali Ijaz Sheikh** &lt;ofrobots@google.com&gt; (he/him)
 * [oyyd](https://github.com/oyyd) -
 **Ouyang Yadong** &lt;oyydoibh@gmail.com&gt; (he/him)
+* [panva](https://github.com/panva) -
+**Filip Skokan** &lt;panva.ip@gmail.com&gt;
 * [PoojaDurgad](https://github.com/PoojaDurgad) -
 **Pooja D P** &lt;Pooja.D.P@ibm.com&gt; (she/her)
 * [psmarshall](https://github.com/psmarshall) -
@@ -379,6 +389,8 @@ For information about the governance of the Node.js project, see
 **Andrey Pechkurov** &lt;apechkurov@gmail.com&gt; (he/him)
 * [Qard](https://github.com/Qard) -
 **Stephen Belanger** &lt;admin@stephenbelanger.com&gt; (he/him)
+* [RaisinTen](https://github.com/RaisinTen) -
+**Darshan Sen** &lt;raisinten@gmail.com&gt; (he/him)
 * [refack](https://github.com/refack) -
 **Refael Ackermann (רפאל פלחי)** &lt;refack@gmail.com&gt; (he/him/הוא/אתה)
 * [rexagod](https://github.com/rexagod) -
@@ -591,7 +603,7 @@ Primary GPG keys for Node.js Releasers (some Releasers sign with subkeys):
 * **Colin Ihrig** &lt;cjihrig@gmail.com&gt;
 `94AE36675C464D64BAFA68DD7434390BDBE9B9C5`
 * **Danielle Adams** &lt;adamzdanielle@gmail.com&gt;
-`1C050899334244A8AF75E53792EF661D867B9DFA`
+`74F12602B6F1C4E913FAA37AD3A89613643B6201`
 * **James M Snell** &lt;jasnell@keybase.io&gt;
 `71DCFD284A79C3B38668286BC97EC7A07EDE3FC1`
 * **Michaël Zasso** &lt;targos@protonmail.com&gt;
@@ -615,7 +627,7 @@ to sign releases):
 ```bash
 gpg --keyserver pool.sks-keyservers.net --recv-keys 4ED778F539E3634C779C87C6D7062848A1AB005C
 gpg --keyserver pool.sks-keyservers.net --recv-keys 94AE36675C464D64BAFA68DD7434390BDBE9B9C5
-gpg --keyserver pool.sks-keyservers.net --recv-keys 1C050899334244A8AF75E53792EF661D867B9DFA
+gpg --keyserver pool.sks-keyservers.net --recv-keys 74F12602B6F1C4E913FAA37AD3A89613643B6201
 gpg --keyserver pool.sks-keyservers.net --recv-keys 71DCFD284A79C3B38668286BC97EC7A07EDE3FC1
 gpg --keyserver pool.sks-keyservers.net --recv-keys 8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600
 gpg --keyserver pool.sks-keyservers.net --recv-keys C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8
@@ -633,6 +645,8 @@ Other keys used to sign some previous releases:
 
 * **Chris Dickinson** &lt;christopher.s.dickinson@gmail.com&gt;
 `9554F04D7259F04124DE6B476D5A82AC7E37093B`
+* **Danielle Adams** &lt;adamzdanielle@gmail.com&gt;
+`1C050899334244A8AF75E53792EF661D867B9DFA`
 * **Evan Lucas** &lt;evanlucas@me.com&gt;
 `B9AE9905FFD7803F25714661B63B535A4C206CA9`
 * **Gibson Fahnestock** &lt;gibfahn@gmail.com&gt;

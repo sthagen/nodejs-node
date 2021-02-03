@@ -81,6 +81,8 @@ void GetErrMap(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = env->isolate();
   Local<Context> context = env->context();
 
+  // This can't return a SafeMap, because the uv binding can be referenced
+  // by user code by using `process.binding('uv').getErrorMap()`:
   Local<Map> err_map = Map::New(isolate);
 
   size_t errors_len = arraysize(per_process::uv_errors_map);
@@ -106,11 +108,10 @@ void Initialize(Local<Object> target,
                 void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
-  target->Set(env->context(),
-              FIXED_ONE_BYTE_STRING(isolate, "errname"),
-              env->NewFunctionTemplate(ErrName)
-                  ->GetFunction(env->context())
-                  .ToLocalChecked()).Check();
+  env->SetConstructorFunction(
+      target,
+      "errname",
+      env->NewFunctionTemplate(ErrName));
 
   // TODO(joyeecheung): This should be deprecated in user land in favor of
   // `util.getSystemErrorName(err)`.

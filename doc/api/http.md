@@ -113,6 +113,9 @@ http.get({
 <!-- YAML
 added: v0.3.4
 changes:
+  - version: v15.6.0
+    pr-url: https://github.com/nodejs/node/pull/36685
+    description: Change the default scheduling from 'fifo' to 'lifo'.
   - version:
     - v14.5.0
     - v12.19.0
@@ -140,8 +143,14 @@ changes:
     the [initial delay](net.md#net_socket_setkeepalive_enable_initialdelay)
     for TCP Keep-Alive packets. Ignored when the
     `keepAlive` option is `false` or `undefined`. **Default:** `1000`.
-  * `maxSockets` {number} Maximum number of sockets to allow per
-    host. Each request will use a new socket until the maximum is reached.
+  * `maxSockets` {number} Maximum number of sockets to allow per host.
+     If the same host opens multiple concurrent connections, each request
+     will use new socket until the `maxSockets` value is reached.
+     If the host attempts to open more connections than `maxSockets`,
+     the additional requests will enter into a pending request queue, and
+     will enter active connection state when an existing connection terminates.
+     This makes sure there are at most `maxSockets` active connections at
+     any point in time, from a given host.
     **Default:** `Infinity`.
   * `maxTotalSockets` {number} Maximum number of sockets allowed for
     all hosts in total. Each request will use a new socket
@@ -161,7 +170,7 @@ changes:
     In case of a high rate of request per second,
     the `'fifo'` scheduling will maximize the number of open sockets,
     while the `'lifo'` scheduling will keep it as low as possible.
-    **Default:** `'fifo'`.
+    **Default:** `'lifo'`.
   * `timeout` {number} Socket timeout in milliseconds.
     This will set the timeout when the socket is created.
 
@@ -1293,7 +1302,7 @@ the client.
 If the timeout expires, the server responds with status 408 without
 forwarding the request to the request listener and then closes the connection.
 
-It must be set to a non-zero value (e.g. 120 seconds) to proctect against
+It must be set to a non-zero value (e.g. 120 seconds) to protect against
 potential Denial-of-Service attacks in case the server is deployed without a
 reverse proxy in front.
 
@@ -1588,6 +1597,15 @@ Removes a header that's queued for implicit sending.
 ```js
 response.removeHeader('Content-Encoding');
 ```
+
+### `response.req`
+<!-- YAML
+added: v15.7.0
+-->
+
+* {http.IncomingMessage}
+
+A reference to the original HTTP `request` object.
 
 ### `response.sendDate`
 <!-- YAML
@@ -1906,6 +1924,10 @@ the request body should be sent.
 <!-- YAML
 added: v0.1.17
 changes:
+  - version: v15.5.0
+    pr-url: https://github.com/nodejs/node/pull/33035
+    description: The `destroyed` value returns `true` after the incoming data
+                 is consumed.
   - version:
      - v13.1.0
      - v12.16.0
@@ -1919,6 +1941,11 @@ An `IncomingMessage` object is created by [`http.Server`][] or
 [`http.ClientRequest`][] and passed as the first argument to the [`'request'`][]
 and [`'response'`][] event respectively. It may be used to access response
 status, headers and data.
+
+Different from its `socket` value which is a subclass of {stream.Duplex}, the
+`IncomingMessage` itself extends {stream.Readable} and is created separately to
+parse and emit the incoming HTTP headers and payload, as the underlying socket
+may be reused multiple times in case of keep-alive.
 
 ### Event: `'aborted'`
 <!-- YAML
@@ -1971,6 +1998,16 @@ const req = http.request({
   });
 });
 ```
+
+### `message.connection`
+<!-- YAML
+added: v0.1.90
+deprecated: REPLACEME
+ -->
+
+> Stability: 0 - Deprecated. Use [`message.socket`][].
+
+Alias for [`message.socket`][].
 
 ### `message.destroy([error])`
 <!-- YAML
@@ -2730,6 +2767,7 @@ try {
 [`net.Socket`]: net.md#net_class_net_socket
 [`net.createConnection()`]: net.md#net_net_createconnection_options_connectlistener
 [`new URL()`]: url.md#url_new_url_input_base
+[`message.socket`]: #http_message_socket
 [`removeHeader(name)`]: #http_request_removeheader_name
 [`request.end()`]: #http_request_end_data_encoding_callback
 [`request.destroy()`]: #http_request_destroy_error

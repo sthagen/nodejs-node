@@ -1,6 +1,5 @@
 {
   'variables': {
-    'experimental_quic': 'false',
     'v8_use_siphash%': 0,
     'v8_trace_maps%': 0,
     'v8_enable_pointer_compression%': 0,
@@ -21,8 +20,6 @@
     'node_shared_cares%': 'false',
     'node_shared_libuv%': 'false',
     'node_shared_nghttp2%': 'false',
-    'node_shared_ngtcp2%': 'false',
-    'node_shared_nghttp3%': 'false',
     'node_use_openssl%': 'true',
     'node_shared_openssl%': 'false',
     'node_v8_options%': '',
@@ -111,13 +108,14 @@
       'lib/internal/assert/assertion_error.js',
       'lib/internal/assert/calltracker.js',
       'lib/internal/async_hooks.js',
+      'lib/internal/blob.js',
       'lib/internal/blocklist.js',
       'lib/internal/buffer.js',
       'lib/internal/cli_table.js',
       'lib/internal/child_process.js',
       'lib/internal/child_process/serialization.js',
       'lib/internal/cluster/child.js',
-      'lib/internal/cluster/master.js',
+      'lib/internal/cluster/primary.js',
       'lib/internal/cluster/round_robin_handle.js',
       'lib/internal/cluster/shared_handle.js',
       'lib/internal/cluster/utils.js',
@@ -143,6 +141,7 @@
       'lib/internal/crypto/sig.js',
       'lib/internal/crypto/util.js',
       'lib/internal/crypto/webcrypto.js',
+      'lib/internal/crypto/x509.js',
       'lib/internal/constants.js',
       'lib/internal/dgram.js',
       'lib/internal/dns/promises.js',
@@ -209,8 +208,6 @@
       'lib/internal/process/task_queues.js',
       'lib/internal/querystring.js',
       'lib/internal/readline/utils.js',
-      'lib/internal/quic/core.js',
-      'lib/internal/quic/util.js',
       'lib/internal/repl.js',
       'lib/internal/repl/await.js',
       'lib/internal/repl/history.js',
@@ -608,6 +605,7 @@
         'src/node.cc',
         'src/node_api.cc',
         'src/node_binding.cc',
+        'src/node_blob.cc',
         'src/node_buffer.cc',
         'src/node_config.cc',
         'src/node_constants.cc',
@@ -706,6 +704,7 @@
         'src/node_api.h',
         'src/node_api_types.h',
         'src/node_binding.h',
+        'src/node_blob.h',
         'src/node_buffer.h',
         'src/node_constants.h',
         'src/node_context_data.h',
@@ -927,7 +926,7 @@
             'src/crypto/crypto_timing.cc',
             'src/crypto/crypto_cipher.cc',
             'src/crypto/crypto_context.cc',
-            'src/crypto/crypto_ecdh.cc',
+            'src/crypto/crypto_ec.cc',
             'src/crypto/crypto_hmac.cc',
             'src/crypto/crypto_random.cc',
             'src/crypto/crypto_rsa.cc',
@@ -941,6 +940,7 @@
             'src/crypto/crypto_scrypt.cc',
             'src/crypto/crypto_tls.cc',
             'src/crypto/crypto_aes.cc',
+            'src/crypto/crypto_x509.cc',
             'src/crypto/crypto_bio.h',
             'src/crypto/crypto_clienthello-inl.h',
             'src/crypto/crypto_dh.h',
@@ -965,6 +965,7 @@
             'src/crypto/crypto_sig.h',
             'src/crypto/crypto_random.h',
             'src/crypto/crypto_timing.h',
+            'src/crypto/crypto_x509.h',
             'src/node_crypto.cc',
             'src/node_crypto.h'
           ],
@@ -973,38 +974,6 @@
           'target_arch=="x64" and '
           'node_target_type=="executable"', {
           'defines': [ 'NODE_ENABLE_LARGE_CODE_PAGES=1' ],
-        }],
-        [
-          # We can only use QUIC if using our modified, static linked
-          # OpenSSL because we have patched in the QUIC support.
-          'node_use_openssl=="true" and node_shared_openssl=="false" and experimental_quic==1', {
-          'defines': ['NODE_EXPERIMENTAL_QUIC=1'],
-          'sources': [
-            'src/node_bob.h',
-            'src/node_bob-inl.h',
-            'src/quic/node_quic_buffer.h',
-            'src/quic/node_quic_buffer-inl.h',
-            'src/quic/node_quic_crypto.h',
-            'src/quic/node_quic_session.h',
-            'src/quic/node_quic_session-inl.h',
-            'src/quic/node_quic_socket.h',
-            'src/quic/node_quic_socket-inl.h',
-            'src/quic/node_quic_stream.h',
-            'src/quic/node_quic_stream-inl.h',
-            'src/quic/node_quic_util.h',
-            'src/quic/node_quic_util-inl.h',
-            'src/quic/node_quic_state.h',
-            'src/quic/node_quic_default_application.h',
-            'src/quic/node_quic_http3_application.h',
-            'src/quic/node_quic_buffer.cc',
-            'src/quic/node_quic_crypto.cc',
-            'src/quic/node_quic_session.cc',
-            'src/quic/node_quic_socket.cc',
-            'src/quic/node_quic_stream.cc',
-            'src/quic/node_quic.cc',
-            'src/quic/node_quic_default_application.cc',
-            'src/quic/node_quic_http3_application.cc'
-          ]
         }],
         [ 'use_openssl_def==1', {
           # TODO(bnoordhuis) Make all platforms export the same list of symbols.
@@ -1369,15 +1338,6 @@
             'test/cctest/test_node_crypto.cc',
           ]
         }],
-        [ 'node_use_openssl=="true" and experimental_quic==1', {
-          'defines': [
-            'NODE_EXPERIMENTAL_QUIC=1',
-          ],
-          'sources': [
-            'test/cctest/test_quic_buffer.cc',
-            'test/cctest/test_quic_cid.cc'
-          ]
-        }],
         ['v8_enable_inspector==1', {
           'sources': [
             'test/cctest/test_inspector_socket.cc',
@@ -1469,6 +1429,24 @@
       ],
     }, # embedtest
 
+    {
+      'target_name': 'overlapped-checker',
+      'type': 'executable',
+
+      'conditions': [
+        ['OS=="win"', {
+          'sources': [
+            'test/overlapped-checker/main_win.c'
+          ],
+        }],
+        ['OS!="win"', {
+          'sources': [
+            'test/overlapped-checker/main_unix.c'
+          ],
+        }],
+      ]
+    }, # overlapped-checker
+
     # TODO(joyeecheung): do not depend on node_lib,
     # instead create a smaller static library node_lib_base that does
     # just enough for node_native_module.cc and the cache builder to
@@ -1513,11 +1491,6 @@
         [ 'node_use_openssl=="true"', {
           'defines': [
             'HAVE_OPENSSL=1',
-          ],
-        }],
-        [ 'node_use_openssl=="true" and experimental_quic==1', {
-          'defines': [
-            'NODE_EXPERIMENTAL_QUIC=1',
           ],
         }],
         ['v8_enable_inspector==1', {
@@ -1572,11 +1545,6 @@
         [ 'node_use_openssl=="true"', {
           'defines': [
             'HAVE_OPENSSL=1',
-          ],
-        }],
-        [ 'node_use_openssl=="true" and experimental_quic==1', {
-          'defines': [
-            'NODE_EXPERIMENTAL_QUIC=1',
           ],
         }],
         ['v8_enable_inspector==1', {

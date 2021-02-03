@@ -50,7 +50,6 @@ const noop = () => {};
 
 const hasCrypto = Boolean(process.versions.openssl) &&
                   !process.env.NODE_SKIP_CRYPTO;
-const hasQuic = hasCrypto && Boolean(process.versions.ngtcp2);
 
 // Check for flags. Skip this for workers (both, the `cluster` module and
 // `worker_threads`) and child processes.
@@ -61,7 +60,7 @@ if (process.argv.length === 2 &&
     isMainThread &&
     hasCrypto &&
     require.main &&
-    require('cluster').isMaster) {
+    require('cluster').isPrimary) {
   // The copyright notice is relatively big and the flags could come afterwards.
   const bytesToRead = 1500;
   const buffer = Buffer.allocUnsafe(bytesToRead);
@@ -727,7 +726,6 @@ const common = {
   getTTYfd,
   hasIntl,
   hasCrypto,
-  hasQuic,
   hasMultiLocalhost,
   invalidArgTypeHelper,
   isAIX,

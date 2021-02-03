@@ -1284,6 +1284,25 @@ passing keys as strings or `Buffer`s due to improved security features.
 The receiver obtains a cloned `KeyObject`, and the `KeyObject` does not need to
 be listed in the `transferList` argument.
 
+### `keyObject.asymmetricKeyDetails`
+<!-- YAML
+added: v15.7.0
+-->
+
+* {Object}
+  * `modulusLength`: {number} Key size in bits (RSA, DSA).
+  * `publicExponent`: {bigint} Public exponent (RSA).
+  * `divisorLength`: {number} Size of `q` in bits (DSA).
+  * `namedCurve`: {string} Name of the curve (EC).
+
+This property exists only on asymmetric keys. Depending on the type of the key,
+this object contains information about the key. None of the information obtained
+through this property can be used to uniquely identify a key or to compromise
+the security of the key.
+
+RSA-PSS parameters, DH, or any future key type details might be exposed via this
+API using additional attributes.
+
 ### `keyObject.asymmetricKeyType`
 <!-- YAML
 added: v11.6.0
@@ -1329,35 +1348,41 @@ keys.
 ### `keyObject.export([options])`
 <!-- YAML
 added: v11.6.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37081
+    description: Added support for `'jwk'` format.
 -->
 
 * `options`: {Object}
-* Returns: {string | Buffer}
+* Returns: {string | Buffer | Object}
 
-For symmetric keys, this function allocates a `Buffer` containing the key
-material and ignores any options.
+For symmetric keys, the following encoding options can be used:
 
-For asymmetric keys, the `options` parameter is used to determine the export
-format.
+* `format`: {string} Must be `'buffer'` (default) or `'jwk'`.
 
 For public keys, the following encoding options can be used:
 
 * `type`: {string} Must be one of `'pkcs1'` (RSA only) or `'spki'`.
-* `format`: {string} Must be `'pem'` or `'der'`.
+* `format`: {string} Must be `'pem'`, `'der'`, or `'jwk'`.
 
 For private keys, the following encoding options can be used:
 
 * `type`: {string} Must be one of `'pkcs1'` (RSA only), `'pkcs8'` or
   `'sec1'` (EC only).
-* `format`: {string} Must be `'pem'` or `'der'`.
+* `format`: {string} Must be `'pem'`, `'der'`, or `'jwk'`.
 * `cipher`: {string} If specified, the private key will be encrypted with
    the given `cipher` and `passphrase` using PKCS#5 v2.0 password based
    encryption.
 * `passphrase`: {string | Buffer} The passphrase to use for encryption, see
   `cipher`.
 
-When PEM encoding was selected, the result will be a string, otherwise it will
-be a buffer containing the data encoded as DER.
+The result type depends on the selected encoding format, when PEM the
+result is a string, when DER it will be a buffer containing the data
+encoded as DER, when [JWK][] it will be an object.
+
+When [JWK][] encoding format was selected, all other encoding options are
+ignored.
 
 PKCS#1, SEC1, and PKCS#8 type keys can be encrypted by using a combination of
 the `cipher` and `format` options. The PKCS#8 `type` can be used with any
@@ -1645,6 +1670,269 @@ thrown.
 Because public keys can be derived from private keys, a private key may
 be passed instead of a public key.
 
+## Class: `X509Certificate`
+<!-- YAML
+added: v15.6.0
+-->
+
+Encapsulates an X509 certificate and provides read-only access to
+its information.
+
+```js
+const { X509Certificate } = require('crypto');
+
+const x509 = new X509Certificate('{... pem encoded cert ...}');
+
+console.log(x509.subject);
+```
+
+### `new X509Certificate(buffer)`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `buffer` {string|TypedArray|Buffer|DataView} A PEM or DER encoded
+  X509 Certificate.
+
+### `x509.ca`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {boolean} Will be `true` if this is a Certificate Authority (ca)
+  certificate.
+
+### `x509.checkEmail(email[, options])`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `email` {string}
+* `options` {Object}
+  * `subject` {string} `'always'` or `'never'`. **Defaults**: `'always'`.
+  * `wildcards` {boolean} **Defaults**: `true`.
+  * `partialWildcards` {boolean} **Defaults**: `true`.
+  * `multiLabelWildcards` {boolean} **Defaults**: `false`.
+  * `singleLabelSubdomains` {boolean} **Defaults**: `false`.
+* Returns: {string|undefined} Returns `email` if the certificate matches,
+  `undefined` if it does not.
+
+Checks whether the certificate matches the given email address.
+
+### `x509.checkHost(name[, options])`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `name` {string}
+* `options` {Object}
+  * `subject` {string} `'always'` or `'never'`. **Defaults**: `'always'`.
+  * `wildcards` {boolean} **Defaults**: `true`.
+  * `partialWildcards` {boolean} **Defaults**: `true`.
+  * `multiLabelWildcards` {boolean} **Defaults**: `false`.
+  * `singleLabelSubdomains` {boolean} **Defaults**: `false`.
+* Returns: {string|undefined} Returns `name` if the certificate matches,
+  `undefined` if it does not.
+
+Checks whether the certificate matches the given host name.
+
+### `x509.checkIP(ip[, options])`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `ip` {string}
+* `options` {Object}
+  * `subject` {string} `'always'` or `'never'`. **Defaults**: `'always'`.
+  * `wildcards` {boolean} **Defaults**: `true`.
+  * `partialWildcards` {boolean} **Defaults**: `true`.
+  * `multiLabelWildcards` {boolean} **Defaults**: `false`.
+  * `singleLabelSubdomains` {boolean} **Defaults**: `false`.
+* Returns: {string|undefined} Returns `ip` if the certificate matches,
+  `undefined` if it does not.
+
+Checks whether the certificate matches the given IP address (IPv4 or IPv6).
+
+### `x509.checkIssued(otherCert)`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `otherCert` {X509Certificate}
+* Returns: {boolean}
+
+Checks whether this certificate was issued by the given `otherCert`.
+
+### `x509.checkPrivateKey(privateKey)`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `privateKey` {KeyObject} A private key.
+* Returns: {boolean}
+
+Checks whether the public key for this certificate is consistent with
+the given private key.
+
+### `x509.fingerprint`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The SHA-1 fingerprint of this certificate.
+
+### `x509.fingerprint256`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The SHA-256 fingerprint of this certificate.
+
+### `x509.infoAccess`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The information access content of this certificate.
+
+### `x509.issuer`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The issuer identification included in this certificate.
+
+### `x509.issuerCertificate`
+<!-- YAML
+added: REPLACEME
+-->
+
+* Type: {X509Certificate}
+
+The issuer certificate or `undefined` if the issuer certificate is not
+available.
+
+### `x509.keyUsage`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string[]}
+
+An array detailing the key usages for this certificate.
+
+### `x509.publicKey`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {KeyObject}
+
+The public key {KeyObject} for this certificate.
+
+### `x509.raw`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {Buffer}
+
+A `Buffer` containing the DER encoding of this certificate.
+
+### `x509.serialNumber`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The serial number of this certificate.
+
+### `x509.subject`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The complete subject of this certificate.
+
+### `x509.subjectAltName`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The subject alternative name specified for this certificate.
+
+### `x509.toJSON()`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+There is no standard JSON encoding for X509 certificates. The
+`toJSON()` method returns a string containing the PEM encoded
+certificate.
+
+### `x509.toLegacyObject()`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {Object}
+
+Returns information about this certificate using the legacy
+[certificate object][] encoding.
+
+### `x509.toString()`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+Returns the PEM-encoded certificate.
+
+### `x509.validFrom`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The date/time from which this certificate is considered valid.
+
+### `x509.validTo`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Type: {string}
+
+The date/time until which this certificate is considered valid.
+
+### `x509.verify(publicKey)`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `publicKey` {KeyObject} A public key.
+* Returns: {boolean}
+
+Verifies that this certificate was signed by the given public key.
+Does not perform any other validation checks on the certificate.
+
 ## `crypto` module methods and properties
 
 ### `crypto.constants`
@@ -1688,6 +1976,48 @@ is currently in use. Setting to true requires a FIPS build of Node.js.
 
 This property is deprecated. Please use `crypto.setFips()` and
 `crypto.getFips()` instead.
+
+### `crypto.checkPrime(candidate[, options, [callback]])`
+<!-- YAML
+added: v15.8.0
+-->
+
+* `candidate` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  A possible prime encoded as a sequence of big endian octets of arbitrary
+  length.
+* `options` {Object}
+  * `checks` {number} The number of Miller-Rabin probabilistic primality
+    iterations to perform. When the value is `0` (zero), a number of checks
+    is used that yields a false positive rate of at most 2<sup>-64</sup> for
+    random input. Care must be used when selecting a number of checks. Refer
+    to the OpenSSL documentation for the [`BN_is_prime_ex`][] function `nchecks`
+    options for more details. **Defaults**: `0`
+* `callback` {Function}
+  * `err` {Error} Set to an {Error} object if an error occured during check.
+  * `result` {boolean} `true` if the candidate is a prime with an error
+    probability less than `0.25 ** options.checks`.
+
+Checks the primality of the `candidate`.
+
+### `crypto.checkPrimeSync(candidate[, options])`
+<!-- YAML
+added: v15.8.0
+-->
+
+* `candidate` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  A possible prime encoded as a sequence of big endian octets of arbitrary
+  length.
+* `options` {Object}
+  * `checks` {number} The number of Miller-Rabin probabilistic primality
+    iterations to perform. When the value is `0` (zero), a number of checks
+    is used that yields a false positive rate of at most 2<sup>-64</sup> for
+    random input. Care must be used when selecting a number of checks. Refer
+    to the OpenSSL documentation for the [`BN_is_prime_ex`][] function `nchecks`
+    options for more details. **Defaults**: `0`
+* Returns: {boolean} `true` if the candidate is a prime with an error
+  probability less than `0.25 ** options.checks`.
+
+Checks the primality of the `candidate`.
 
 ### `crypto.createCipher(algorithm, password[, options])`
 <!-- YAML
@@ -2237,7 +2567,7 @@ added: v15.0.0
     * If `type` is `'hmac'`, the minimum is 1, and the maximum length is
       2<sup>31</sup>-1. If the value is not a multiple of 8, the generated
       key will be truncated to `Math.floor(length / 8)`.
-    * If `type` is `'aes'`, the length must be one of `128` or `256`.
+    * If `type` is `'aes'`, the length must be one of `128`, `192`, or `256`.
 * `callback`: {Function}
   * `err`: {Error}
   * `key`: {KeyObject}
@@ -2266,7 +2596,7 @@ added: v15.0.0
     * If `type` is `'hmac'`, the minimum is 1, and the maximum length is
       2<sup>31</sup>-1. If the value is not a multiple of 8, the generated
       key will be truncated to `Math.floor(length / 8)`.
-    * If `type` is `'aes'`, the length must be one of `128` or `256`.
+    * If `type` is `'aes'`, the length must be one of `128`, `192`, or `256`.
 * Returns: {KeyObject}
 
 Synchronously generates a new random secret key of the given `length`. The
@@ -2421,6 +2751,88 @@ const { publicKey, privateKey } = generateKeyPairSync('rsa', {
 The return value `{ publicKey, privateKey }` represents the generated key pair.
 When PEM encoding was selected, the respective key will be a string, otherwise
 it will be a buffer containing the data encoded as DER.
+
+### `crypto.generatePrime(size[, options[, callback]])`
+<!-- YAML
+added: v15.8.0
+-->
+
+* `size` {number} The size (in bits) of the prime to generate.
+* `options` {Object}
+  * `add` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  * `rem` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  * `safe` {boolean} **Defaults**: `false`.
+  * `bigint` {boolean} When `true`, the generated prime is returned
+    as a `bigint`.
+* `callback` {Function}
+  * `err` {Error}
+  * `prime` {ArrayBuffer|bigint}
+
+Generates a pseudo-random prime of `size` bits.
+
+If `options.safe` is `true`, the prime will be a safe prime -- that is,
+`(prime - 1) / 2` will also be a prime.
+
+The `options.add` and `options.rem` parameters can be used to enforce additional
+requirements, e.g., for Diffie-Hellman:
+
+* If `options.add` and `options.rem` are both set, the prime will satisfy the
+  condition that `prime % add = rem`.
+* If only `options.add` is set and `options.safe` is not `true`, the prime will
+  satisfy the condition that `prime % add = 1`.
+* If only `options.add` is set and `options.safe` is set to `true`, the prime
+  will instead satisfy the condition that `prime % add = 3`. This is necessary
+  because `prime % add = 1` for `options.add > 2` would contradict the condition
+  enforced by `options.safe`.
+* `options.rem` is ignored if `options.add` is not given.
+
+Both `options.add` and `options.rem` must be encoded as big-endian sequences
+if given as an `ArrayBuffer`, `SharedArrayBuffer`, `TypedArray`, `Buffer`, or
+`DataView`.
+
+By default, the prime is encoded as a big-endian sequence of octets
+in an {ArrayBuffer}. If the `bigint` option is `true`, then a {bigint}
+is provided.
+
+### `crypto.generatePrimeSync(size[, options])`
+<!-- YAML
+added: v15.8.0
+-->
+
+* `size` {number} The size (in bits) of the prime to generate.
+* `options` {Object}
+  * `add` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  * `rem` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
+  * `safe` {boolean} **Defaults**: `false`.
+  * `bigint` {boolean} When `true`, the generated prime is returned
+    as a `bigint`.
+* Returns: {ArrayBuffer|bigint}
+
+Generates a pseudo-random prime of `size` bits.
+
+If `options.safe` is `true`, the prime will be a safe prime -- that is,
+`(prime - 1) / 2` will also be a prime.
+
+The `options.add` and `options.rem` parameters can be used to enforce additional
+requirements, e.g., for Diffie-Hellman:
+
+* If `options.add` and `options.rem` are both set, the prime will satisfy the
+  condition that `prime % add = rem`.
+* If only `options.add` is set and `options.safe` is not `true`, the prime will
+  satisfy the condition that `prime % add = 1`.
+* If only `options.add` is set and `options.safe` is set to `true`, the prime
+  will instead satisfy the condition that `prime % add = 3`. This is necessary
+  because `prime % add = 1` for `options.add > 2` would contradict the condition
+  enforced by `options.safe`.
+* `options.rem` is ignored if `options.add` is not given.
+
+Both `options.add` and `options.rem` must be encoded as big-endian sequences
+if given as an `ArrayBuffer`, `SharedArrayBuffer`, `TypedArray`, `Buffer`, or
+`DataView`.
+
+By default, the prime is encoded as a big-endian sequence of octets
+in an {ArrayBuffer}. If the `bigint` option is `true`, then a {bigint}
+is provided.
 
 ### `crypto.getCiphers()`
 <!-- YAML
@@ -3160,6 +3572,21 @@ const n = crypto.randomInt(1, 7);
 console.log(`The dice rolled: ${n}`);
 ```
 
+### `crypto.randomUUID([options])`
+<!-- YAML
+added: v15.6.0
+-->
+
+* `options` {Object}
+  * `disableEntropyCache` {boolean} By default, to improve performance,
+    Node.js generates and caches enough
+    random data to generate up to 128 random UUIDs. To generate a UUID
+    without using the cache, set `disableEntropyCache` to `true`.
+    **Defaults**: `false`.
+* Returns: {string}
+
+Generates a random [RFC 4122][] Version 4 UUID.
+
 ### `crypto.scrypt(password, salt, keylen[, options], callback)`
 <!-- YAML
 added: v10.5.0
@@ -3276,6 +3703,21 @@ console.log(key1.toString('hex'));  // '3745e48...08d59ae'
 const key2 = crypto.scryptSync('password', 'salt', 64, { N: 1024 });
 console.log(key2.toString('hex'));  // '3745e48...aa39b34'
 ```
+
+### `crypto.secureHeapUsed()`
+<!-- YAML
+added: v15.6.0
+-->
+
+* Returns: {Object}
+  * `total` {number} The total allocated secure heap size as specified
+    using the `--secure-heap=n` command-line flag.
+  * `min` {number} The minimum allocation from the secure heap as
+    specified using the `--secure-heap-min` command-line flag.
+  * `used` {number} The total number of bytes currently allocated from
+    the secure heap.
+  * `utilization` {number} The calculated ratio of `used` to `total`
+    allocated bytes.
 
 ### `crypto.setEngine(engine[, flags])`
 <!-- YAML
@@ -3919,6 +4361,7 @@ See the [list of SSL OP Flags][] for details.
 [Crypto constants]: #crypto_crypto_constants_1
 [HTML 5.2]: https://www.w3.org/TR/html52/changes.html#features-removed
 [HTML5's `keygen` element]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/keygen
+[JWK]: https://tools.ietf.org/html/rfc7517
 [NIST SP 800-131A]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-131Ar1.pdf
 [NIST SP 800-132]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-132.pdf
 [NIST SP 800-38D]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf
@@ -3929,8 +4372,10 @@ See the [list of SSL OP Flags][] for details.
 [RFC 3526]: https://www.rfc-editor.org/rfc/rfc3526.txt
 [RFC 3610]: https://www.rfc-editor.org/rfc/rfc3610.txt
 [RFC 4055]: https://www.rfc-editor.org/rfc/rfc4055.txt
+[RFC 4122]: https://www.rfc-editor.org/rfc/rfc4122.txt
 [RFC 5208]: https://www.rfc-editor.org/rfc/rfc5208.txt
 [Web Crypto API documentation]: webcrypto.md
+[`BN_is_prime_ex`]: https://www.openssl.org/docs/man1.1.1/man3/BN_is_prime_ex.html
 [`Buffer`]: buffer.md
 [`EVP_BytesToKey`]: https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html
 [`KeyObject`]: #crypto_class_keyobject
@@ -3981,6 +4426,7 @@ See the [list of SSL OP Flags][] for details.
 [`util.promisify()`]: util.md#util_util_promisify_original
 [`verify.update()`]: #crypto_verify_update_data_inputencoding
 [`verify.verify()`]: #crypto_verify_verify_object_signature_signatureencoding
+[certificate object]: tls.md#tls_certificate_object
 [encoding]: buffer.md#buffer_buffers_and_character_encodings
 [initialization vector]: https://en.wikipedia.org/wiki/Initialization_vector
 [list of SSL OP Flags]: https://wiki.openssl.org/index.php/List_of_SSL_OP_Flags#Table_of_Options
