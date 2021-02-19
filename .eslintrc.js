@@ -54,6 +54,7 @@ module.exports = {
     {
       files: [
         'doc/api/esm.md',
+        'doc/api/fs.md',
         'doc/api/module.md',
         'doc/api/modules.md',
         'doc/api/packages.md',
@@ -94,7 +95,13 @@ module.exports = {
         ignorePattern: '.*',
       },
     }],
-    'comma-dangle': ['error', 'only-multiline'],
+    'comma-dangle': ['error', {
+      arrays: 'always-multiline',
+      exports: 'only-multiline',
+      functions: 'only-multiline',
+      imports: 'only-multiline',
+      objects: 'only-multiline',
+    }],
     'comma-spacing': 'error',
     'comma-style': 'error',
     'computed-property-spacing': 'error',

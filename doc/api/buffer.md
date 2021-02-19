@@ -307,7 +307,7 @@ added: v15.7.0
   any mix of such objects, that will be stored within the `Blob`.
 * `options` {Object}
   * `encoding` {string} The character encoding to use for string sources.
-    **Default**: `'utf8'`.
+    **Default:** `'utf8'`.
   * `type` {string} The Blob content-type. The intent is for `type` to convey
     the MIME media type of the data, however no validation of the type format
     is performed.
@@ -370,7 +370,7 @@ The content-type of the `Blob`.
 ### `Blob` objects and `MessageChannel`
 
 Once a {Blob} object is created, it can be sent via `MessagePort` to multiple
-destinations without transfering or immediately copying the data. The data
+destinations without transferring or immediately copying the data. The data
 contained by the `Blob` is copied only when the `arrayBuffer()` or `text()`
 methods are called.
 

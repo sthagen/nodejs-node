@@ -26,6 +26,7 @@
 #include "debug_utils-inl.h"
 #include "env-inl.h"
 #include "memory_tracker-inl.h"
+#include "histogram-inl.h"
 #include "node_binding.h"
 #include "node_errors.h"
 #include "node_internals.h"
@@ -415,7 +416,7 @@ MaybeLocal<Value> Environment::RunBootstrapping() {
   CHECK(req_wrap_queue()->IsEmpty());
   CHECK(handle_wrap_queue()->IsEmpty());
 
-  set_has_run_bootstrapping_code(true);
+  DoneBootstrapping();
 
   return scope.Escape(result);
 }
@@ -1023,7 +1024,7 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
 #endif  // HAVE_OPENSSL
 
   per_process::v8_platform.Initialize(
-      per_process::cli_options->v8_thread_pool_size);
+      static_cast<int>(per_process::cli_options->v8_thread_pool_size));
   V8::Initialize();
   performance::performance_v8_start = PERFORMANCE_NOW();
   per_process::v8_initialized = true;
