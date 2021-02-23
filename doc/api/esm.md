@@ -435,13 +435,13 @@ import { readFile } from 'fs/promises';
 const json = JSON.parse(await readFile(new URL('./dat.json', import.meta.url)));
 ```
 
-Alterantively `module.createRequire()` can be used.
+Alternatively `module.createRequire()` can be used.
 
 #### No Native Module Loading
 
 Native modules are not currently supported with ES module imports.
 
-The can instead be loaded with [`module.createRequire()`][] or
+They can instead be loaded with [`module.createRequire()`][] or
 [`process.dlopen`][].
 
 #### No `require.resolve`

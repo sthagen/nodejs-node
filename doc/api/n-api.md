@@ -1275,9 +1275,9 @@ napiVersion: 1
 
 ```c
 NAPI_NO_RETURN void napi_fatal_error(const char* location,
-                                                 size_t location_len,
-                                                 const char* message,
-                                                 size_t message_len);
+                                     size_t location_len,
+                                     const char* message,
+                                     size_t message_len);
 ```
 
 * `[in] location`: Optional location at which the error occurred.
@@ -6089,7 +6089,7 @@ the add-on's file name during loading.
 [`napi_unwrap`]: #n_api_napi_unwrap
 [`napi_wrap`]: #n_api_napi_wrap
 [`node-addon-api`]: https://github.com/nodejs/node-addon-api
-[`node_api.h`]: https://github.com/nodejs/node/blob/master/src/node_api.h
+[`node_api.h`]: https://github.com/nodejs/node/blob/HEAD/src/node_api.h
 [`process.release`]: process.md#process_process_release
 [`uv_ref`]: https://docs.libuv.org/en/v1.x/handle.html#c.uv_ref
 [`uv_unref`]: https://docs.libuv.org/en/v1.x/handle.html#c.uv_unref
