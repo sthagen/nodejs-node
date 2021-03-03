@@ -101,16 +101,17 @@ describing a security issue, take the following steps:
   [SECURITY.md][security reporting].
 * Move the issue to the private repo called
   [premature-disclosures](https://github.com/nodejs/premature-disclosures).
-* For any related pull requests create an associated issue in the
-  `premature-disclosures` repo and add a copy of the patch for the
-  pull request, and screenshots of discussion on the PR to the issue.
-* Open a ticket with GitHub asking that the PRs be deleted through
+* For any related pull requests, create an associated issue in the
+  `premature-disclosures` repository.  Add a copy of the patch for the
+  pull request to the issue. Add screenshots of discussion from the pull request
+  to the issue.
+* Open a ticket with GitHub asking that the pull requests be deleted through
   [GitHub suppport](https://support.github.com/contact)
   using Node.js(team) as the account organization.
 * Open a new issue in the repository in which the issue was originally
-  reported with a brief FYI to the originator. `FYI @xxxx we asked github
-  to delete your PR while we work on releases in private.` with the title
-  `FYI - PR deleted #YYYY`.
+  reported with a brief FYI to the originator: "FYI @xxxx we asked GitHub
+  to delete your pull request while we work on releases in private." with the
+  title `FYI - pull request deleted #YYYY`.
 * Email `tsc@iojs.org` with the link to the issues in the
   `premature-disclosures` repo so that the TSC is aware that they
   may need to expedite handling of the issue due to premature
@@ -153,21 +154,21 @@ requirements. If a pull request meets all requirements except the
 
 #### Objections
 
-**Collaborators can object to a pull request by using the "Request
-Changes" GitHub feature**. Dissent comments alone don't constitute an
-objection. **Any PR objection must include a clear reason for that objection,
-and the objector must remain responsive for further discussion towards
-consensus about the direction of the pull request**. Providing a set of
-actionable steps alongside the objection is recommended.
+Collaborators can object to a pull request by using the "Request
+Changes" GitHub feature. Dissent comments alone don't constitute an
+objection. Any pull request objection must include a clear reason for that
+objection, and the objector must remain responsive for further discussion
+towards consensus about the direction of the pull request. Where possible,
+provide a set of actionable steps alongside the objection.
 
 If the objection is not clear to others, another collaborator can ask an
 objecting collaborator to explain their objection or to provide actionable
-steps to resolve the objection. **If the objector is unresponsive for seven
-days after a collaborator asks for clarification, another collaborator can
-dismiss the objection**.
+steps to resolve the objection. If the objector is unresponsive for seven
+days after a collaborator asks for clarification, a collaborator may
+dismiss the objection.
 
-**Pull requests with outstanding objections must remain open until all
-objections are satisfied**. If reaching consensus is not possible, a
+Pull requests with outstanding objections must remain open until all
+objections are satisfied. If reaching consensus is not possible, a
 collaborator can escalate the issue to the TSC by pinging `@nodejs/tsc` and
 adding the `tsc-agenda` label to the issue.
 
@@ -209,11 +210,11 @@ the comment anyway to avoid any doubt.
 All fixes must have a test case which demonstrates the defect. The test should
 fail before the change, and pass after the change.
 
-Do not land any pull requests without a passing (green or yellow) CI run.
-A green GitHub Actions CI result is required. A passing
-[Jenkins CI](https://ci.nodejs.org/) is also required if PR contains changes
-that will affect the `node` binary. This is critical as GitHub Actions CI does
-not cover all the environments supported by Node.js.
+Do not land any pull requests without the necessary passing CI runs.
+A passing (green) GitHub Actions CI result is required. A passing (green or
+yellow) [Jenkins CI](https://ci.nodejs.org/) is also required if the pull
+request contains changes that will affect the `node` binary. This is because
+GitHub Actions CI does not cover all the environments supported by Node.js.
 
 <details>
 <summary>Changes that affect the `node` binary</summary>
@@ -294,7 +295,7 @@ in the form:
 To specify the branch this way, `refs/heads/BRANCH` is used
 (e.g. for `master` -> `refs/heads/master`).
 For pull requests, it will look like `refs/pull/PR_NUMBER/head`
-(e.g. for PR#42 -> `refs/pull/42/head`).
+(e.g. for pull request #42 -> `refs/pull/42/head`).
 * `REBASE_ONTO`: Change that to `origin/master` so the pull request gets rebased
 onto master. This can especially be important for pull requests that have been
 open a while.
@@ -759,10 +760,10 @@ Each LTS release has a corresponding branch (v10.x, v8.x, etc.). Each also has a
 corresponding staging branch (v10.x-staging, v8.x-staging, etc.).
 
 Commits that land on master are cherry-picked to each staging branch as
-appropriate. If a change applies only to the LTS branch, open the PR against the
-*staging* branch. Commits from the staging branch land on the LTS branch only
-when a release is being prepared. They can land on the LTS branch in a different
-order than they were in staging.
+appropriate. If a change applies only to the LTS branch, open the pull request
+against the *staging* branch. Commits from the staging branch land on the LTS
+branch only when a release is being prepared. They might land on the LTS branch
+in a different order than they do in staging.
 
 Only members of @nodejs/backporters should land commits onto LTS staging
 branches.
