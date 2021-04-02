@@ -7,6 +7,7 @@ added: v8.5.0
 changes:
   - version:
     - v15.3.0
+    - v12.22.0
     pr-url: https://github.com/nodejs/node/pull/35781
     description: Stabilize modules implementation.
   - version:
@@ -204,6 +205,10 @@ import _ from 'data:application/json,"world!"';
 added:
   - v14.13.1
   - v12.20.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37246
+    description: Added `node:` import support to `require(...)`.
 -->
 
 `node:` URLs are supported as an alternative means to load Node.js builtin
@@ -1328,7 +1333,7 @@ success!
 [`transformSource` hook]: #esm_transformsource_source_context_defaulttransformsource
 [`string`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
 [`util.TextDecoder`]: util.md#util_class_util_textdecoder
-[cjs-module-lexer]: https://github.com/guybedford/cjs-module-lexer/tree/1.0.0
+[cjs-module-lexer]: https://github.com/guybedford/cjs-module-lexer/tree/1.1.1
 [custom https loader]: #esm_https_loader
 [special scheme]: https://url.spec.whatwg.org/#special-scheme
 [the official standard format]: https://tc39.github.io/ecma262/#sec-modules

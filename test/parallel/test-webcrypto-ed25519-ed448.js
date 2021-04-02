@@ -50,7 +50,7 @@ async function test1(namedCurve) {
 
 Promise.all([
   test1('NODE-ED25519'),
-  test1('NODE-ED448')
+  test1('NODE-ED448'),
 ]).then(common.mustCall());
 
 assert.rejects(
@@ -65,7 +65,7 @@ assert.rejects(
     ['sign']),
   {
     message: /NODE-ED25519 raw keys must be exactly 32-bytes/
-  });
+  }).then(common.mustCall());
 
 assert.rejects(
   subtle.importKey(
@@ -79,7 +79,7 @@ assert.rejects(
     ['sign']),
   {
     message: /NODE-ED448 raw keys must be exactly 57-bytes/
-  });
+  }).then(common.mustCall());
 
 const testVectors = {
   'NODE-ED25519': [
@@ -182,7 +182,7 @@ const testVectors = {
         'aa5371b1508f9f4528ecea23c436d94b5e8fcd4f681e30a6ac00a9704a188a03',
         'hex'),
       crv: 'Ed25519',
-    }
+    },
   ],
   'NODE-ED448': [
     {
@@ -238,7 +238,7 @@ const testVectors = {
           '1068df7254c0cdc129cbe62db2dc957dbb47b51fd3f213fb8698f064774250a5' +
           '028961c9bf8ffd973fe5d5c206492b140e00', 'hex'),
       crv: 'Ed448',
-    }
+    },
   ]
 };
 
@@ -265,15 +265,15 @@ async function test2(namedCurve) {
           namedCurve,
           public: true
         },
-        true, ['verify'])
+        true, ['verify']),
     ]);
 
     const [
       rawKey1,
-      rawKey2
+      rawKey2,
     ] = await Promise.all([
       subtle.exportKey('raw', privateKey),
-      subtle.exportKey('raw', publicKey)
+      subtle.exportKey('raw', publicKey),
     ]);
     assert.deepStrictEqual(Buffer.from(rawKey1), vector.privateKey);
     assert.deepStrictEqual(Buffer.from(rawKey2), vector.publicKey);
@@ -295,10 +295,10 @@ async function test2(namedCurve) {
 
     const [
       publicKeyJwk,
-      privateKeyJwk
+      privateKeyJwk,
     ] = await Promise.all([
       subtle.exportKey('jwk', publicKey),
-      subtle.exportKey('jwk', privateKey)
+      subtle.exportKey('jwk', privateKey),
     ]);
     assert.strictEqual(publicKeyJwk.kty, 'OKP');
     assert.strictEqual(privateKeyJwk.kty, 'OKP');
@@ -318,7 +318,7 @@ async function test2(namedCurve) {
 
 Promise.all([
   test2('NODE-ED25519'),
-  test2('NODE-ED448')
+  test2('NODE-ED448'),
 ]).then(common.mustCall());
 
 assert.rejects(
@@ -331,7 +331,7 @@ assert.rejects(
     ['sign', 'verify']),
   {
     message: /Unsupported named curves for ECDSA/
-  });
+  }).then(common.mustCall());
 
 assert.rejects(
   subtle.generateKey(
@@ -343,7 +343,7 @@ assert.rejects(
     ['sign', 'verify']),
   {
     message: /Unsupported named curves for ECDSA/
-  });
+  }).then(common.mustCall());
 
 assert.rejects(
   subtle.generateKey(
@@ -355,7 +355,7 @@ assert.rejects(
     ['sign', 'verify']),
   {
     message: /Unsupported named curves for ECDSA/
-  });
+  }).then(common.mustCall());
 
 assert.rejects(
   subtle.generateKey(
@@ -367,7 +367,7 @@ assert.rejects(
     ['sign', 'verify']),
   {
     message: /Unsupported named curves for ECDSA/
-  });
+  }).then(common.mustCall());
 
 {
   for (const asymmetricKeyType of ['ed25519', 'ed448']) {
@@ -398,7 +398,7 @@ assert.rejects(
         ),
         {
           message: /Invalid algorithm name/
-        });
+        }).then(common.mustCall());
 
       assert.rejects(
         subtle.importKey(
@@ -413,7 +413,7 @@ assert.rejects(
         ),
         {
           message: /Invalid algorithm name/
-        });
+        }).then(common.mustCall());
     }
   }
 }

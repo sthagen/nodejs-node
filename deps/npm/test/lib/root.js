@@ -1,18 +1,18 @@
-const { test } = require('tap')
-const requireInject = require('require-inject')
+const t = require('tap')
 
-test('root', (t) => {
+t.test('root', (t) => {
   t.plan(3)
   const dir = '/root/dir'
 
-  const root = requireInject('../../lib/root.js', {
-    '../../lib/npm.js': { dir },
-    '../../lib/utils/output.js': (output) => {
+  const Root = require('../../lib/root.js')
+  const root = new Root({
+    dir,
+    output: (output) => {
       t.equal(output, dir, 'prints the correct directory')
     },
   })
 
-  root([], (err) => {
+  root.exec([], (err) => {
     t.ifError(err, 'npm root')
     t.ok('should have printed directory')
   })

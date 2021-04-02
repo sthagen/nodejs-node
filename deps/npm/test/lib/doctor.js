@@ -104,6 +104,9 @@ const npm = {
     },
   },
   version: '7.1.0',
+  output: (data) => {
+    output.push(data)
+  },
 }
 
 let latestNpm = npm.version
@@ -120,18 +123,15 @@ const cacache = {
   },
 }
 
-const doctor = requireInject('../../lib/doctor.js', {
+const Doctor = requireInject('../../lib/doctor.js', {
   '../../lib/utils/is-windows.js': false,
   '../../lib/utils/ping.js': ping,
-  '../../lib/utils/output.js': (data) => {
-    output.push(data)
-  },
-  '../../lib/npm.js': npm,
   cacache,
   pacote,
   'make-fetch-happen': fetch,
   which,
 })
+const doctor = new Doctor(npm)
 
 const origVersion = process.version
 test('node versions', t => {
@@ -162,7 +162,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           if (err) {
             st.fail(output)
             return st.end()
@@ -211,7 +211,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           if (err) {
             st.fail(err)
             return st.end()
@@ -255,7 +255,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'detected the ping error')
           st.match(logs, {
             checkPing: { finished: true },
@@ -282,18 +282,15 @@ test('node versions', t => {
       })
 
       vt.test('npm doctor skips some tests in windows', st => {
-        const winDoctor = requireInject('../../lib/doctor.js', {
+        const WinDoctor = requireInject('../../lib/doctor.js', {
           '../../lib/utils/is-windows.js': true,
           '../../lib/utils/ping.js': ping,
-          '../../lib/utils/output.js': (data) => {
-            output.push(data)
-          },
-          '../../lib/npm.js': npm,
           cacache,
           pacote,
           'make-fetch-happen': fetch,
           which,
         })
+        const winDoctor = new WinDoctor(npm)
 
         const dir = st.testdir()
         npm.cache = npm.flatOptions.cache = dir
@@ -312,7 +309,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        winDoctor([], (err) => {
+        winDoctor.exec([], (err) => {
           if (err) {
             st.fail(output)
             return st.end()
@@ -360,7 +357,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'detected the ping error')
           st.match(logs, {
             checkPing: { finished: true },
@@ -409,7 +406,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'detected the ping error')
           st.match(logs, {
             checkPing: { finished: true },
@@ -458,7 +455,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'detected the out of date npm')
           st.match(logs, {
             checkPing: { finished: true },
@@ -487,7 +484,7 @@ test('node versions', t => {
         const dir = st.testdir({
           cache: {
             one: 'one',
-            link: st.fixture('symlink', './one'),
+            link: st.fixture('symlink', './baddir'),
             unreadable: 'unreadable',
             baddir: {},
           },
@@ -563,19 +560,16 @@ test('node versions', t => {
           }
         }
 
-        const doctor = requireInject('../../lib/doctor.js', {
+        const Doctor = requireInject('../../lib/doctor.js', {
           '../../lib/utils/is-windows.js': false,
           '../../lib/utils/ping.js': ping,
-          '../../lib/utils/output.js': (data) => {
-            output.push(data)
-          },
-          '../../lib/npm.js': npm,
           cacache,
           pacote,
           'make-fetch-happen': fetch,
           which,
           fs,
         })
+        const doctor = new Doctor(npm)
         // it's necessary to allow tests in node 10.x to not mark 12.x as lted
 
         npm.cache = npm.flatOptions.cache = join(dir, 'cache')
@@ -600,7 +594,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'identified problems')
           st.match(logs, {
             checkPing: { finished: true },
@@ -653,7 +647,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           st.match(err, /Some problems found/, 'detected the missing git')
           st.match(logs, {
             checkPing: { finished: true },
@@ -706,7 +700,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           // cache verification problems get fixed and so do not throw an error
           if (err) {
             st.fail(output)
@@ -765,7 +759,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           // cache verification problems get fixed and so do not throw an error
           if (err) {
             st.fail(output)
@@ -823,7 +817,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           // cache verification problems get fixed and so do not throw an error
           if (err) {
             st.fail(output)
@@ -878,7 +872,7 @@ test('node versions', t => {
           clearLogs()
         })
 
-        doctor([], (err) => {
+        doctor.exec([], (err) => {
           // cache verification problems get fixed and so do not throw an error
           st.match(err, /Some problems found/, 'detected the non-default registry')
           st.match(logs, {
@@ -942,7 +936,7 @@ test('outdated node version', vt => {
       clearLogs()
     })
 
-    doctor([], (err) => {
+    doctor.exec([], (err) => {
       st.match(err, /Some problems found/, 'detected the out of date nodejs')
       st.match(logs, {
         checkPing: { finished: true },

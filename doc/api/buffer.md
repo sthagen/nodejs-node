@@ -79,17 +79,21 @@ console.log(Buffer.from('fhqwhgads', 'utf16le'));
 // Prints: <Buffer 66 00 68 00 71 00 77 00 68 00 67 00 61 00 64 00 73 00>
 ```
 
+Node.js buffers accept all case variations of encoding strings that they
+receive. For example, UTF-8 can be specified as `'utf8'`, `'UTF8'` or `'uTf8'`.
+
 The character encodings currently supported by Node.js are the following:
 
-* `'utf8'`: Multi-byte encoded Unicode characters. Many web pages and other
-  document formats use [UTF-8][]. This is the default character encoding.
-  When decoding a `Buffer` into a string that does not exclusively contain
-  valid UTF-8 data, the Unicode replacement character `U+FFFD` � will be used
-  to represent those errors.
+* `'utf8'` (alias: `'utf-8'`): Multi-byte encoded Unicode characters. Many web
+  pages and other document formats use [UTF-8][]. This is the default character
+  encoding. When decoding a `Buffer` into a string that does not exclusively
+  contain valid UTF-8 data, the Unicode replacement character `U+FFFD` � will be
+  used to represent those errors.
 
-* `'utf16le'`: Multi-byte encoded Unicode characters. Unlike `'utf8'`, each
-  character in the string will be encoded using either 2 or 4 bytes.
-  Node.js only supports the [little-endian][endianness] variant of [UTF-16][].
+* `'utf16le'` (alias: `'utf-16le'`): Multi-byte encoded Unicode characters.
+  Unlike `'utf8'`, each character in the string will be encoded using either 2
+  or 4 bytes. Node.js only supports the [little-endian][endianness] variant of
+  [UTF-16][].
 
 * `'latin1'`: Latin-1 stands for [ISO-8859-1][]. This character encoding only
   supports the Unicode characters from `U+0000` to `U+00FF`. Each character is
@@ -132,11 +136,11 @@ The following legacy character encodings are also supported:
 * `'binary'`: Alias for `'latin1'`. See [binary strings][] for more background
   on this topic. The name of this encoding can be very misleading, as all of the
   encodings listed here convert between strings and binary data. For converting
-  between strings and `Buffer`s, typically `'utf-8'` is the right choice.
+  between strings and `Buffer`s, typically `'utf8'` is the right choice.
 
-* `'ucs2'`: Alias of `'utf16le'`. UCS-2 used to refer to a variant of UTF-16
-  that did not support characters that had code points larger than U+FFFF.
-  In Node.js, these code points are always supported.
+* `'ucs2'`, `'ucs-2'`: Aliases of `'utf16le'`. UCS-2 used to refer to a variant
+  of UTF-16 that did not support characters that had code points larger than
+  U+FFFF. In Node.js, these code points are always supported.
 
 ```js
 Buffer.from('1ag', 'hex');
@@ -900,7 +904,7 @@ Returns `true` if `encoding` is the name of a supported character encoding,
 or `false` otherwise.
 
 ```js
-console.log(Buffer.isEncoding('utf-8'));
+console.log(Buffer.isEncoding('utf8'));
 // Prints: true
 
 console.log(Buffer.isEncoding('hex'));
@@ -2647,7 +2651,6 @@ buf.writeFloatBE(0xcafebabe, 0);
 
 console.log(buf);
 // Prints: <Buffer 4f 4a fe bb>
-
 ```
 
 ### `buf.writeFloatLE(value[, offset])`
@@ -2856,7 +2859,6 @@ buf.writeIntBE(0x1234567890ab, 0, 6);
 
 console.log(buf);
 // Prints: <Buffer 12 34 56 78 90 ab>
-
 ```
 
 ### `buf.writeIntLE(value, offset, byteLength)`
@@ -3278,6 +3280,48 @@ See [`Buffer.from(string[, encoding])`][`Buffer.from(string)`].
 While, the `Buffer` object is available as a global, there are additional
 `Buffer`-related APIs that are available only via the `buffer` module
 accessed using `require('buffer')`.
+
+### `buffer.atob(data)`
+<!-- YAML
+added: v15.13.0
+-->
+
+> Stability: 3 - Legacy. Use `Buffer.from(data, 'base64')` instead.
+
+* `data` {any} The Base64-encoded input string.
+
+Decodes a string of Base64-encoded data into bytes, and encodes those bytes
+into a string using Latin-1 (ISO-8859-1).
+
+The `data` may be any JavaScript-value that can be coerced into a string.
+
+**This function is only provided for compatibility with legacy web platform APIs
+and should never be used in new code, because they use strings to represent
+binary data and predate the introduction of typed arrays in JavaScript.
+For code running using Node.js APIs, converting between base64-encoded strings
+and binary data should be performed using `Buffer.from(str, 'base64')` and
+`buf.toString('base64')`.**
+
+### `buffer.btoa(data)`
+<!-- YAML
+added: v15.13.0
+-->
+
+> Stability: 3 - Legacy. Use `buf.toString('base64')` instead.
+
+* `data` {any} An ASCII (Latin1) string.
+
+Decodes a string into bytes using Latin-1 (ISO-8859), and encodes those bytes
+into a string using Base64.
+
+The `data` may be any JavaScript-value that can be coerced into a string.
+
+**This function is only provided for compatibility with legacy web platform APIs
+and should never be used in new code, because they use strings to represent
+binary data and predate the introduction of typed arrays in JavaScript.
+For code running using Node.js APIs, converting between base64-encoded strings
+and binary data should be performed using `Buffer.from(str, 'base64')` and
+`buf.toString('base64')`.**
 
 ### `buffer.INSPECT_MAX_BYTES`
 <!-- YAML

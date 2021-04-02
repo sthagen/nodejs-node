@@ -1,29 +1,31 @@
 const { resolve } = require('path')
 const t = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 
-const noop = () => null
-const npm = {
-  globalDir: '',
-  flatOptions: {
-    depth: 0,
-    global: false,
-  },
-  prefix: '',
+const config = {
+  depth: 0,
+  global: false,
 }
+const noop = () => null
+const npm = mockNpm({
+  globalDir: '',
+  log: noop,
+  config,
+  prefix: '',
+})
 const mocks = {
   npmlog: { warn () {} },
   '@npmcli/arborist': class {
     reify () {}
   },
-  '../../lib/npm.js': npm,
   '../../lib/utils/reify-finish.js': noop,
   '../../lib/utils/usage.js': () => 'usage instructions',
 }
 
 t.afterEach(cb => {
   npm.prefix = ''
-  npm.flatOptions.global = false
+  config.global = false
   npm.globalDir = ''
   cb()
 })
@@ -37,7 +39,7 @@ t.test('no args', t => {
     constructor (args) {
       t.deepEqual(
         args,
-        { ...npm.flatOptions, path: npm.prefix },
+        { ...npm.flatOptions, path: npm.prefix, log: noop },
         'should call arborist contructor with expected args'
       )
     }
@@ -47,15 +49,16 @@ t.test('no args', t => {
     }
   }
 
-  const update = requireInject('../../lib/update.js', {
+  const Update = requireInject('../../lib/update.js', {
     ...mocks,
-    '../../lib/utils/reify-finish.js': (arb) => {
+    '../../lib/utils/reify-finish.js': (npm, arb) => {
       t.isLike(arb, Arborist, 'should reify-finish with arborist instance')
     },
     '@npmcli/arborist': Arborist,
   })
+  const update = new Update(npm)
 
-  update([], err => {
+  update.exec([], err => {
     if (err)
       throw err
   })
@@ -70,7 +73,7 @@ t.test('with args', t => {
     constructor (args) {
       t.deepEqual(
         args,
-        { ...npm.flatOptions, path: npm.prefix },
+        { ...npm.flatOptions, path: npm.prefix, log: noop },
         'should call arborist contructor with expected args'
       )
     }
@@ -80,15 +83,16 @@ t.test('with args', t => {
     }
   }
 
-  const update = requireInject('../../lib/update.js', {
+  const Update = requireInject('../../lib/update.js', {
     ...mocks,
-    '../../lib/utils/reify-finish.js': (arb) => {
+    '../../lib/utils/reify-finish.js': (npm, arb) => {
       t.isLike(arb, Arborist, 'should reify-finish with arborist instance')
     },
     '@npmcli/arborist': Arborist,
   })
+  const update = new Update(npm)
 
-  update(['ipt'], err => {
+  update.exec(['ipt'], err => {
     if (err)
       throw err
   })
@@ -98,9 +102,9 @@ t.test('update --depth=<number>', t => {
   t.plan(2)
 
   npm.prefix = '/project/a'
-  npm.flatOptions.depth = 1
+  config.depth = 1
 
-  const update = requireInject('../../lib/update.js', {
+  const Update = requireInject('../../lib/update.js', {
     ...mocks,
     npmlog: {
       warn: (title, msg) => {
@@ -113,8 +117,9 @@ t.test('update --depth=<number>', t => {
       },
     },
   })
+  const update = new Update(npm)
 
-  update([], err => {
+  update.exec([], err => {
     if (err)
       throw err
   })
@@ -129,14 +134,14 @@ t.test('update --global', t => {
 
   npm.prefix = '/project/a'
   npm.globalDir = resolve(process.cwd(), 'global/lib/node_modules')
-  npm.flatOptions.global = true
+  config.global = true
 
   class Arborist {
     constructor (args) {
       const { path, ...opts } = args
       t.deepEqual(
         opts,
-        npm.flatOptions,
+        { ...npm.flatOptions, log: noop },
         'should call arborist contructor with expected options'
       )
 
@@ -150,12 +155,13 @@ t.test('update --global', t => {
     reify () {}
   }
 
-  const update = requireInject('../../lib/update.js', {
+  const Update = requireInject('../../lib/update.js', {
     ...mocks,
     '@npmcli/arborist': Arborist,
   })
+  const update = new Update(npm)
 
-  update([], err => {
+  update.exec([], err => {
     if (err)
       throw err
   })

@@ -59,10 +59,10 @@ async function importKey(namedCurve, keyData, isPublic = false) {
 
 assert.rejects(importKey('NODE-X25519', Buffer.alloc(10), true), {
   message: /NODE-X25519 raw keys must be exactly 32-bytes/
-});
+}).then(common.mustCall());
 assert.rejects(importKey('NODE-X448', Buffer.alloc(10), true), {
   message: /NODE-X448 raw keys must be exactly 56-bytes/
-});
+}).then(common.mustCall());
 
 async function test1(namedCurve) {
   const {
@@ -200,10 +200,10 @@ async function test2(namedCurve, length) {
 
   const [
     publicKeyJwk,
-    privateKeyJwk
+    privateKeyJwk,
   ] = await Promise.all([
     subtle.exportKey('jwk', publicKey1),
-    subtle.exportKey('jwk', privateKey1)
+    subtle.exportKey('jwk', privateKey1),
   ]);
   assert.strictEqual(publicKeyJwk.kty, 'OKP');
   assert.strictEqual(privateKeyJwk.kty, 'OKP');
@@ -235,7 +235,7 @@ assert.rejects(
     ['deriveBits']),
   {
     message: /Unsupported named curves for ECDH/
-  });
+  }).then(common.mustCall());
 
 assert.rejects(
   subtle.generateKey(
@@ -247,7 +247,7 @@ assert.rejects(
     ['deriveBits']),
   {
     message: /Unsupported named curves for ECDH/
-  });
+  }).then(common.mustCall());
 
 {
   // Private JWK import

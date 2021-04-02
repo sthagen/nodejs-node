@@ -1,5 +1,6 @@
 const t = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 
 const packument = spec => {
   const mocks = {
@@ -68,17 +69,8 @@ const packument = spec => {
 }
 
 let logs
-const cleanLogs = (done) => {
-  logs = ''
-  const fn = (...args) => {
-    logs += '\n'
-    args.map(el => {
-      logs += el
-      return logs
-    })
-  }
-  console.log = fn
-  done()
+const output = (msg) => {
+  logs = `${logs}\n${msg}`
 }
 
 const globalDir = t.testdir({
@@ -92,21 +84,25 @@ const globalDir = t.testdir({
   },
 })
 
-const outdated = (dir, opts) => requireInject(
-  '../../lib/outdated.js',
-  {
-    '../../lib/npm.js': {
-      prefix: dir,
-      globalDir: `${globalDir}/node_modules`,
-      flatOptions: opts,
-    },
+const outdated = (dir, opts) => {
+  const Outdated = requireInject('../../lib/outdated.js', {
     pacote: {
       packument,
     },
-  }
-)
+  })
+  const npm = mockNpm({
+    ...opts,
+    prefix: dir,
+    globalDir: `${globalDir}/node_modules`,
+    output,
+  })
+  return new Outdated(npm)
+}
 
-t.beforeEach(cleanLogs)
+t.beforeEach((done) => {
+  logs = ''
+  done()
+})
 
 const redactCwd = (path) => {
   const normalizePath = p => p
@@ -179,8 +175,8 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated global', t => {
     outdated(null, {
-      global: true,
-    })([], () => {
+      config: { global: true },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -188,9 +184,11 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated', t => {
     outdated(testDir, {
-      global: false,
+      config: {
+        global: false,
+      },
       color: true,
-    })([], () => {
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -198,10 +196,12 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --omit=dev', t => {
     outdated(testDir, {
-      global: false,
+      config: {
+        global: false,
+        omit: ['dev'],
+      },
       color: true,
-      omit: ['dev'],
-    })([], () => {
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -209,10 +209,12 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --omit=dev --omit=peer', t => {
     outdated(testDir, {
-      global: false,
+      config: {
+        global: false,
+        omit: ['dev', 'peer'],
+      },
       color: true,
-      omit: ['dev', 'peer'],
-    })([], () => {
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -220,10 +222,12 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --omit=prod', t => {
     outdated(testDir, {
-      global: false,
+      config: {
+        global: false,
+        omit: ['prod'],
+      },
       color: true,
-      omit: ['prod'],
-    })([], () => {
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -231,9 +235,11 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --long', t => {
     outdated(testDir, {
-      global: false,
-      long: true,
-    })([], () => {
+      config: {
+        global: false,
+        long: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -241,9 +247,11 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --json', t => {
     outdated(testDir, {
-      global: false,
-      json: true,
-    })([], () => {
+      config: {
+        global: false,
+        json: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -251,10 +259,12 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --json --long', t => {
     outdated(testDir, {
-      global: false,
-      json: true,
-      long: true,
-    })([], () => {
+      config: {
+        global: false,
+        json: true,
+        long: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -262,9 +272,11 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --parseable', t => {
     outdated(testDir, {
-      global: false,
-      parseable: true,
-    })([], () => {
+      config: {
+        global: false,
+        parseable: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -272,10 +284,12 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --parseable --long', t => {
     outdated(testDir, {
-      global: false,
-      parseable: true,
-      long: true,
-    })([], () => {
+      config: {
+        global: false,
+        parseable: true,
+        long: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -283,8 +297,10 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated --all', t => {
     outdated(testDir, {
-      all: true,
-    })([], () => {
+      config: {
+        all: true,
+      },
+    }).exec([], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -292,8 +308,10 @@ t.test('should display outdated deps', t => {
 
   t.test('outdated specific dep', t => {
     outdated(testDir, {
-      global: false,
-    })(['alpha'], () => {
+      config: {
+        global: false,
+      },
+    }).exec(['alpha'], () => {
       t.matchSnapshot(logs)
       t.end()
     })
@@ -323,7 +341,7 @@ t.test('should return if no outdated deps', t => {
 
   outdated(testDir, {
     global: false,
-  })([], () => {
+  }).exec([], () => {
     t.equals(logs.length, 0, 'no logs')
     t.end()
   })
@@ -350,7 +368,7 @@ t.test('throws if error with a dep', t => {
 
   outdated(testDir, {
     global: false,
-  })([], (err) => {
+  }).exec([], (err) => {
     t.equals(err.message, 'There is an error with this package.')
     t.end()
   })
@@ -370,7 +388,7 @@ t.test('should skip missing non-prod deps', t => {
 
   outdated(testDir, {
     global: false,
-  })([], () => {
+  }).exec([], () => {
     t.equals(logs.length, 0, 'no logs')
     t.end()
   })
@@ -395,7 +413,7 @@ t.test('should skip invalid pkg ranges', t => {
     },
   })
 
-  outdated(testDir, {})([], () => {
+  outdated(testDir, {}).exec([], () => {
     t.equals(logs.length, 0, 'no logs')
     t.end()
   })
@@ -420,7 +438,7 @@ t.test('should skip git specs', t => {
     },
   })
 
-  outdated(testDir, {})([], () => {
+  outdated(testDir, {}).exec([], () => {
     t.equals(logs.length, 0, 'no logs')
     t.end()
   })

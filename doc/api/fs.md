@@ -13,24 +13,24 @@ way modeled on standard POSIX functions.
 
 To use the promise-based APIs:
 
-```js esm
+```mjs
 // Using ESM Module syntax:
 import * as fs from 'fs/promises';
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax:
 const fs = require('fs/promises');
 ```
 
 To use the callback and sync APIs:
 
-```js esm
+```mjs
 // Using ESM Module syntax:
 import * as fs from 'fs';
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax:
 const fs = require('fs');
 ```
@@ -43,7 +43,7 @@ forms, and are accessible using both CommonJS syntax and ES6 Modules (ESM).
 Promise-based operations return a promise that is fulfilled when the
 asynchronous operation is complete.
 
-```js esm
+```mjs
 // Using ESM Module syntax:
 import { unlink } from 'fs/promises';
 
@@ -55,7 +55,7 @@ try {
 }
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax
 const { unlink } = require('fs/promises');
 
@@ -77,7 +77,7 @@ the completion callback depend on the method, but the first argument is always
 reserved for an exception. If the operation is completed successfully, then
 the first argument is `null` or `undefined`.
 
-```js esm
+```mjs
 // Using ESM syntax
 import { unlink } from 'fs';
 
@@ -87,7 +87,7 @@ unlink('/tmp/hello', (err) => {
 });
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax
 const { unlink } = require('fs');
 
@@ -107,7 +107,7 @@ The synchronous APIs block the Node.js event loop and further JavaScript
 execution until the operation is complete. Exceptions are thrown immediately
 and can be handled using `try…catch`, or can be allowed to bubble up.
 
-```js esm
+```mjs
 // Using ESM syntax
 import { unlinkSync } from 'fs';
 
@@ -119,7 +119,7 @@ try {
 }
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax
 const { unlinkSync } = require('fs');
 
@@ -229,7 +229,7 @@ added: v10.0.0
 Closes the file handle after waiting for any pending operation on the handle to
 complete.
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let filehandle;
@@ -382,7 +382,7 @@ added: v10.0.0
 -->
 
 * `len` {integer} **Default:** `0`
-* Returns: {Promise} Fulfills with `undefined` upo nsuccess.
+* Returns: {Promise} Fulfills with `undefined` upon success.
 
 Truncates the file.
 
@@ -391,7 +391,7 @@ retained in the file.
 
 The following example retains only the first four bytes of the file:
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let filehandle = null;
@@ -419,9 +419,6 @@ added: v10.0.0
 
 Change the file system timestamps of the object referenced by the {FileHandle}
 then resolves the promise with no arguments upon success.
-
-This function does not work on AIX versions before 7.1, it will reject the
-promise with an error using code `UV_ENOSYS`.
 
 #### `filehandle.write(buffer[, offset[, length[, position]]])`
 <!-- YAML
@@ -583,7 +580,7 @@ value. If any of the accessibility checks fail, the promise is rejected
 with an {Error} object. The following example checks if the file
 `/etc/passwd` can be read and written by the current process.
 
-```js esm
+```mjs
 import { access } from 'fs/promises';
 import { constants } from 'fs';
 
@@ -679,7 +676,7 @@ No guarantees are made about the atomicity of the copy operation. If an
 error occurs after the destination file has been opened for writing, an attempt
 will be made to remove the destination.
 
-```js esm
+```mjs
 import { constants } from 'fs';
 import { copyFile } from 'fs/promises';
 
@@ -817,7 +814,7 @@ replace trailing `X` characters in `prefix` with random characters.
 The optional `options` argument can be a string specifying an encoding, or an
 object with an `encoding` property specifying the character encoding to use.
 
-```js esm
+```mjs
 import { mkdtemp } from 'fs/promises';
 
 try {
@@ -847,7 +844,7 @@ changes:
   **Default:** `'r'`.
 * `mode` {string|integer} Sets the file mode (permission and sticky bits)
   if the file is created. **Default:** `0o666` (readable and writable)
-* Returns: {Promise} Fullfils with a {FileHandle} object.
+* Returns: {Promise} Fulfills with a {FileHandle} object.
 
 Opens a {FileHandle}.
 
@@ -888,7 +885,7 @@ directory and subsequent read operations.
 
 Example using async iteration:
 
-```js esm
+```mjs
 import { opendir } from 'fs/promises';
 
 try {
@@ -926,7 +923,7 @@ will be passed as {Buffer} objects.
 If `options.withFileTypes` is set to `true`, the resolved array will contain
 {fs.Dirent} objects.
 
-```js esm
+```mjs
 import { readdir } from 'fs/promises';
 
 try {
@@ -970,7 +967,7 @@ returned.
 It is possible to abort an ongoing `readFile` using an {AbortSignal}. If a
 request is aborted the promise returned is rejected with an `AbortError`:
 
-```js esm
+```mjs
 import { readFile } from 'fs/promises';
 
 try {
@@ -1001,7 +998,7 @@ added: v10.0.0
 * Returns: {Promise} Fulfills with the `linkString` upon success.
 
 Reads the contents of the symbolic link referred to by `path`. See the POSIX
-readlink(2) documentation for more etail. The promise is resolved with the
+readlink(2) documentation for more detail. The promise is resolved with the
 `linkString` upon success.
 
 The optional `options` argument can be a string specifying an encoding, or an
@@ -1048,6 +1045,20 @@ Renames `oldPath` to `newPath`.
 <!-- YAML
 added: v10.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fsPromises.rmdir(path, { recursive: true })` on a `path`
+                 that is a file is no longer permitted and results in an
+                 `ENOENT` error on Windows and an `ENOTDIR` error on POSIX."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fsPromises.rmdir(path, { recursive: true })` on a `path`
+                 that does not exist is no longer permitted and results in a
+                 `ENOENT` error."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37302
+    description: The `recursive` option is deprecated, using it triggers a
+                 deprecation warning.
   - version:
      - v13.3.0
      - v12.16.0
@@ -1071,8 +1082,8 @@ changes:
     represents the number of retries. This option is ignored if the `recursive`
     option is not `true`. **Default:** `0`.
   * `recursive` {boolean} If `true`, perform a recursive directory removal. In
-    recursive mode, errors are not reported if `path` does not exist, and
-    operations are retried on failure. **Default:** `false`.
+    recursive mode, operations are retried on failure. **Default:** `false`.
+    **Deprecated**.
   * `retryDelay` {integer} The amount of time in milliseconds to wait between
     retries. This option is ignored if the `recursive` option is not `true`.
     **Default:** `100`.
@@ -1084,11 +1095,8 @@ Using `fsPromises.rmdir()` on a file (not a directory) results in the
 promise being rejected with an `ENOENT` error on Windows and an `ENOTDIR`
 error on POSIX.
 
-Setting `recursive` to `true` results in behavior similar to the Unix command
-`rm -rf`: an error will not be raised for paths that do not exist, and paths
-that represent files will be deleted. The permissive behavior of the
-`recursive` option is deprecated, `ENOTDIR` and `ENOENT` will be thrown in
-the future.
+To get a behavior similar to the `rm -rf` Unix command, use
+[`fsPromises.rm()`][] with options `{ recursive: true, force: true }`.
 
 ### `fsPromises.rm(path[, options])`
 <!-- YAML
@@ -1289,7 +1297,7 @@ It is possible to use an {AbortSignal} to cancel an `fsPromises.writeFile()`.
 Cancelation is "best effort", and some amount of data is likely still
 to be written.
 
-```js esm
+```mjs
 import { writeFile } from 'fs/promises';
 
 try {
@@ -1351,7 +1359,7 @@ a possible error argument. If any of the accessibility checks fail, the error
 argument will be an `Error` object. The following examples check if
 `package.json` exists, and if it is readable or writable.
 
-```js esm
+```mjs
 import { access, constants } from 'fs';
 
 const file = 'package.json';
@@ -1390,7 +1398,7 @@ file directly and handle the error raised if the file is not accessible.
 
 **write (NOT RECOMMENDED)**
 
-```js esm
+```mjs
 import { access, open, close } from 'fs';
 
 access('myfile', (err) => {
@@ -1415,7 +1423,7 @@ access('myfile', (err) => {
 
 **write (RECOMMENDED)**
 
-```js esm
+```mjs
 import { open, close } from 'fs';
 
 open('myfile', 'wx', (err, fd) => {
@@ -1440,7 +1448,7 @@ open('myfile', 'wx', (err, fd) => {
 
 **read (NOT RECOMMENDED)**
 
-```js esm
+```mjs
 import { access, open, close } from 'fs';
 access('myfile', (err) => {
   if (err) {
@@ -1468,7 +1476,7 @@ access('myfile', (err) => {
 
 **read (RECOMMENDED)**
 
-```js
+```mjs
 import { open, close } from 'fs';
 
 open('myfile', 'r', (err, fd) => {
@@ -1536,7 +1544,7 @@ changes:
 Asynchronously append data to a file, creating the file if it does not yet
 exist. `data` can be a string or a {Buffer}.
 
-```js esm
+```mjs
 import { appendFile } from 'fs';
 
 appendFile('message.txt', 'data to append', (err) => {
@@ -1547,7 +1555,7 @@ appendFile('message.txt', 'data to append', (err) => {
 
 If `options` is a string, then it specifies the encoding:
 
-```js esm
+```mjs
 import { appendFile } from 'fs';
 
 appendFile('message.txt', 'data to append', 'utf8', callback);
@@ -1557,7 +1565,7 @@ The `path` may be specified as a numeric file descriptor that has been opened
 for appending (using `fs.open()` or `fs.openSync()`). The file descriptor will
 not be closed automatically.
 
-```js esm
+```mjs
 import { open, close, appendFile } from 'fs';
 
 function closeFd(fd) {
@@ -1609,7 +1617,7 @@ possible exception are given to the completion callback.
 
 See the POSIX chmod(2) documentation for more detail.
 
-```js esm
+```mjs
 import { chmod } from 'fs';
 
 chmod('my_file.txt', 0o775, (err) => {
@@ -1761,7 +1769,7 @@ OR of two or more values (e.g.
   create a copy-on-write reflink. If the platform does not support
   copy-on-write, then the operation will fail.
 
-```js esm
+```mjs
 import { copyFile, constants } from 'fs';
 
 function callback(err) {
@@ -1857,7 +1865,7 @@ By providing the `fs` option, it is possible to override the corresponding `fs`
 implementations for `open`, `read`, and `close`. When providing the `fs` option,
 overrides for `open`, `read`, and `close` are required.
 
-```js esm
+```mjs
 import { createReadStream } from 'fs';
 
 // Create a stream from some character device.
@@ -1885,7 +1893,7 @@ file was created.
 
 An example to read the last 10 bytes of a file which is 100 bytes long:
 
-```js esm
+```mjs
 import { createReadStream } from 'fs';
 
 createReadStream('sample.txt', { start: 90, end: 99 });
@@ -1990,7 +1998,7 @@ changes:
 Test whether or not the given path exists by checking with the file system.
 Then call the `callback` argument with either true or false:
 
-```js esm
+```mjs
 import { exists } from 'fs';
 
 exists('/etc/passwd', (e) => {
@@ -2012,7 +2020,7 @@ file directly and handle the error raised if the file does not exist.
 
 **write (NOT RECOMMENDED)**
 
-```js esm
+```mjs
 import { exists, open, close } from 'fs';
 
 exists('myfile', (e) => {
@@ -2036,7 +2044,7 @@ exists('myfile', (e) => {
 
 **write (RECOMMENDED)**
 
-```js esm
+```mjs
 import { open, close } from 'fs';
 open('myfile', 'wx', (err, fd) => {
   if (err) {
@@ -2060,7 +2068,7 @@ open('myfile', 'wx', (err, fd) => {
 
 **read (NOT RECOMMENDED)**
 
-```js esm
+```mjs
 import { open, close, exists } from 'fs';
 
 exists('myfile', (e) => {
@@ -2084,7 +2092,7 @@ exists('myfile', (e) => {
 
 **read (RECOMMENDED)**
 
-```js esm
+```mjs
 import { open, close } from 'fs';
 
 open('myfile', 'r', (err, fd) => {
@@ -2270,7 +2278,7 @@ the first `len` bytes will be retained in the file.
 For example, the following program retains only the first four bytes of the
 file:
 
-```js esm
+```mjs
 import { open, close, ftruncate } from 'fs';
 
 function closeFd(fd) {
@@ -2326,13 +2334,14 @@ changes:
 Change the file system timestamps of the object referenced by the supplied file
 descriptor. See [`fs.utimes()`][].
 
-This function does not work on AIX versions before 7.1, it will return the
-error `UV_ENOSYS`.
-
 ### `fs.lchmod(path, mode, callback)`
 <!-- YAML
 deprecated: v0.4.7
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37460
+    description: The error returned may be an `AggregateError` if more than one
+                 error is returned.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/12562
     description: The `callback` parameter is no longer optional. Not passing
@@ -2346,7 +2355,7 @@ changes:
 * `path` {string|Buffer|URL}
 * `mode` {integer}
 * `callback` {Function}
-  * `err` {Error}
+  * `err` {Error|AggregateError}
 
 Changes the permissions on a symbolic link. No arguments other than a possible
 exception are given to the completion callback.
@@ -2518,7 +2527,7 @@ property indicating whether parent directories should be created. Calling
 `fs.mkdir()` when `path` is a directory that exists results in an error only
 when `recursive` is false.
 
-```js esm
+```mjs
 import { mkdir } from 'fs';
 
 // Creates /tmp/a/apple, regardless of whether `/tmp` and /tmp/a exist.
@@ -2530,7 +2539,7 @@ mkdir('/tmp/a/apple', { recursive: true }, (err) => {
 On Windows, using `fs.mkdir()` on the root directory even with recursion will
 result in an error:
 
-```js esm
+```mjs
 import { mkdir } from 'fs';
 
 mkdir('/', { recursive: true }, (err) => {
@@ -2578,7 +2587,7 @@ parameter.
 The optional `options` argument can be a string specifying an encoding, or an
 object with an `encoding` property specifying the character encoding to use.
 
-```js esm
+```mjs
 import { mkdtemp } from 'fs';
 
 mkdtemp(path.join(os.tmpdir(), 'foo-'), (err, directory) => {
@@ -2594,7 +2603,7 @@ intention is to create a temporary directory *within* `/tmp`, the `prefix`
 must end with a trailing platform-specific path separator
 (`require('path').sep`).
 
-```js esm
+```mjs
 import { tmpdir } from 'os';
 import { mkdtemp } from 'fs';
 
@@ -2809,6 +2818,10 @@ If `options.withFileTypes` is set to `true`, the `files` array will contain
 <!-- YAML
 added: v0.1.29
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37460
+    description: The error returned may be an `AggregateError` if more than one
+                 error is returned.
   - version: v15.2.0
     pr-url: https://github.com/nodejs/node/pull/35911
     description: The options argument may include an AbortSignal to abort an
@@ -2840,12 +2853,12 @@ changes:
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'r'`.
   * `signal` {AbortSignal} allows aborting an in-progress readFile
 * `callback` {Function}
-  * `err` {Error}
+  * `err` {Error|AggregateError}
   * `data` {string|Buffer}
 
 Asynchronously reads the entire contents of a file.
 
-```js esm
+```mjs
 import { readFile } from 'fs';
 
 readFile('/etc/passwd', (err, data) => {
@@ -2861,7 +2874,7 @@ If no encoding is specified, then the raw buffer is returned.
 
 If `options` is a string, then it specifies the encoding:
 
-```js esm
+```mjs
 import { readFile } from 'fs';
 
 readFile('/etc/passwd', 'utf8', callback);
@@ -2872,7 +2885,7 @@ When the path is a directory, the behavior of `fs.readFile()` and
 error will be returned. On FreeBSD, a representation of the directory's contents
 will be returned.
 
-```js esm
+```mjs
 import { readFile } from 'fs';
 
 // macOS, Linux, and Windows
@@ -2889,7 +2902,7 @@ readFile('<directory>', (err, data) => {
 It is possible to abort an ongoing request using an `AbortSignal`. If a
 request is aborted the callback is called with an `AbortError`:
 
-```js esm
+```mjs
 import { readFile } from 'fs';
 
 const controller = new AbortController();
@@ -3122,7 +3135,7 @@ given to the completion callback.
 
 See also: rename(2).
 
-```js esm
+```mjs
 import { rename } from 'fs';
 
 rename('oldFile.txt', 'newFile.txt', (err) => {
@@ -3135,6 +3148,20 @@ rename('oldFile.txt', 'newFile.txt', (err) => {
 <!-- YAML
 added: v0.0.2
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fs.rmdir(path, { recursive: true })` on a `path` that is
+                 a file is no longer permitted and results in an `ENOENT` error
+                 on Windows and an `ENOTDIR` error on POSIX."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fs.rmdir(path, { recursive: true })` on a `path` that
+                 does not exist is no longer permitted and results in a `ENOENT`
+                 error."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37302
+    description: The `recursive` option is deprecated, using it triggers a
+                 deprecation warning.
   - version:
      - v13.3.0
      - v12.16.0
@@ -3170,8 +3197,8 @@ changes:
     represents the number of retries. This option is ignored if the `recursive`
     option is not `true`. **Default:** `0`.
   * `recursive` {boolean} If `true`, perform a recursive directory removal. In
-    recursive mode, errors are not reported if `path` does not exist, and
-    operations are retried on failure. **Default:** `false`.
+    recursive mode, operations are retried on failure. **Default:** `false`.
+    **Deprecated**.
   * `retryDelay` {integer} The amount of time in milliseconds to wait between
     retries. This option is ignored if the `recursive` option is not `true`.
     **Default:** `100`.
@@ -3184,11 +3211,8 @@ to the completion callback.
 Using `fs.rmdir()` on a file (not a directory) results in an `ENOENT` error on
 Windows and an `ENOTDIR` error on POSIX.
 
-Setting `recursive` to `true` results in behavior similar to the Unix command
-`rm -rf`: an error will not be raised for paths that do not exist, and paths
-that represent files will be deleted. The permissive behavior of the
-`recursive` option is deprecated, `ENOTDIR` and `ENOENT` will be thrown in
-the future.
+To get a behavior similar to the `rm -rf` Unix command, use [`fs.rm()`][]
+with options `{ recursive: true, force: true }`.
 
 ### `fs.rm(path[, options], callback)`
 <!-- YAML
@@ -3269,7 +3293,7 @@ For example, given the following directory structure:
 
 The next program will check for the stats of the given paths:
 
-```js esm
+```mjs
 import { stat } from 'fs';
 
 const pathsToCheck = ['./txtDir', './txtDir/file.txt'];
@@ -3364,7 +3388,7 @@ require the destination path to be absolute. When using `'junction'`, the
 
 Relative targets are relative to the link’s parent directory.
 
-```js esm
+```mjs
 import { symlink } from 'fs';
 
 symlink('./mew', './example/mewtwo', callback);
@@ -3384,6 +3408,10 @@ example/
 <!-- YAML
 added: v0.8.6
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37460
+    description: The error returned may be an `AggregateError` if more than one
+                 error is returned.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/12562
     description: The `callback` parameter is no longer optional. Not passing
@@ -3397,7 +3425,7 @@ changes:
 * `path` {string|Buffer|URL}
 * `len` {integer} **Default:** `0`
 * `callback` {Function}
-  * `err` {Error}
+  * `err` {Error|AggregateError}
 
 Truncates the file. No arguments other than a possible exception are
 given to the completion callback. A file descriptor can also be passed as the
@@ -3433,7 +3461,7 @@ changes:
 Asynchronously removes a file or symbolic link. No arguments other than a
 possible exception are given to the completion callback.
 
-```js esm
+```mjs
 import { unlink } from 'fs';
 // Assuming that 'path/file.txt' is a regular file.
 unlink('path/file.txt', (err) => {
@@ -3622,7 +3650,7 @@ macOS, Windows, and AIX. Even on supported platforms, `filename` is not always
 guaranteed to be provided. Therefore, don't assume that `filename` argument is
 always provided in the callback, and have some fallback logic if it is `null`.
 
-```js esm
+```mjs
 import { watch } from 'fs';
 watch('somedir', (eventType, filename) => {
   console.log(`event type is: ${eventType}`);
@@ -3669,7 +3697,7 @@ target should be polled in milliseconds.
 The `listener` gets two arguments the current stat object and the previous
 stat object:
 
-```js esm
+```mjs
 import { watchFile } from 'fs';
 
 watchFile('message.text', (curr, prev) => {
@@ -3837,6 +3865,10 @@ details.
 <!-- YAML
 added: v0.1.29
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37460
+    description: The error returned may be an `AggregateError` if more than one
+                 error is returned.
   - version: v15.2.0
     pr-url: https://github.com/nodejs/node/pull/35993
     description: The options argument may include an AbortSignal to abort an
@@ -3877,7 +3909,7 @@ changes:
   * `flag` {string} See [support of file system `flags`][]. **Default:** `'w'`.
   * `signal` {AbortSignal} allows aborting an in-progress writeFile
 * `callback` {Function}
-  * `err` {Error}
+  * `err` {Error|AggregateError}
 
 When `file` is a filename, asynchronously writes data to the file, replacing the
 file if it already exists. `data` can be a string or a buffer.
@@ -3889,7 +3921,7 @@ a file descriptor.
 The `encoding` option is ignored if `data` is a buffer.
 If `data` is a normal object, it must have an own `toString` function property.
 
-```js esm
+```mjs
 import { writeFile } from 'fs';
 
 const data = new Uint8Array(Buffer.from('Hello Node.js'));
@@ -3901,7 +3933,7 @@ writeFile('message.txt', data, (err) => {
 
 If `options` is a string, then it specifies the encoding:
 
-```js esm
+```mjs
 import { writeFile } from 'fs';
 
 writeFile('message.txt', 'Hello Node.js', 'utf8', callback);
@@ -3919,7 +3951,7 @@ It is possible to use an {AbortSignal} to cancel an `fs.writeFile()`.
 Cancelation is "best effort", and some amount of data is likely still
 to be written.
 
-```js esm
+```mjs
 import { writeFile } from 'fs';
 
 const controller = new AbortController();
@@ -3940,7 +3972,7 @@ system requests but rather the internal buffering `fs.writeFile` performs.
 When `file` is a file descriptor, the behavior is almost identical to directly
 calling `fs.write()` like:
 
-```js esm
+```mjs
 import { write } from 'fs';
 
 write(fd, Buffer.from(data, options.encoding), callback);
@@ -4024,7 +4056,7 @@ the bitwise OR of two or more values
 If any of the accessibility checks fail, an `Error` will be thrown. Otherwise,
 the method will return `undefined`.
 
-```js esm
+```mjs
 import { accessSync, constants } from 'fs';
 
 try {
@@ -4057,7 +4089,7 @@ changes:
 Synchronously append data to a file, creating the file if it does not yet
 exist. `data` can be a string or a {Buffer}.
 
-```js esm
+```mjs
 import { appendFileSync } from 'fs';
 
 try {
@@ -4070,7 +4102,7 @@ try {
 
 If `options` is a string, then it specifies the encoding:
 
-```js esm
+```mjs
 import { appendFileSync } from 'fs';
 
 appendFileSync('message.txt', 'data to append', 'utf8');
@@ -4080,7 +4112,7 @@ The `path` may be specified as a numeric file descriptor that has been opened
 for appending (using `fs.open()` or `fs.openSync()`). The file descriptor will
 not be closed automatically.
 
-```js esm
+```mjs
 import { openSync, closeSync, appendFileSync } from 'fs';
 
 let fd;
@@ -4180,7 +4212,7 @@ OR of two or more values (e.g.
   create a copy-on-write reflink. If the platform does not support
   copy-on-write, then the operation will fail.
 
-```js esm
+```mjs
 import { copyFileSync, constants } from 'fs';
 
 // destination.txt will be created or overwritten by default.
@@ -4213,7 +4245,7 @@ this API: [`fs.exists()`][].
 parameter to `fs.exists()` accepts parameters that are inconsistent with other
 Node.js callbacks. `fs.existsSync()` does not use a callback.
 
-```js esm
+```mjs
 import { existsSync } from 'fs';
 
 if (existsSync('/etc/passwd'))
@@ -4575,7 +4607,7 @@ string. Otherwise it returns a buffer.
 Similar to [`fs.readFile()`][], when the path is a directory, the behavior of
 `fs.readFileSync()` is platform-specific.
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 
 // macOS, Linux, and Windows
@@ -4755,6 +4787,20 @@ See the POSIX rename(2) documentation for more details.
 <!-- YAML
 added: v0.1.21
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fs.rmdirSync(path, { recursive: true })` on a `path`
+                 that is a file is no longer permitted and results in an
+                 `ENOENT` error on Windows and an `ENOTDIR` error on POSIX."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37216
+    description: "Using `fs.rmdirSync(path, { recursive: true })` on a `path`
+                 that does not exist is no longer permitted and results in a
+                 `ENOENT` error."
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37302
+    description: The `recursive` option is deprecated, using it triggers a
+                 deprecation warning.
   - version:
      - v13.3.0
      - v12.16.0
@@ -4782,8 +4828,8 @@ changes:
     represents the number of retries. This option is ignored if the `recursive`
     option is not `true`. **Default:** `0`.
   * `recursive` {boolean} If `true`, perform a recursive directory removal. In
-    recursive mode, errors are not reported if `path` does not exist, and
-    operations are retried on failure. **Default:** `false`.
+    recursive mode, operations are retried on failure. **Default:** `false`.
+    **Deprecated**.
   * `retryDelay` {integer} The amount of time in milliseconds to wait between
     retries. This option is ignored if the `recursive` option is not `true`.
     **Default:** `100`.
@@ -4793,11 +4839,8 @@ Synchronous rmdir(2). Returns `undefined`.
 Using `fs.rmdirSync()` on a file (not a directory) results in an `ENOENT` error
 on Windows and an `ENOTDIR` error on POSIX.
 
-Setting `recursive` to `true` results in behavior similar to the Unix command
-`rm -rf`: an error will not be raised for paths that do not exist, and paths
-that represent files will be deleted. The permissive behavior of the
-`recursive` option is deprecated, `ENOTDIR` and `ENOENT` will be thrown in
-the future.
+To get a behavior similar to the `rm -rf` Unix command, use [`fs.rmSync()`][]
+with options `{ recursive: true, force: true }`.
 
 ### `fs.rmSync(path[, options])`
 <!-- YAML
@@ -5054,7 +5097,7 @@ A class representing a directory stream.
 Created by [`fs.opendir()`][], [`fs.opendirSync()`][], or
 [`fsPromises.opendir()`][].
 
-```js esm
+```mjs
 import { opendir } from 'fs/promises';
 
 try {
@@ -5303,7 +5346,7 @@ support. If `filename` is provided, it will be provided as a {Buffer} if
 `fs.watch()` is called with its `encoding` option set to `'buffer'`, otherwise
 `filename` will be a UTF-8 string.
 
-```js esm
+```mjs
 import { watch } from 'fs';
 // Example when handled through fs.watch() listener
 watch('./tmp', { encoding: 'buffer' }, (eventType, filename) => {
@@ -5925,7 +5968,7 @@ To use more than one constant, use the bitwise OR `|` operator.
 
 Example:
 
-```js esm
+```mjs
 import { open, constants } from 'fs';
 
 const {
@@ -6222,7 +6265,7 @@ fs.stat('/tmp/world', (err, stats) => {
 It is important to correctly order the operations by awaiting the results
 of one before invoking the other:
 
-```js esm
+```mjs
 // Using ESM syntax
 import { rename, stat } from 'fs/promises';
 
@@ -6238,7 +6281,7 @@ try {
 }
 ```
 
-```js cjs
+```cjs
 // Using CommonJS syntax
 const { rename, stat } = require('fs/promises');
 
@@ -6256,7 +6299,7 @@ const { rename, stat } = require('fs/promises');
 Or, when using the callback APIs, move the `fs.stat()` call into the callback
 of the `fs.rename()` operation:
 
-```js esm
+```mjs
 import { rename, stat } from 'fs';
 
 rename('/tmp/hello', '/tmp/world', (err) => {
@@ -6268,7 +6311,7 @@ rename('/tmp/hello', '/tmp/world', (err) => {
 });
 ```
 
-```js cjs
+```cjs
 const { rename, stat } = require('fs/promises');
 
 rename('/tmp/hello', '/tmp/world', (err) => {
@@ -6293,7 +6336,7 @@ to the current working directory as determined by calling `process.cwd()`.
 
 Example using an absolute path on POSIX:
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let fd;
@@ -6307,7 +6350,7 @@ try {
 
 Example using a relative path on POSIX (relative to `process.cwd()`):
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let fd;
@@ -6326,7 +6369,7 @@ added: v7.6.0
 For most `fs` module functions, the `path` or `filename` argument may be passed
 as a {URL} object using the `file:` protocol.
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 
 readFileSync(new URL('file:///tmp/hello'));
@@ -6340,7 +6383,7 @@ On Windows, `file:` {URL}s with a host name convert to UNC paths, while `file:`
 {URL}s with drive letters convert to local absolute paths. `file:` {URL}s
 without a host name nor a drive letter will result in an error:
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 // On Windows :
 
@@ -6364,7 +6407,7 @@ the drive letter. Using another separator will result in an error.
 On all other platforms, `file:` {URL}s with a host name are unsupported and
 will result in an error:
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 // On other platforms:
 
@@ -6381,7 +6424,7 @@ readFileSync(new URL('file:///tmp/hello'));
 A `file:` {URL} having encoded slash characters will result in an error on all
 platforms:
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 
 // On Windows
@@ -6399,7 +6442,7 @@ readFileSync(new URL('file:///p/a/t/h/%2f'));
 
 On Windows, `file:` {URL}s having encoded backslash will result in an error:
 
-```js esm
+```mjs
 import { readFileSync } from 'fs';
 
 // On Windows
@@ -6419,7 +6462,7 @@ be relative or absolute:
 
 Example using an absolute path on POSIX:
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let fd;
@@ -6459,7 +6502,7 @@ at any given time so it is critical to close the descriptor when operations
 are completed. Failure to do so will result in a memory leak that will
 eventually cause an application to crash.
 
-```js esm
+```mjs
 import { open, close, fstat } from 'fs';
 
 function closeFd(fd) {
@@ -6493,7 +6536,7 @@ file descriptor. These objects are better managed by the system to ensure
 that resources are not leaked. However, it is still required that they are
 closed when operations are completed:
 
-```js esm
+```mjs
 import { open } from 'fs/promises';
 
 let file;
@@ -6645,6 +6688,8 @@ the file contents.
 [`fs.readdirSync()`]: #fs_fs_readdirsync_path_options
 [`fs.readv()`]: #fs_fs_readv_fd_buffers_position_callback
 [`fs.realpath()`]: #fs_fs_realpath_path_options_callback
+[`fs.rm()`]: #fs_fs_rm_path_options_callback
+[`fs.rmSync()`]: #fs_fs_rmsync_path_options
 [`fs.rmdir()`]: #fs_fs_rmdir_path_options_callback
 [`fs.stat()`]: #fs_fs_stat_path_options_callback
 [`fs.symlink()`]: #fs_fs_symlink_target_path_type_callback
@@ -6656,6 +6701,7 @@ the file contents.
 [`fs.writev()`]: #fs_fs_writev_fd_buffers_position_callback
 [`fsPromises.open()`]: #fs_fspromises_open_path_flags_mode
 [`fsPromises.opendir()`]: #fs_fspromises_opendir_path_options
+[`fsPromises.rm()`]: #fs_fspromises_rm_path_options
 [`fsPromises.utimes()`]: #fs_fspromises_utimes_path_atime_mtime
 [`inotify(7)`]: https://man7.org/linux/man-pages/man7/inotify.7.html
 [`kqueue(2)`]: https://www.freebsd.org/cgi/man.cgi?query=kqueue&sektion=2

@@ -160,9 +160,9 @@ the native addon.
 
 #### node-gyp
 
-[node-gyp][] is a build system based on Google's [GYP][] tool and comes
-bundled with npm. GYP, and therefore node-gyp, requires that Python be
-installed.
+[node-gyp][] is a build system based on the [gyp-next][] fork of
+Google's [GYP][] tool and comes bundled with npm. GYP, and therefore node-gyp,
+requires that Python be installed.
 
 Historically, node-gyp has been the tool of choice for building native
 addons. It has widespread adoption and documentation. However, some
@@ -689,6 +689,7 @@ For more details, review the [Object lifetime management][].
 added:
   - v14.8.0
   - v12.19.0
+napiVersion: 8
 -->
 
 A 128-bit value stored as two unsigned 64-bit integers. It serves as a UUID
@@ -1703,6 +1704,7 @@ with `napi_add_env_cleanup_hook`, otherwise the process will abort.
 added:
   - v14.8.0
   - v12.19.0
+napiVersion: 8
 changes:
   - version:
     - v14.10.0
@@ -1710,8 +1712,6 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/34819
     description: Changed signature of the `hook` callback.
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 NAPI_EXTERN napi_status napi_add_async_cleanup_hook(
@@ -1753,8 +1753,6 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/34819
     description: Removed `env` parameter.
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 NAPI_EXTERN napi_status napi_remove_async_cleanup_hook(
@@ -4213,9 +4211,8 @@ specification).
 added:
   - v14.14.0
   - v12.20.0
+napiVersion: 8
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 napi_status napi_object_freeze(napi_env env,
@@ -4240,9 +4237,8 @@ ECMA-262 specification.
 added:
   - v14.14.0
   - v12.20.0
+napiVersion: 8
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 napi_status napi_object_seal(napi_env env,
@@ -4905,9 +4901,8 @@ JavaScript object becomes garbage-collected.
 added:
   - v14.8.0
   - v12.19.0
+napiVersion: 8
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 napi_status napi_type_tag_object(napi_env env,
@@ -4934,9 +4929,8 @@ If the object already has an associated type tag, this API will return
 added:
   - v14.8.0
   - v12.19.0
+napiVersion: 8
 -->
-
-> Stability: 1 - Experimental
 
 ```c
 napi_status napi_check_object_type_tag(napi_env env,
@@ -5963,7 +5957,9 @@ This API may only be called from the main thread.
 ## node_api_get_module_file_name
 
 <!-- YAML
-added: v15.9.0
+added:
+  - v15.9.0
+  - v12.22.0
 -->
 
 > Stability: 1 - Experimental
@@ -6097,6 +6093,7 @@ the add-on's file name during loading.
 [context-aware addons]: addons.md#addons_context_aware_addons
 [docs]: https://github.com/nodejs/node-addon-api#api-documentation
 [global scope]: globals.md
+[gyp-next]: https://github.com/nodejs/gyp-next
 [module scope]: modules.md#modules_the_module_scope
 [node-gyp]: https://github.com/nodejs/node-gyp
 [node-pre-gyp]: https://github.com/mapbox/node-pre-gyp

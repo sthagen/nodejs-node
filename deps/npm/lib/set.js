@@ -1,14 +1,29 @@
-const npm = require('./npm.js')
-const config = require('./config.js')
+const BaseCommand = require('./base-command.js')
 
-const usage = 'npm set <key>=<value> [<key>=<value> ...] (See `npm config`)'
+class Set extends BaseCommand {
+  static get description () {
+    return 'Set a value in the npm configuration'
+  }
 
-const completion = config.completion
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get name () {
+    return 'set'
+  }
 
-const cmd = (args, cb) => {
-  if (!args.length)
-    return cb(usage)
-  npm.commands.config(['set'].concat(args), cb)
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get usage () {
+    return ['<key>=<value> [<key>=<value> ...] (See `npm config`)']
+  }
+
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  async completion (opts) {
+    return this.npm.commands.config.completion(opts)
+  }
+
+  exec (args, cb) {
+    if (!args.length)
+      return cb(this.usage)
+    this.npm.commands.config(['set'].concat(args), cb)
+  }
 }
-
-module.exports = Object.assign(cmd, { usage, completion })
+module.exports = Set

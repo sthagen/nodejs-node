@@ -1,18 +1,24 @@
 const { test } = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 
 test('bin', (t) => {
-  t.plan(3)
+  t.plan(4)
   const dir = '/bin/dir'
 
-  const bin = requireInject('../../lib/bin.js', {
-    '../../lib/npm.js': { bin: dir, flatOptions: { global: false } },
-    '../../lib/utils/output.js': (output) => {
+  const Bin = require('../../lib/bin.js')
+
+  const npm = mockNpm({
+    bin: dir,
+    config: { global: false },
+    output: (output) => {
       t.equal(output, dir, 'prints the correct directory')
     },
   })
+  const bin = new Bin(npm)
+  t.match(bin.usage, 'bin', 'usage has command name in it')
 
-  bin([], (err) => {
+  bin.exec([], (err) => {
     t.ifError(err, 'npm bin')
     t.ok('should have printed directory')
   })
@@ -30,15 +36,20 @@ test('bin -g', (t) => {
   }
   const dir = '/bin/dir'
 
-  const bin = requireInject('../../lib/bin.js', {
-    '../../lib/npm.js': { bin: dir, flatOptions: { global: true } },
+  const Bin = requireInject('../../lib/bin.js', {
     '../../lib/utils/path.js': [dir],
-    '../../lib/utils/output.js': (output) => {
+  })
+
+  const npm = mockNpm({
+    bin: dir,
+    config: { global: true },
+    output: (output) => {
       t.equal(output, dir, 'prints the correct directory')
     },
   })
+  const bin = new Bin(npm)
 
-  bin([], (err) => {
+  bin.exec([], (err) => {
     t.ifError(err, 'npm bin')
     t.ok('should have printed directory')
   })
@@ -56,15 +67,19 @@ test('bin -g (not in path)', (t) => {
   }
   const dir = '/bin/dir'
 
-  const bin = requireInject('../../lib/bin.js', {
-    '../../lib/npm.js': { bin: dir, flatOptions: { global: true } },
+  const Bin = requireInject('../../lib/bin.js', {
     '../../lib/utils/path.js': ['/not/my/dir'],
-    '../../lib/utils/output.js': (output) => {
+  })
+  const npm = mockNpm({
+    bin: dir,
+    config: { global: true },
+    output: (output) => {
       t.equal(output, dir, 'prints the correct directory')
     },
   })
+  const bin = new Bin(npm)
 
-  bin([], (err) => {
+  bin.exec([], (err) => {
     t.ifError(err, 'npm bin')
     t.ok('should have printed directory')
   })

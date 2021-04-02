@@ -4,21 +4,24 @@ const t = require('tap')
 let result = ''
 
 const noop = () => null
-const npm = { config: { get () {} }, flatOptions: {} }
+const npm = {
+  config: { get () {} },
+  flatOptions: {},
+  output: (...msg) => {
+    result = [result, ...msg].join('\n')
+  },
+}
 const npmFetch = { json: noop }
 const npmlog = { warn: noop }
 const mocks = {
   npmlog,
   'npm-registry-fetch': npmFetch,
-  '../../lib/npm.js': npm,
-  '../../lib/utils/output.js': (...msg) => {
-    result = [result, ...msg].join('\n')
-  },
   '../../lib/utils/get-identity.js': async () => 'foo',
   '../../lib/utils/usage.js': () => 'usage instructions',
 }
 
-const stars = requireInject('../../lib/stars.js', mocks)
+const Stars = requireInject('../../lib/stars.js', mocks)
+const stars = new Stars(npm)
 
 t.afterEach(cb => {
   npm.config = { get () {} }
@@ -43,7 +46,7 @@ t.test('no args', t => {
     }
   }
 
-  stars([], err => {
+  stars.exec([], err => {
     if (err)
       throw err
 
@@ -67,7 +70,7 @@ t.test('npm star <user>', t => {
     }
   }
 
-  stars(['ruyadorno'], err => {
+  stars.exec(['ruyadorno'], err => {
     if (err)
       throw err
 
@@ -97,7 +100,7 @@ t.test('unauthorized request', t => {
     )
   }
 
-  stars([], err => {
+  stars.exec([], err => {
     t.match(
       err,
       /Not logged in/,
@@ -121,7 +124,7 @@ t.test('unexpected error', t => {
     throw new Error('Should not output extra warning msgs')
   }
 
-  stars([], err => {
+  stars.exec([], err => {
     t.match(
       err,
       /ERROR/,
@@ -144,7 +147,7 @@ t.test('no pkg starred', t => {
     )
   }
 
-  stars([], err => {
+  stars.exec([], err => {
     if (err)
       throw err
   })

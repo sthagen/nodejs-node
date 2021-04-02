@@ -1,6 +1,7 @@
 const Minipass = require('minipass')
 const t = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 const libnpmsearchResultFixture =
   require('../fixtures/libnpmsearch-stream-result.js')
 
@@ -12,7 +13,17 @@ const flatOptions = {
     opts: '',
   },
 }
-const npm = { flatOptions: { ...flatOptions } }
+const config = {
+  json: false,
+  parseable: false,
+}
+const npm = mockNpm({
+  config,
+  flatOptions: { ...flatOptions },
+  output: (...msg) => {
+    result += msg.join('\n')
+  },
+})
 const npmlog = {
   silly () {},
   clearProgress () {},
@@ -23,24 +34,22 @@ const libnpmsearch = {
 const mocks = {
   npmlog,
   libnpmsearch,
-  '../../lib/npm.js': npm,
-  '../../lib/utils/output.js': (...msg) => {
-    result += msg.join('\n')
-  },
   '../../lib/utils/usage.js': () => 'usage instructions',
-  // '../../lib/search/format-package-stream.js': a => a,
 }
 
 t.afterEach(cb => {
   result = ''
-  npm.flatOptions = flatOptions
+  config.json = false
+  config.parseable = false
+  npm.flatOptions = { ...flatOptions }
   cb()
 })
 
-const search = requireInject('../../lib/search.js', mocks)
+const Search = requireInject('../../lib/search.js', mocks)
+const search = new Search(npm)
 
 t.test('no args', t => {
-  search([], err => {
+  search.exec([], err => {
     t.match(
       err,
       /search must be called with arguments/,
@@ -59,17 +68,61 @@ t.test('search <name>', t => {
     },
   }
 
-  const search = requireInject('../../lib/search.js', {
+  const Search = requireInject('../../lib/search.js', {
     ...mocks,
     libnpmsearch,
   })
+  const search = new Search(npm)
 
-  search(['libnpm'], err => {
+  search.exec(['libnpm'], err => {
     if (err)
       throw err
 
     t.matchSnapshot(result, 'should have expected search results')
 
+    t.end()
+  })
+
+  for (const i of libnpmsearchResultFixture)
+    src.write(i)
+
+  src.end()
+})
+
+t.test('search <name> --json', (t) => {
+  const src = new Minipass()
+  src.objectMode = true
+
+  npm.flatOptions.json = true
+  config.json = true
+  const libnpmsearch = {
+    stream () {
+      return src
+    },
+  }
+
+  const Search = requireInject('../../lib/search.js', {
+    ...mocks,
+    libnpmsearch,
+  })
+  const search = new Search(npm)
+
+  search.exec(['libnpm'], (err) => {
+    if (err)
+      throw err
+
+    const parsedResult = JSON.parse(result)
+    parsedResult.forEach((entry) => {
+      entry.date = new Date(entry.date)
+    })
+
+    t.same(
+      parsedResult,
+      libnpmsearchResultFixture,
+      'should have expected search results as json'
+    )
+
+    config.json = false
     t.end()
   })
 
@@ -93,12 +146,13 @@ t.test('search <name> --searchexclude --searchopts', t => {
     },
   }
 
-  const search = requireInject('../../lib/search.js', {
+  const Search = requireInject('../../lib/search.js', {
     ...mocks,
     libnpmsearch,
   })
+  const search = new Search(npm)
 
-  search(['foo'], err => {
+  search.exec(['foo'], err => {
     if (err)
       throw err
 
@@ -146,12 +200,13 @@ t.test('empty search results', t => {
     },
   }
 
-  const search = requireInject('../../lib/search.js', {
+  const Search = requireInject('../../lib/search.js', {
     ...mocks,
     libnpmsearch,
   })
+  const search = new Search(npm)
 
-  search(['foo'], err => {
+  search.exec(['foo'], err => {
     if (err)
       throw err
 
@@ -172,12 +227,13 @@ t.test('search api response error', t => {
     },
   }
 
-  const search = requireInject('../../lib/search.js', {
+  const Search = requireInject('../../lib/search.js', {
     ...mocks,
     libnpmsearch,
   })
+  const search = new Search(npm)
 
-  search(['foo'], err => {
+  search.exec(['foo'], err => {
     t.match(
       err,
       /ERR/,

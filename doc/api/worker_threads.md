@@ -61,6 +61,38 @@ Worker threads inherit non-process-specific options by default. Refer to
 [`Worker constructor options`][] to know how to customize worker thread options,
 specifically `argv` and `execArgv` options.
 
+## `worker.getEnvironmentData(key)`
+<!-- YAML
+added: v15.12.0
+-->
+
+> Stability: 1 - Experimental
+
+* `key` {any} Any arbitrary, cloneable JavaScript value that can be used as a
+  {Map} key.
+* Returns: {any}
+
+Within a worker thread, `worker.getEnvironmentData()` returns a clone
+of data passed to the spawning thread's `worker.setEnvironmentData()`.
+Every new `Worker` receives its own copy of the environment data
+automatically.
+
+```js
+const {
+  Worker,
+  isMainThread,
+  setEnvironmentData,
+  getEnvironmentData,
+} = require('worker_threads');
+
+if (isMainThread) {
+  setEnvironmentData('Hello', 'World!');
+  const worker = new Worker(__filename);
+} else {
+  console.log(getEnvironmentData('Hello'));  // Prints 'World!'.
+}
+```
+
 ## `worker.isMainThread`
 <!-- YAML
 added: v10.5.0
@@ -179,9 +211,13 @@ if (isMainThread) {
 ## `worker.receiveMessageOnPort(port)`
 <!-- YAML
 added: v12.3.0
+changes:
+  - version: v15.12.0
+    pr-url: https://github.com/nodejs/node/pull/37535
+    description: The port argument can also refer to a `BroadcastChannel` now.
 -->
 
-* `port` {MessagePort}
+* `port` {MessagePort|BroadcastChannel}
 
 * Returns: {Object|undefined}
 
@@ -241,6 +277,23 @@ new Worker('process.env.SET_IN_WORKER = "foo"', { eval: true, env: SHARE_ENV })
     console.log(process.env.SET_IN_WORKER);  // Prints 'foo'.
   });
 ```
+
+## `worker.setEnvironmentData(key[, value])`
+<!--YAML
+added: v15.12.0
+-->
+
+> Stability: 1 - Experimental
+
+* `key` {any} Any arbitrary, cloneable JavaScript value that can be used as a
+  {Map} key.
+* `value` {any} Any arbitrary, cloneable JavaScript value that will be cloned
+  and passed automatically to all new `Worker` instances. If `value` is passed
+  as `undefined`, any previously set value for the `key` will be deleted.
+
+The `worker.setEnvironmentData()` API sets the content of
+`worker.getEnvironmentData()` in the current thread and all new `Worker`
+instances spawned from the current context.
 
 ## `worker.threadId`
 <!-- YAML
@@ -956,7 +1009,9 @@ immediately with an [`ERR_WORKER_NOT_RUNNING`][] error.
 
 ### `worker.performance`
 <!-- YAML
-added: v15.1.0
+added:
+  - v15.1.0
+  - v12.22.0
 -->
 
 An object that can be used to query performance information from a worker
@@ -964,7 +1019,9 @@ instance. Similar to [`perf_hooks.performance`][].
 
 #### `performance.eventLoopUtilization([utilization1[, utilization2]])`
 <!-- YAML
-added: v15.1.0
+added:
+  - v15.1.0
+  - v12.22.0
 -->
 
 * `utilization1` {Object} The result of a previous call to

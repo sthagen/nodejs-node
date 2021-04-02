@@ -1,17 +1,11 @@
 const t = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 const path = require('path')
 
 const usageUtil = () => 'usage instructions'
 
-const flatOptions = {
-  force: false,
-}
-
-const npm = {
-  flatOptions,
-  cache: '/fake/path',
-}
+let outputOutput = []
 
 let rimrafPath = ''
 const rimraf = (path, cb) => {
@@ -41,11 +35,6 @@ const pacote = {
   },
 }
 
-let outputOutput = []
-const output = (msg) => {
-  outputOutput.push(msg)
-}
-
 const cacacheVerifyStats = {
   keptSize: 100,
   verifiedContent: 1,
@@ -58,40 +47,48 @@ const cacache = {
   },
 }
 
-const mocks = {
+const Cache = requireInject('../../lib/cache.js', {
   cacache,
   npmlog,
   pacote,
   rimraf,
-  '../../lib/npm.js': npm,
-  '../../lib/utils/output.js': output,
   '../../lib/utils/usage.js': usageUtil,
-}
+})
 
-const cache = requireInject('../../lib/cache.js', mocks)
+const npm = mockNpm({
+  cache: '/fake/path',
+  flatOptions: { force: false },
+  config: { force: false },
+  output: (msg) => {
+    outputOutput.push(msg)
+  },
+})
+const cache = new Cache(npm)
 
 t.test('cache no args', t => {
-  cache([], err => {
-    t.equal(err.message, 'usage instructions', 'should throw usage instructions')
+  cache.exec([], err => {
+    t.match(err.message, 'usage instructions', 'should throw usage instructions')
     t.end()
   })
 })
 
 t.test('cache clean', t => {
-  cache(['clean'], err => {
+  cache.exec(['clean'], err => {
     t.match(err.message, 'the npm cache self-heals', 'should throw warning')
     t.end()
   })
 })
 
 t.test('cache clean (force)', t => {
-  flatOptions.force = true
+  npm.config.set('force', true)
+  npm.flatOptions.force = true
   t.teardown(() => {
     rimrafPath = ''
-    flatOptions.force = false
+    npm.config.force = false
+    npm.flatOptions.force = false
   })
 
-  cache(['clear'], err => {
+  cache.exec(['clear'], err => {
     t.ifError(err)
     t.equal(rimrafPath, path.join(npm.cache, '_cacache'))
     t.end()
@@ -99,7 +96,7 @@ t.test('cache clean (force)', t => {
 })
 
 t.test('cache clean with arg', t => {
-  cache(['rm', 'pkg'], err => {
+  cache.exec(['rm', 'pkg'], err => {
     t.match(err.message, 'does not accept arguments', 'should throw error')
     t.end()
   })
@@ -110,7 +107,7 @@ t.test('cache add no arg', t => {
     logOutput = []
   })
 
-  cache(['add'], err => {
+  cache.exec(['add'], err => {
     t.strictSame(logOutput, [
       ['silly', 'cache add', 'args', []],
     ], 'logs correctly')
@@ -126,14 +123,14 @@ t.test('cache add pkg only', t => {
     tarballStreamOpts = {}
   })
 
-  cache(['add', 'mypkg'], err => {
+  cache.exec(['add', 'mypkg'], err => {
     t.ifError(err)
     t.strictSame(logOutput, [
       ['silly', 'cache add', 'args', ['mypkg']],
       ['silly', 'cache add', 'spec', 'mypkg'],
     ], 'logs correctly')
     t.equal(tarballStreamSpec, 'mypkg', 'passes the correct spec to pacote')
-    t.same(tarballStreamOpts, flatOptions, 'passes the correct options to pacote')
+    t.same(tarballStreamOpts, npm.flatOptions, 'passes the correct options to pacote')
     t.end()
   })
 })
@@ -145,14 +142,14 @@ t.test('cache add pkg w/ spec modifier', t => {
     tarballStreamOpts = {}
   })
 
-  cache(['add', 'mypkg', 'latest'], err => {
+  cache.exec(['add', 'mypkg', 'latest'], err => {
     t.ifError(err)
     t.strictSame(logOutput, [
       ['silly', 'cache add', 'args', ['mypkg', 'latest']],
       ['silly', 'cache add', 'spec', 'mypkg@latest'],
     ], 'logs correctly')
     t.equal(tarballStreamSpec, 'mypkg@latest', 'passes the correct spec to pacote')
-    t.same(tarballStreamOpts, flatOptions, 'passes the correct options to pacote')
+    t.same(tarballStreamOpts, npm.flatOptions, 'passes the correct options to pacote')
     t.end()
   })
 })
@@ -162,7 +159,7 @@ t.test('cache verify', t => {
     outputOutput = []
   })
 
-  cache(['verify'], err => {
+  cache.exec(['verify'], err => {
     t.ifError(err)
     t.match(outputOutput, [
       `Cache verified and compressed (${path.join(npm.cache, '_cacache')})`,
@@ -189,7 +186,7 @@ t.test('cache verify w/ extra output', t => {
     delete cacacheVerifyStats.missingContent
   })
 
-  cache(['check'], err => {
+  cache.exec(['check'], err => {
     t.ifError(err)
     t.match(outputOutput, [
       `Cache verified and compressed (~${path.join('/fake/path', '_cacache')})`,

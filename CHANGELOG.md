@@ -32,7 +32,9 @@ release.
 </tr>
 <tr>
     <td valign="top">
-<b><a href="doc/changelogs/CHANGELOG_V15.md#15.11.0">15.11.0</a></b><br/>
+<b><a href="doc/changelogs/CHANGELOG_V15.md#15.13.0">15.13.0</a></b><br/>
+<a href="doc/changelogs/CHANGELOG_V15.md#15.12.0">15.12.0</a><br/>
+<a href="doc/changelogs/CHANGELOG_V15.md#15.11.0">15.11.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V15.md#15.10.0">15.10.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V15.md#15.9.0">15.9.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V15.md#15.8.0">15.8.0</a><br/>
@@ -75,7 +77,8 @@ release.
 <a href="doc/changelogs/CHANGELOG_V14.md#14.0.0">14.0.0</a><br/>
     </td>
     <td valign="top">
-<b><a href="doc/changelogs/CHANGELOG_V12.md#12.21.0">12.21.0</a></b><br/>
+<b><a href="doc/changelogs/CHANGELOG_V12.md#12.22.0">12.22.0</a></b><br/>
+<a href="doc/changelogs/CHANGELOG_V12.md#12.21.0">12.21.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V12.md#12.20.2">12.20.2</a><br/>
 <a href="doc/changelogs/CHANGELOG_V12.md#12.20.1">12.20.1</a><br/>
 <a href="doc/changelogs/CHANGELOG_V12.md#12.20.0">12.20.0</a><br/>

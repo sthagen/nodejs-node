@@ -2,11 +2,6 @@ const { test } = require('tap')
 const requireInject = require('require-inject')
 const { EventEmitter } = require('events')
 
-let npmUsageArg = null
-const npmUsage = (arg) => {
-  npmUsageArg = arg
-}
-
 const npmConfig = {
   usage: false,
   viewer: undefined,
@@ -14,7 +9,9 @@ const npmConfig = {
 }
 
 let helpSearchArgs = null
+const OUTPUT = []
 const npm = {
+  usage: 'test npm usage',
   config: {
     get: (key) => npmConfig[key],
     set: (key, value) => {
@@ -34,11 +31,9 @@ const npm = {
     },
   },
   deref: (cmd) => {},
-}
-
-const OUTPUT = []
-const output = (msg) => {
-  OUTPUT.push(msg)
+  output: msg => {
+    OUTPUT.push(msg)
+  },
 }
 
 const globDefaults = [
@@ -49,7 +44,9 @@ const globDefaults = [
 
 let globErr = null
 let globResult = globDefaults
+let globParam
 const glob = (p, cb) => {
+  globParam = p
   return cb(globErr, globResult)
 }
 
@@ -67,32 +64,25 @@ const spawn = (bin, args) => {
 }
 
 let openUrlArg = null
-const openUrl = (url, msg, cb) => {
+const openUrl = async (npm, url, msg) => {
   openUrlArg = url
-  return cb()
 }
 
-const help = requireInject('../../lib/help.js', {
-  '../../lib/npm.js': npm,
-  '../../lib/utils/npm-usage.js': npmUsage,
+const Help = requireInject('../../lib/help.js', {
   '../../lib/utils/open-url.js': openUrl,
-  '../../lib/utils/output.js': output,
   child_process: {
     spawn,
   },
   glob,
 })
+const help = new Help(npm)
 
 test('npm help', t => {
-  t.teardown(() => {
-    npmUsageArg = null
-  })
-
-  return help([], (err) => {
+  return help.exec([], (err) => {
     if (err)
       throw err
 
-    t.equal(npmUsageArg, false, 'called npmUsage')
+    t.match(OUTPUT, ['test npm usage'], 'showed npm usage')
     t.end()
   })
 })
@@ -110,28 +100,12 @@ test('npm help completion', async t => {
   t.rejects(help.completion({ conf: { argv: { remain: [] } } }), /glob failed/, 'glob errors propagate')
 })
 
-test('npm help -h', t => {
-  npmConfig.usage = true
-  t.teardown(() => {
-    npmConfig.usage = false
-    OUTPUT.length = 0
-  })
-
-  return help(['help'], (err) => {
-    if (err)
-      throw err
-
-    t.strictSame(OUTPUT, ['npm help <term>'], 'outputs usage information for command')
-    t.end()
-  })
-})
-
 test('npm help multiple args calls search', t => {
   t.teardown(() => {
     helpSearchArgs = null
   })
 
-  return help(['run', 'script'], (err) => {
+  return help.exec(['run', 'script'], (err) => {
     if (err)
       throw err
 
@@ -147,7 +121,7 @@ test('npm help no matches calls search', t => {
     globResult = globDefaults
   })
 
-  return help(['asdfasdf'], (err) => {
+  return help.exec(['asdfasdf'], (err) => {
     if (err)
       throw err
 
@@ -164,7 +138,7 @@ test('npm help glob errors propagate', t => {
     spawnArgs = null
   })
 
-  return help(['whoami'], (err) => {
+  return help.exec(['whoami'], (err) => {
     t.match(err, /glob failed/, 'glob error propagates')
     t.end()
   })
@@ -178,12 +152,12 @@ test('npm help whoami', t => {
     spawnArgs = null
   })
 
-  return help(['whoami'], (err) => {
+  return help.exec(['whoami'], (err) => {
     if (err)
       throw err
 
     t.equal(spawnBin, 'man', 'calls man by default')
-    t.strictSame(spawnArgs, ['1', 'npm-whoami'], 'passes the correct arguments')
+    t.strictSame(spawnArgs, [globResult[0]], 'passes the correct arguments')
     t.end()
   })
 })
@@ -202,7 +176,7 @@ test('npm help 1 install', t => {
     spawnArgs = null
   })
 
-  return help(['1', 'install'], (err) => {
+  return help.exec(['1', 'install'], (err) => {
     if (err)
       throw err
 
@@ -215,20 +189,21 @@ test('npm help 5 install', t => {
   npmConfig.viewer = 'browser'
   globResult = [
     '/root/man/man5/install.5',
-    '/root/man/man1/npm-install.1',
   ]
 
   t.teardown(() => {
     npmConfig.viewer = undefined
     globResult = globDefaults
+    globParam = null
     spawnBin = null
     spawnArgs = null
   })
 
-  return help(['5', 'install'], (err) => {
+  return help.exec(['5', 'install'], (err) => {
     if (err)
       throw err
 
+    t.match(globParam, /man5/, 'searches only in man5 folder')
     t.match(openUrlArg, /configuring-npm(\/|\\)install.html$/, 'attempts to open the correct url')
     t.end()
   })
@@ -237,59 +212,22 @@ test('npm help 5 install', t => {
 test('npm help 7 config', t => {
   npmConfig.viewer = 'browser'
   globResult = [
-    '/root/man/man1/npm-config.1',
     '/root/man/man7/config.7',
   ]
   t.teardown(() => {
     npmConfig.viewer = undefined
+    globParam = null
     globResult = globDefaults
     spawnBin = null
     spawnArgs = null
   })
 
-  return help(['7', 'config'], (err) => {
+  return help.exec(['7', 'config'], (err) => {
     if (err)
       throw err
 
+    t.match(globParam, /man7/, 'searches only in man5 folder')
     t.match(openUrlArg, /using-npm(\/|\\)config.html$/, 'attempts to open the correct url')
-    t.end()
-  })
-})
-
-test('npm help with browser viewer and invalid section throws', t => {
-  npmConfig.viewer = 'browser'
-  globResult = [
-    '/root/man/man1/npm-config.1',
-    '/root/man/man7/config.7',
-    '/root/man/man9/config.9',
-  ]
-  t.teardown(() => {
-    npmConfig.viewer = undefined
-    globResult = globDefaults
-    spawnBin = null
-    spawnArgs = null
-  })
-
-  return help(['9', 'config'], (err) => {
-    t.match(err, /invalid man section: 9/, 'throws appropriate error')
-    t.end()
-  })
-})
-
-test('npm help global redirects to folders', t => {
-  globResult = ['/root/man/man5/folders.5']
-  t.teardown(() => {
-    globResult = globDefaults
-    spawnBin = null
-    spawnArgs = null
-  })
-
-  return help(['global'], (err) => {
-    if (err)
-      throw err
-
-    t.equal(spawnBin, 'man', 'calls man by default')
-    t.strictSame(spawnArgs, ['5', 'folders'], 'passes the correct arguments')
     t.end()
   })
 })
@@ -302,12 +240,13 @@ test('npm help package.json redirects to package-json', t => {
     spawnArgs = null
   })
 
-  return help(['package.json'], (err) => {
+  return help.exec(['package.json'], (err) => {
     if (err)
       throw err
 
     t.equal(spawnBin, 'man', 'calls man by default')
-    t.strictSame(spawnArgs, ['5', 'package-json'], 'passes the correct arguments')
+    t.match(globParam, /package-json/, 'glob was asked to find package-json')
+    t.strictSame(spawnArgs, [globResult[0]], 'passes the correct arguments')
     t.end()
   })
 })
@@ -325,12 +264,12 @@ test('npm help ?(un)star', t => {
     spawnArgs = null
   })
 
-  return help(['?(un)star'], (err) => {
+  return help.exec(['?(un)star'], (err) => {
     if (err)
       throw err
 
     t.equal(spawnBin, 'emacsclient', 'maps woman to emacs correctly')
-    t.strictSame(spawnArgs, ['-e', `(woman-find-file '/root/man/man1/npm-unstar.1')`], 'passes the correct arguments')
+    t.strictSame(spawnArgs, ['-e', `(woman-find-file '/root/man/man1/npm-star.1')`], 'passes the correct arguments')
     t.end()
   })
 })
@@ -350,10 +289,10 @@ test('npm help - woman viewer propagates errors', t => {
     spawnArgs = null
   })
 
-  return help(['?(un)star'], (err) => {
+  return help.exec(['?(un)star'], (err) => {
     t.match(err, /help process exited with code: 1/, 'received the correct error')
     t.equal(spawnBin, 'emacsclient', 'maps woman to emacs correctly')
-    t.strictSame(spawnArgs, ['-e', `(woman-find-file '/root/man/man1/npm-unstar.1')`], 'passes the correct arguments')
+    t.strictSame(spawnArgs, ['-e', `(woman-find-file '/root/man/man1/npm-star.1')`], 'passes the correct arguments')
     t.end()
   })
 })
@@ -370,12 +309,12 @@ test('npm help un*', t => {
     spawnArgs = null
   })
 
-  return help(['un*'], (err) => {
+  return help.exec(['un*'], (err) => {
     if (err)
       throw err
 
     t.equal(spawnBin, 'man', 'calls man by default')
-    t.strictSame(spawnArgs, ['1', 'npm-unstar'], 'passes the correct arguments')
+    t.strictSame(spawnArgs, ['/root/man/man1/npm-uninstall.1'], 'passes the correct arguments')
     t.end()
   })
 })
@@ -394,10 +333,33 @@ test('npm help - man viewer propagates errors', t => {
     spawnArgs = null
   })
 
-  return help(['un*'], (err) => {
+  return help.exec(['un*'], (err) => {
     t.match(err, /help process exited with code: 1/, 'received correct error')
     t.equal(spawnBin, 'man', 'calls man by default')
-    t.strictSame(spawnArgs, ['1', 'npm-unstar'], 'passes the correct arguments')
+    t.strictSame(spawnArgs, ['/root/man/man1/npm-uninstall.1'], 'passes the correct arguments')
+    t.end()
+  })
+})
+
+test('npm help with complex installation path finds proper help file', t => {
+  npmConfig.viewer = 'browser'
+  globResult = [
+    'C:/Program Files/node-v14.15.5-win-x64/node_modules/npm/man/man1/npm-install.1',
+    // glob always returns forward slashes, even on Windows
+  ]
+
+  t.teardown(() => {
+    npmConfig.viewer = undefined
+    globResult = globDefaults
+    spawnBin = null
+    spawnArgs = null
+  })
+
+  return help.exec(['1', 'install'], (err) => {
+    if (err)
+      throw err
+
+    t.match(openUrlArg, /commands(\/|\\)npm-install.html$/, 'attempts to open the correct url')
     t.end()
   })
 })

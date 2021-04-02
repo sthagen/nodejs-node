@@ -6,7 +6,12 @@ let readLocalPkgResponse = null
 
 const noop = () => null
 
-const npm = { flatOptions: {} }
+const npm = {
+  flatOptions: {},
+  output: (msg) => {
+    result = result ? `${result}\n${msg}` : msg
+  },
+}
 const npmFetch = { json: noop }
 const npmlog = { error: noop, info: noop, verbose: noop }
 const pacote = { packument: noop }
@@ -15,10 +20,6 @@ const mocks = {
   npmlog,
   'npm-registry-fetch': npmFetch,
   pacote,
-  '../../lib/npm.js': npm,
-  '../../lib/utils/output.js': (...msg) => {
-    result += msg.join('\n')
-  },
   '../../lib/utils/otplease.js': async (opts, fn) => fn({ otp: '123456', opts }),
   '../../lib/utils/read-local-package.js': async () => readLocalPkgResponse,
   '../../lib/utils/usage.js': () => 'usage instructions',
@@ -31,7 +32,8 @@ const npmcliMaintainers = [
   { email: 'i@izs.me', name: 'isaacs' },
 ]
 
-const owner = requireInject('../../lib/owner.js', mocks)
+const Owner = requireInject('../../lib/owner.js', mocks)
+const owner = new Owner(npm)
 
 t.test('owner no args', t => {
   result = ''
@@ -39,12 +41,8 @@ t.test('owner no args', t => {
     result = ''
   })
 
-  owner([], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions'
-    )
+  owner.exec([], err => {
+    t.match(err, /usage instructions/, 'should not error out on empty locations')
     t.end()
   })
 })
@@ -73,7 +71,7 @@ t.test('owner ls no args', t => {
     readLocalPkgResponse = null
   })
 
-  owner(['ls'], err => {
+  owner.exec(['ls'], err => {
     t.ifError(err, 'npm owner ls no args')
     t.matchSnapshot(result, 'should output owners of cwd package')
   })
@@ -86,12 +84,8 @@ t.test('owner ls no args no cwd package', t => {
     npmlog.error = noop
   })
 
-  owner(['ls'], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions if no cwd package available'
-    )
+  owner.exec(['ls'], err => {
+    t.match(err, /usage instructions/, 'should throw usage instructions if no cwd package available')
     t.end()
   })
 })
@@ -115,7 +109,7 @@ t.test('owner ls fails to retrieve packument', t => {
     pacote.packument = noop
   })
 
-  owner(['ls'], err => {
+  owner.exec(['ls'], err => {
     t.match(
       err,
       /ERR/,
@@ -145,7 +139,7 @@ t.test('owner ls <pkg>', t => {
     pacote.packument = noop
   })
 
-  owner(['ls', '@npmcli/map-workspaces'], err => {
+  owner.exec(['ls', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner ls <pkg>')
     t.matchSnapshot(result, 'should output owners of <pkg>')
   })
@@ -161,7 +155,7 @@ t.test('owner ls <pkg> no maintainers', t => {
     pacote.packument = noop
   })
 
-  owner(['ls', '@npmcli/map-workspaces'], err => {
+  owner.exec(['ls', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner ls <pkg> no maintainers')
     t.equal(result, 'no admin found', 'should output no admint found msg')
     t.end()
@@ -232,7 +226,7 @@ t.test('owner add <user> <pkg>', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'foo', '@npmcli/map-workspaces'], err => {
+  owner.exec(['add', 'foo', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner add <user> <pkg>')
     t.equal(result, '+ foo (@npmcli/map-workspaces)', 'should output add result')
   })
@@ -265,7 +259,7 @@ t.test('owner add <user> cwd package', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'foo'], err => {
+  owner.exec(['add', 'foo'], err => {
     t.ifError(err, 'npm owner add <user> cwd package')
     t.equal(result, '+ foo (@npmcli/map-workspaces)', 'should output add result')
     t.end()
@@ -308,7 +302,7 @@ t.test('owner add <user> <pkg> already an owner', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'ruyadorno', '@npmcli/map-workspaces'], err => {
+  owner.exec(['add', 'ruyadorno', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner add <user> <pkg> already an owner')
   })
 })
@@ -336,7 +330,7 @@ t.test('owner add <user> <pkg> fails to retrieve user', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'foo', '@npmcli/map-workspaces'], err => {
+  owner.exec(['add', 'foo', '@npmcli/map-workspaces'], err => {
     t.match(
       err,
       /Error: Couldn't get user data for foo: {"ok":false}/,
@@ -377,7 +371,7 @@ t.test('owner add <user> <pkg> fails to PUT updates', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'foo', '@npmcli/map-workspaces'], err => {
+  owner.exec(['add', 'foo', '@npmcli/map-workspaces'], err => {
     t.match(
       err.message,
       /Failed to update package/,
@@ -417,7 +411,7 @@ t.test('owner add <user> <pkg> fails to retrieve user info', t => {
     pacote.packument = noop
   })
 
-  owner(['add', 'foo', '@npmcli/map-workspaces'], err => {
+  owner.exec(['add', 'foo', '@npmcli/map-workspaces'], err => {
     t.match(
       err.message,
       "I'm a teapot",
@@ -453,7 +447,7 @@ t.test('owner add <user> <pkg> no previous maintainers property from server', t 
     pacote.packument = noop
   })
 
-  owner(['add', 'foo', '@npmcli/no-owners-pkg'], err => {
+  owner.exec(['add', 'foo', '@npmcli/no-owners-pkg'], err => {
     t.ifError(err, 'npm owner add <user> <pkg>')
     t.equal(result, '+ foo (@npmcli/no-owners-pkg)', 'should output add result')
     t.end()
@@ -466,12 +460,8 @@ t.test('owner add no user', t => {
     result = ''
   })
 
-  owner(['add'], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions if no user provided'
-    )
+  owner.exec(['add'], err => {
+    t.match(err, /usage instructions/, 'should throw usage instructions if user provided')
     t.end()
   })
 })
@@ -482,12 +472,8 @@ t.test('owner add <user> no cwd package', t => {
     result = ''
   })
 
-  owner(['add', 'foo'], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions if no user provided'
-    )
+  owner.exec(['add', 'foo'], err => {
+    t.match(err, /usage instructions/, 'should throw usage instructions if no user provided')
     t.end()
   })
 })
@@ -549,7 +535,7 @@ t.test('owner rm <user> <pkg>', t => {
     pacote.packument = noop
   })
 
-  owner(['rm', 'ruyadorno', '@npmcli/map-workspaces'], err => {
+  owner.exec(['rm', 'ruyadorno', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner rm <user> <pkg>')
     t.equal(result, '- ruyadorno (@npmcli/map-workspaces)', 'should output rm result')
   })
@@ -589,7 +575,7 @@ t.test('owner rm <user> <pkg> not a current owner', t => {
     pacote.packument = noop
   })
 
-  owner(['rm', 'foo', '@npmcli/map-workspaces'], err => {
+  owner.exec(['rm', 'foo', '@npmcli/map-workspaces'], err => {
     t.ifError(err, 'npm owner rm <user> <pkg> not a current owner')
   })
 })
@@ -621,7 +607,7 @@ t.test('owner rm <user> cwd package', t => {
     pacote.packument = noop
   })
 
-  owner(['rm', 'ruyadorno'], err => {
+  owner.exec(['rm', 'ruyadorno'], err => {
     t.ifError(err, 'npm owner rm <user> cwd package')
     t.equal(result, '- ruyadorno (@npmcli/map-workspaces)', 'should output rm result')
     t.end()
@@ -656,7 +642,7 @@ t.test('owner rm <user> only user', t => {
     pacote.packument = noop
   })
 
-  owner(['rm', 'ruyadorno'], err => {
+  owner.exec(['rm', 'ruyadorno'], err => {
     t.equal(
       err.message,
       'Cannot remove all owners of a package. Add someone else first.',
@@ -673,12 +659,8 @@ t.test('owner rm no user', t => {
     result = ''
   })
 
-  owner(['rm'], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions if no user provided to rm'
-    )
+  owner.exec(['rm'], err => {
+    t.match(err, /usage instructions/, 'should throw usage instructions if no user provided to rm')
     t.end()
   })
 })
@@ -689,21 +671,15 @@ t.test('owner rm <user> no cwd package', t => {
     result = ''
   })
 
-  owner(['rm', 'foo'], err => {
-    t.equal(
-      err.message,
-      'usage instructions',
-      'should throw usage instructions if no user provided to rm'
-    )
+  owner.exec(['rm', 'foo'], err => {
+    t.match(err, /usage instructions/, 'should throw usage instructions if no user provided to rm')
     t.end()
   })
 })
 
 t.test('completion', async t => {
-  const { completion } = owner
-
   const testComp = async (argv, expect) => {
-    const res = await completion({ conf: { argv: { remain: argv } } })
+    const res = await owner.completion({ conf: { argv: { remain: argv } } })
     t.strictSame(res, expect, argv.join(' '))
   }
 
@@ -730,7 +706,7 @@ t.test('completion', async t => {
       pacote.packument = noop
     })
 
-    const res = await completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
+    const res = await owner.completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
     t.strictSame(res,
       ['nlf', 'ruyadorno', 'darcyclarke', 'isaacs'],
       'should return list of current owners'
@@ -738,7 +714,7 @@ t.test('completion', async t => {
   })
 
   t.test('completion npm owner rm no cwd package', async t => {
-    const res = await completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
+    const res = await owner.completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
     t.strictSame(res, [], 'should have no owners to autocomplete if not cwd package')
     t.end()
   })
@@ -757,7 +733,7 @@ t.test('completion', async t => {
       pacote.packument = noop
     })
 
-    const res = await completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
+    const res = await owner.completion({ conf: { argv: { remain: ['npm', 'owner', 'rm'] } } })
     t.strictSame(res, [], 'should return no owners if not found')
   })
 

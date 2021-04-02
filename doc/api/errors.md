@@ -1364,6 +1364,15 @@ When setting the priority for an HTTP/2 stream, the stream may be marked as
 a dependency for a parent stream. This error code is used when an attempt is
 made to mark a stream and dependent of itself.
 
+<a id="ERR_HTTP2_TOO_MANY_INVALID_FRAMES"></a>
+### `ERR_HTTP2_TOO_MANY_INVALID_FRAMES`
+<!--
+added: REPLACEME
+-->
+
+The limit of acceptable invalid HTTP/2 protocol frames sent by the peer,
+as specified through the `maxSessionInvalidFrames` option, has been exceeded.
+
 <a id="ERR_HTTP2_TRAILERS_ALREADY_SENT"></a>
 ### `ERR_HTTP2_TRAILERS_ALREADY_SENT`
 
@@ -2322,6 +2331,11 @@ than the parent module. Linked modules must share the same context.
 ### `ERR_VM_MODULE_LINKING_ERRORED`
 
 The linker function returned a module for which linking has failed.
+
+<a id="ERR_VM_MODULE_LINK_FAILURE"></a>
+### `ERR_VM_MODULE_LINK_FAILURE`
+
+The module was unable to be linked due to a failure.
 
 <a id="ERR_VM_MODULE_NOT_MODULE"></a>
 ### `ERR_VM_MODULE_NOT_MODULE`

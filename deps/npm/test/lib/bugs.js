@@ -43,15 +43,21 @@ const pacote = {
 
 // keep a tally of which urls got opened
 const opened = {}
-const openUrl = (url, errMsg, cb) => {
+const openUrl = async (npm, url, errMsg) => {
   opened[url] = opened[url] || 0
   opened[url]++
-  process.nextTick(cb)
 }
 
-const bugs = requireInject('../../lib/bugs.js', {
+const Bugs = requireInject('../../lib/bugs.js', {
   pacote,
   '../../lib/utils/open-url.js': openUrl,
+})
+
+const bugs = new Bugs({ flatOptions: {} })
+
+t.test('usage', (t) => {
+  t.match(bugs.usage, 'bugs', 'usage has command name in it')
+  t.end()
 })
 
 t.test('open bugs urls', t => {
@@ -68,7 +74,7 @@ t.test('open bugs urls', t => {
   t.plan(keys.length)
   keys.forEach(pkg => {
     t.test(pkg, t => {
-      bugs([pkg], (er) => {
+      bugs.exec([pkg], (er) => {
         if (er)
           throw er
         t.equal(opened[expect[pkg]], 1, 'opened expected url', {opened})
@@ -79,7 +85,7 @@ t.test('open bugs urls', t => {
 })
 
 t.test('open default package if none specified', t => {
-  bugs([], (er) => {
+  bugs.exec([], (er) => {
     if (er)
       throw er
     t.equal(opened['https://example.com'], 2, 'opened expected url', {opened})

@@ -116,17 +116,17 @@ platforms. This is true regardless of entries in the table below.
 | macOS            | x64              | >= 10.13                        | Tier 1       |                                   |
 | macOS            | arm64            | >= 11                           | Experimental |                                   |
 | SmartOS          | x64              | >= 18                           | Tier 2       |                                   |
-| AIX              | ppc64be >=power7 | >= 7.2 TL02                     | Tier 2       |                                   |
+| AIX              | ppc64be >=power7 | >= 7.2 TL04                     | Tier 2       |                                   |
 | FreeBSD          | x64              | >= 11                           | Experimental | Downgraded as of Node.js 12  <sup>[7](#fn7)</sup>     |
 
-<em id="fn1">1</em>: GCC 6 is not provided on the base platform. Users will
+<em id="fn1">1</em>: GCC 8 is not provided on the base platform. Users will
   need the
   [Toolchain test builds PPA](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test?field.series_filter=xenial)
   or similar to source a newer compiler.
 
-<em id="fn2">2</em>: GCC 6 is not provided on the base platform. Users will
+<em id="fn2">2</em>: GCC 8 is not provided on the base platform. Users will
   need the
-  [devtoolset-6](https://www.softwarecollections.org/en/scls/rhscl/devtoolset-6/)
+  [devtoolset-8](https://www.softwarecollections.org/en/scls/rhscl/devtoolset-8/)
   or later to source a newer compiler.
 
 <em id="fn3">3</em>: Older kernel versions may work for ARM64. However the
@@ -161,9 +161,9 @@ Depending on the host platform, the selection of toolchains may vary.
 
 | Operating System | Compiler Versions                                              |
 | ---------------- | -------------------------------------------------------------- |
-| Linux            | GCC >= 6.3                                                     |
+| Linux            | GCC >= 8.3                                                     |
 | Windows          | Visual Studio >= 2019 with the Windows 10 SDK on a 64-bit host |
-| macOS            | Xcode >= 10 (Apple LLVM >= 10)                                 |
+| macOS            | Xcode >= 11 (Apple LLVM >= 11)                                 |
 
 ### Official binary platforms and toolchains
 
@@ -171,7 +171,7 @@ Binaries at <https://nodejs.org/download/release/> are produced on:
 
 | Binary package        | Platform and Toolchain                                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| aix-ppc64             | AIX 7.1 TL05 on PPC64BE with GCC 6                                                                            |
+| aix-ppc64             | AIX 7.2 TL04 on PPC64BE with GCC 8                                                                            |
 | darwin-x64 (and .pkg) | macOS 10.15, Xcode Command Line Tools 11 with -mmacosx-version-min=10.13                                      |
 | linux-arm64           | CentOS 7 with devtoolset-8 / GCC 8 <sup>[8](#fn8)</sup>                                                       |
 | linux-armv7l          | Cross-compiled on Ubuntu 18.04 x64 with [custom GCC toolchain](https://github.com/rvagg/rpi-newer-crosstools) |
@@ -235,7 +235,7 @@ test with Python 3.
 
 #### Unix prerequisites
 
-* `gcc` and `g++` >= 6.3 or newer, or
+* `gcc` and `g++` >= 8.3 or newer, or
 * GNU Make 3.81 or newer
 * Python (see note above)
   * Python 2.7
@@ -255,7 +255,7 @@ Python 3 users may also need to install `python3-distutils`.
 
 #### macOS prerequisites
 
-* Xcode Command Line Tools >= 10 for macOS
+* Xcode Command Line Tools >= 11 for macOS
 * Python (see note above)
   * Python 2.7
   * Python 3.5, 3.6, 3.7, and 3.8

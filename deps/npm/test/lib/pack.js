@@ -1,5 +1,6 @@
 const t = require('tap')
 const requireInject = require('require-inject')
+const mockNpm = require('../fixtures/mock-npm')
 
 const OUTPUT = []
 const output = (...msg) => OUTPUT.push(msg)
@@ -17,15 +18,7 @@ t.afterEach(cb => {
 })
 
 t.test('should pack current directory with no arguments', (t) => {
-  const pack = requireInject('../../lib/pack.js', {
-    '../../lib/utils/output.js': output,
-    '../../lib/npm.js': {
-      flatOptions: {
-        unicode: false,
-        json: false,
-        dryRun: false,
-      },
-    },
+  const Pack = requireInject('../../lib/pack.js', {
     libnpmpack,
     npmlog: {
       notice: () => {},
@@ -33,13 +26,23 @@ t.test('should pack current directory with no arguments', (t) => {
       clearProgress: () => {},
     },
   })
+  const npm = mockNpm({
+    config: {
+      unicode: false,
+      json: false,
+      'dry-run': false,
+    },
+    output,
+  })
+  const pack = new Pack(npm)
 
-  return pack([], er => {
+  pack.exec([], er => {
     if (er)
       throw er
 
     const filename = `npm-${require('../../package.json').version}.tgz`
     t.strictSame(OUTPUT, [[filename]])
+    t.end()
   })
 })
 
@@ -51,15 +54,7 @@ t.test('should pack given directory', (t) => {
     }, null, 2),
   })
 
-  const pack = requireInject('../../lib/pack.js', {
-    '../../lib/utils/output.js': output,
-    '../../lib/npm.js': {
-      flatOptions: {
-        unicode: true,
-        json: true,
-        dryRun: true,
-      },
-    },
+  const Pack = requireInject('../../lib/pack.js', {
     libnpmpack,
     npmlog: {
       notice: () => {},
@@ -67,13 +62,23 @@ t.test('should pack given directory', (t) => {
       clearProgress: () => {},
     },
   })
+  const npm = mockNpm({
+    config: {
+      unicode: true,
+      json: true,
+      'dry-run': true,
+    },
+    output,
+  })
+  const pack = new Pack(npm)
 
-  return pack([testDir], er => {
+  pack.exec([testDir], er => {
     if (er)
       throw er
 
     const filename = 'my-cool-pkg-1.0.0.tgz'
     t.strictSame(OUTPUT, [[filename]])
+    t.end()
   })
 })
 
@@ -85,15 +90,7 @@ t.test('should pack given directory for scoped package', (t) => {
     }, null, 2),
   })
 
-  const pack = requireInject('../../lib/pack.js', {
-    '../../lib/utils/output.js': output,
-    '../../lib/npm.js': {
-      flatOptions: {
-        unicode: true,
-        json: true,
-        dryRun: true,
-      },
-    },
+  const Pack = requireInject('../../lib/pack.js', {
     libnpmpack,
     npmlog: {
       notice: () => {},
@@ -101,32 +98,34 @@ t.test('should pack given directory for scoped package', (t) => {
       clearProgress: () => {},
     },
   })
+  const npm = mockNpm({
+    config: {
+      unicode: true,
+      json: true,
+      'dry-run': true,
+    },
+    output,
+  })
+  const pack = new Pack(npm)
 
-  return pack([testDir], er => {
+  return pack.exec([testDir], er => {
     if (er)
       throw er
 
     const filename = 'cool-my-pkg-1.0.0.tgz'
     t.strictSame(OUTPUT, [[filename]])
+    t.end()
   })
 })
 
 t.test('should log pack contents', (t) => {
-  const pack = requireInject('../../lib/pack.js', {
-    '../../lib/utils/output.js': output,
+  const Pack = requireInject('../../lib/pack.js', {
     '../../lib/utils/tar.js': {
       ...require('../../lib/utils/tar.js'),
       logTar: () => {
         t.ok(true, 'logTar is called')
       },
     },
-    '../../lib/npm.js': {
-      flatOptions: {
-        unicode: false,
-        json: false,
-        dryRun: false,
-      },
-    },
     libnpmpack,
     npmlog: {
       notice: () => {},
@@ -134,12 +133,22 @@ t.test('should log pack contents', (t) => {
       clearProgress: () => {},
     },
   })
+  const npm = mockNpm({
+    config: {
+      unicode: false,
+      json: false,
+      'dry-run': false,
+    },
+    output,
+  })
+  const pack = new Pack(npm)
 
-  return pack([], er => {
+  pack.exec([], er => {
     if (er)
       throw er
 
     const filename = `npm-${require('../../package.json').version}.tgz`
     t.strictSame(OUTPUT, [[filename]])
+    t.end()
   })
 })

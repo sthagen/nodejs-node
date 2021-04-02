@@ -1347,6 +1347,7 @@ The `http` module `OutgoingMessage.prototype._headers` and
 the public methods (e.g. `OutgoingMessage.prototype.getHeader()`,
 `OutgoingMessage.prototype.getHeaders()`,
 `OutgoingMessage.prototype.getHeaderNames()`,
+`OutgoingMessage.prototype.getRawHeaderNames()`,
 `OutgoingMessage.prototype.hasHeader()`,
 `OutgoingMessage.prototype.removeHeader()`,
 `OutgoingMessage.prototype.setHeader()`) for working with outgoing headers.
@@ -2172,12 +2173,15 @@ future release.
 ### DEP0116: Legacy URL API
 <!-- YAML
 changes:
+  - version: v15.13.0
+    pr-url: https://github.com/nodejs/node/pull/37784
+    description: Deprecation revoked. Status changed to "Legacy".
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/22715
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only
+Type: Deprecation revoked
 
 The [Legacy URL API][] is deprecated. This includes [`url.format()`][],
 [`url.parse()`][], [`url.resolve()`][], and the [legacy `urlObject`][]. Please
@@ -2406,6 +2410,9 @@ changes:
   - version: v13.0.0
     pr-url: https://github.com/nodejs/node/pull/29589
     description: This feature has been removed.
+  - version: v12.22.0
+    pr-url: https://github.com/nodejs/node/pull/37603
+    description: Runtime deprecation.
   - version: v12.3.0
     pr-url: https://github.com/nodejs/node/pull/27498
     description: Documentation-only.
@@ -2671,9 +2678,12 @@ The [`crypto.Certificate()` constructor][] is deprecated. Use
 ### DEP0147: `fs.rmdir(path, { recursive: true })`
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37302
+    description: Runtime deprecation.
   - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/35562
-    description: Runtime deprecation.
+    description: Runtime deprecation for permissive behavior.
   - version: v14.14.0
     pr-url: https://github.com/nodejs/node/pull/35579
     description: Documentation-only deprecation.
@@ -2681,31 +2691,32 @@ changes:
 
 Type: Runtime
 
-In future versions of Node.js, `fs.rmdir(path, { recursive: true })` will throw
-if `path` does not exist or is a file.
-Use `fs.rm(path, { recursive: true, force: true })` instead.
+In future versions of Node.js, `recursive` option will be ignored for
+`fs.rmdir`, `fs.rmdirSync`, and `fs.promises.rmdir`.
+
+Use `fs.rm(path, { recursive: true, force: true })`,
+`fs.rmSync(path, { recursive: true, force: true })` or
+`fs.promises.rm(path, { recursive: true, force: true })` instead.
 
 ### DEP0148: Folder mappings in `"exports"` (trailing `"/"`)
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37215
+    description: Runtime deprecation.
   - version: v15.1.0
     pr-url: https://github.com/nodejs/node/pull/35747
-    description: Runtime deprecation.
+    description: Runtime deprecation for self-referencing imports.
   - version: v14.13.0
     pr-url: https://github.com/nodejs/node/pull/34718
     description: Documentation-only deprecation.
 -->
 
-Type: Runtime (supports [`--pending-deprecation`][])
+Type: Runtime
 
-Prior to [subpath patterns][] support, it was possible to define
+Using a trailing `"/"` to define
 [subpath folder mappings][] in the [subpath exports][] or
-[subpath imports][] fields using a trailing `"/"`.
-
-Without `--pending-deprecation`, runtime warnings occur only for exports
-resolutions not in `node_modules`. This means there will not be deprecation
-warnings for `"exports"` in dependencies. With `--pending-deprecation`, a
-runtime warning results no matter where the `"exports"` usage occurs.
+[subpath imports][] fields is deprecated. Use [subpath patterns][] instead.
 
 ### DEP0149: `http.IncomingMessage#connection`
 <!-- YAML
@@ -2737,13 +2748,16 @@ change the value has been deprecated and will be disabled in the future.
 ### DEP0151: Main index lookup and extension searching
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/37206
+    description: Runtime deprecation.
   - version: v15.8.0
     pr-url: https://github.com/nodejs/node/pull/36918
     description: Documentation-only deprecation
                  with `--pending-deprecation` support.
 -->
 
-Type: Documentation-only (supports [`--pending-deprecation`][])
+Type: Runtime
 
 Previously, `index.js` and extension searching lookups would apply to
 `import 'pkg'` main entry point resolution, even when resolving ES modules.

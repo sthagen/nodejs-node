@@ -1,3 +1,306 @@
+## v7.7.6 (2021-03-29)
+
+### BUG FIXES
+
+* [`9dd2ed518`](https://github.com/npm/cli/commit/9dd2ed5189b6f283094664e9e192cf1598ec3f79)
+  fix empty newline printed to stderr
+  ([@ruyadorno](https://github.com/ruyadorno))
+* [`9d391462a`](https://github.com/npm/cli/commit/9d391462a25f637219501e2430ef1f7b89710816)
+  [#2973](https://github.com/npm/cli/issues/2973)
+  fix spelling in workspaces.md file
+  ([@sethomas](https://github.com/sethomas))
+* [`4b100249a`](https://github.com/npm/cli/commit/4b100249a6cad67e002186816e64817313b636c7)
+  [#2979](https://github.com/npm/cli/issues/2979)
+  change 'maxsockets' default value back to 15
+  ([@wallrat](https://github.com/wallrat))
+
+### DEPENDENCIES
+
+* [`a28f89572`](https://github.com/npm/cli/commit/a28f89572a708cced69cc938f877eaa969dbad9e)
+  `libnpmversion@1.1.0`
+    * fix reading `script-shell` config on `npm version` lifecycle scripts
+* [`03734c29e`](https://github.com/npm/cli/commit/03734c29e00191d17f164d1c0e75d9f228268842)
+  `npm-packlist@2.1.5`
+    * fix packaging `bundledDependencies`
+* [`80ce2a019`](https://github.com/npm/cli/commit/80ce2a019526632b01b70e1c75c42608dc160332)
+  `@npmcli/metavuln-calculator@1.1.1`
+    * fix error auditing package documents with missing dependencies
+
+## v7.7.5 (2021-03-25)
+
+### BUG FIXES
+
+* [`95ba87622`](https://github.com/npm/cli/commit/95ba87622e00d68270eda9e071b19737718fca16)
+  [#2949](https://github.com/npm/cli/issues/2949)
+  fix handling manual indexes in `npm help`
+  ([@dmchurch](https://github.com/dmchurch))
+* [`59cf37962`](https://github.com/npm/cli/commit/59cf37962a2286e0f7d3bd37fa9c8bc3bac94218)
+  [#2958](https://github.com/npm/cli/issues/2958)
+  always set `npm.command` to canonical command name
+  ([@isaacs](https://github.com/isaacs))
+* [`1415b4bde`](https://github.com/npm/cli/commit/1415b4bdeeaabb6e0ba12b6b1b0cc56502bd64ab)
+  [#2964](https://github.com/npm/cli/issues/2964)
+  fix(config): properly translate user-agent
+  ([@wraithgar](https://github.com/wraithgar))
+* [`59271936d`](https://github.com/npm/cli/commit/59271936d90fbd6956a41967119f578c0ba63db9)
+  [#2965](https://github.com/npm/cli/issues/2965)
+  fix(config): tie save-exact/save-prefix together
+  ([@wraithgar](https://github.com/wraithgar))
+
+### TESTS
+
+* [`97b415287`](https://github.com/npm/cli/commit/97b41528739460b2e9e72e09000aded412418cb2)
+  [#2959](https://github.com/npm/cli/issues/2959)
+  add smoke tests
+  ([@ruyadorno](https://github.com/ruyadorno))
+
+## v7.7.4 (2021-03-24)
+
+### BUG FIXES
+
+* [`200bee74b`](https://github.com/npm/cli/commit/200bee74b31a738687446b7b535cac67b1c582fd)
+  [#2951](https://github.com/npm/cli/issues/2951)
+  fix(config): accept explicit `production=false`
+  ([@wraithgar](https://github.com/wraithgar))
+* [`7b45e9df6`](https://github.com/npm/cli/commit/7b45e9df6102c7bd6e403d1fdc9939581c38f546)
+  [#2950](https://github.com/npm/cli/issues/2950)
+  warn if using workspaces config options in `npm config`
+  ([@ruyadorno](https://github.com/ruyadorno))
+
+## v7.7.3 (2021-03-24)
+
+### BUG FIXES
+
+* [`c76f04ac2`](https://github.com/npm/cli/commit/c76f04ac28ddf2ae4df4b3ce0aec684a118de1b5)
+  [#2925](https://github.com/npm/cli/issues/2925)
+  fix(set-script): add completion
+  ([@Yash-Singh1](https://github.com/Yash-Singh1))
+* [`0379eab69`](https://github.com/npm/cli/commit/0379eab698b78ae4aa89bbe2043607f420e52f11)
+  [#2929](https://github.com/npm/cli/issues/2929)
+  fix(install): ignore auditLevel
+  `npm install` should not be affected by the `auditLevel` config, as the
+  results of audit do not change its exit status.
+  ([@wraithgar](https://github.com/wraithgar))
+* [`98efadeb4`](https://github.com/npm/cli/commit/98efadeb4b2ae9289f14ed6f42a169230faf7239)
+  [#2923](https://github.com/npm/cli/issues/2923)
+  fix(audit-level): add `info` audit level
+  This is a valid level but wasn't configured to be allowed.
+  Also added this param to the usage output for `npm audit`
+  ([@wraithgar](https://github.com/wraithgar))
+* [`e8d2adcf4`](https://github.com/npm/cli/commit/e8d2adcf40ad63030f844c9aa44c6d16e2146797)
+  [#2945](https://github.com/npm/cli/issues/2945)
+  config should not error when workspaces are configured
+  ([@nlf](https://github.com/nlf))
+* [`aba2bc623`](https://github.com/npm/cli/commit/aba2bc623ea99e563b1b15b81dbb4ba94f86fe4c)
+  [#2944](https://github.com/npm/cli/issues/2944)
+  fix(progress): re-add progress bar to reify
+  The logger was no longer in flatOptions, we pass it in explicitly now
+  ([@wraithgar](https://github.com/wraithgar))
+* [`877b4ed29`](https://github.com/npm/cli/commit/877b4ed2925c97b5249a4d33575420dda64f7339)
+  [#2946](https://github.com/npm/cli/issues/2946)
+  fix(flatOptions): re-add `_auth`
+  This was not being added to flatOptions, and things like
+  `npm-registry-fetch` are looking for it.
+  ([@wraithgar](https://github.com/wraithgar))
+
+## v7.7.2 (2021-03-24)
+
+### BUG FIXES
+* [`a4df2b98d`](https://github.com/npm/cli/commit/a4df2b98d89429b19cd29b5fc895cdbfc0a6bd78)
+  [#2942](https://github.com/npm/cli/issues/2942)
+  Restore --dev flag, unify --omit flatteners
+  ([@isaacs](https://github.com/isaacs))
+
+### DEPENDENCIES
+* [`2cbfaac0e`](https://github.com/npm/cli/commit/2cbfaac0ecd5810316f6d76168ed9618bd11bf3a)
+  `hosted-git-info@4.0.2`
+    * [#83](https://github.com/npm/hosted-git-info/pull/83) Do not parse
+        urls for gitlab
+  ([@nlf](https://github.com/nlf))
+
+## v7.7.1 (2021-03-24)
+
+### BUG FIXES
+
+* [`543b0e39b`](https://github.com/npm/cli/commit/543b0e39bcb94fc408804b01ca9c0d7b960b2681)
+  [#2930](https://github.com/npm/cli/issues/2930)
+  fix(uninstall): use correct local prefix
+  ([@jameschensmith](https://github.com/jameschensmith))
+* [`dce4960ef`](https://github.com/npm/cli/commit/dce4960ef6d52af128affe7755b2ca72de913b6c)
+  [#2932](https://github.com/npm/cli/issues/2932)
+  fix(config): flatten savePrefix properly
+  ([@wraithgar](https://github.com/wraithgar))
+
+## v7.7.0 (2021-03-23)
+
+### FEATURES
+
+* [`33c4189f9`](https://github.com/npm/cli/commit/33c4189f939aebdfaf85ea419e6ea01d0977b79d)
+  [#2864](https://github.com/npm/cli/issues/2864)
+  add `npm run-script` workspaces support
+  ([@ruyadorno](https://github.com/ruyadorno))
+* [`e1b3b318f`](https://github.com/npm/cli/commit/e1b3b318f095a7e1a7cc4b131907de4955275d9d)
+  [#2886](https://github.com/npm/cli/issues/2886)
+  add `npm exec` workspaces support
+  ([@ruyadorno](https://github.com/ruyadorno))
+* [`41facf643`](https://github.com/npm/cli/commit/41facf6435ced4e416d74111d9c3ff00ee19ab7d)
+  [#2859](https://github.com/npm/cli/issues/2859)
+  expanded "Did you mean?" suggestions for missing cmds and scripts
+  ([@wraithgar](https://github.com/wraithgar))
+
+### BUG FIXES
+
+* [`8cce4282f`](https://github.com/npm/cli/commit/8cce4282f7bef11aeeb73cffd532b477b241985e)
+  [#2865](https://github.com/npm/cli/issues/2865)
+  `npm publish`: handle case where multiple config list is present
+  ([@kenrick95](https://github.com/kenrick95))
+* [`6598bfe86`](https://github.com/npm/cli/commit/6598bfe8697439e827d84981f8504febca64a55a)
+  mark deprecated configs
+  ([@isaacs](https://github.com/isaacs))
+* [`8a38afe77`](https://github.com/npm/cli/commit/8a38afe779ce71a10178ed62b13709d06adf7a66)
+  [#2881](https://github.com/npm/cli/issues/2881)
+  docs(package-json): document default main behavior
+  ([@klausbayrhammer](https://github.com/klausbayrhammer))
+* [`93a061d73`](https://github.com/npm/cli/commit/93a061d737dc769663652368e8586e4202267b9e)
+  [#2917](https://github.com/npm/cli/issues/2917)
+  add action items to `npm run` error output
+  ([@wraithgar](https://github.com/wraithgar))
+
+### DOCUMENTATION
+
+* [`ad65bd910`](https://github.com/npm/cli/commit/ad65bd9101aa8e8b94bc1e48df3ef93deca6d30c)
+  [#2860](https://github.com/npm/cli/issues/2860)
+  fix link in configuring-npm
+  ([@varmakarthik12](https://github.com/varmakarthik12))
+* [`b419bfb02`](https://github.com/npm/cli/commit/b419bfb0259596fb338d45b2eaeab25a7a0d1f1e)
+  [#2876](https://github.com/npm/cli/issues/2876)
+  fix test-coverage command in contributing guide
+  ([@chowkapow](https://github.com/chowkapow))
+
+### DEPENDENCIES
+
+* [`7b5606b93`](https://github.com/npm/cli/commit/7b5606b931083e8a70f5ea094c2b46f0b7a38a18)
+  `@npmcli/arborist@2.2.9`
+    * [#254](https://github.com/npm/arborist/pull/254) Honor explicit
+      prefix when saving dependencies
+      ([@jameschensmith](https://github.com/jameschensmith))
+    * [#255](https://github.com/npm/arborist/pull/255) Never save to
+      `bundleDependencies` when saving a `peer` or `peerOptional`
+      dependency. ([@isaacs](https://github.com/isaacs))
+* [`f76e7c21f`](https://github.com/npm/cli/commit/f76e7c21ffd87b08593d8c396a78ab9c5fa790bd)
+  `pacote@11.3.1`
+    * increases tarball compression level
+* [`4928512bc`](https://github.com/npm/cli/commit/4928512bcefd8448ff5852978cfc7f903e3ae996)
+  `semver@7.3.5`
+    * fix handling prereleases/ANY ranges in subset
+* [`1924eb457`](https://github.com/npm/cli/commit/1924eb457aea7c93dfaf4a911355a63d84d66eee)
+  `libnpmversion@1.0.12`
+    * fix removing undescored-prefixed package.json properties in `npm version`
+* [`916623056`](https://github.com/npm/cli/commit/91662305643509eebd2f79ed7e3ff01562aa4968)
+  `@npmcli/run-script@1.8.4`
+    * fix expanding windows-style environment variables
+* [`a8d0751e4`](https://github.com/npm/cli/commit/a8d0751e4b7c7d8b808c8a49f288fc7272f729b0)
+  `npm-pick-manifest@6.1.1`
+    * fix running packages with a single executable binary with `npm exec`
+* [`af7eaac50`](https://github.com/npm/cli/commit/af7eaac5018ed821d72d43d08f1d7e49e7491453)
+  `hosted-git-info@4.0.1`
+* [`f52c51db1`](https://github.com/npm/cli/commit/f52c51db13c39cfbaed18dbd13ba7302a4b6a0d9)
+  `@npmcli/config@2.0.0`
+
+## v7.6.3 (2021-03-11)
+
+### DOCUMENTATION
+
+* [`8c44e999b`](https://github.com/npm/cli/commit/8c44e999bdf7639893535c55beebf7996da2c47f)
+  [#2855](https://github.com/npm/cli/issues/2855)
+  Correct "npm COMMAND help" to "npm help COMMAND"
+  ([@dwardu](https://github.com/dwardu))
+
+### DEPENDENCIES
+
+* [`57ed390d6`](https://github.com/npm/cli/commit/57ed390d64a44ae0a1b2c4afd79d690170b194ec)
+  `@npmcli/arborist@2.2.8`
+    * Respect link deps when calculating peerDep sets
+
+## v7.6.2 (2021-03-09)
+
+### BUG FIXES
+
+* [`e0a3a5218`](https://github.com/npm/cli/commit/e0a3a5218cac7ca5850930aaaad8a939ddf75d4d)
+  [#2831](https://github.com/npm/cli/issues/2831)
+  Fix cb() never called in search with --json option
+  ([@fraqe](https://github.com/fraqe))
+* [`85a8694dd`](https://github.com/npm/cli/commit/85a8694dd9b4a924a474ba75261914511a216868)
+  [#2795](https://github.com/npm/cli/issues/2795)
+  fix(npm.output): make output go through npm.output
+  ([@wraithgar](https://github.com/wraithgar))
+* [`9fe0df5b5`](https://github.com/npm/cli/commit/9fe0df5b5d7606e5841288d9931be6c04767c9ca)
+  [#2821](https://github.com/npm/cli/issues/2821)
+  fix(usage): clean up usage declarations
+  ([@wraithgar](https://github.com/wraithgar))
+
+### DEPENDENCIES
+
+* [`7f470b5c2`](https://github.com/npm/cli/commit/7f470b5c25d544e36d97b28e28ae20dfa1d4ab31)
+  `@npmcli/arborist@2.2.7`
+    * fix(install): Do not revert a file: dep to version on bare name re-install
+* [`e9b7fc275`](https://github.com/npm/cli/commit/e9b7fc275a0bdf8f00dbcf5dd2283675776fc459)
+  `libnpmdiff@2.0.4`
+    * fix(diff): Gracefully handle packages with prepare script
+* [`c7314aa62`](https://github.com/npm/cli/commit/c7314aa62195b7f0d8886776692e8a2c892413ed)
+  `byte-size@7.0.1`
+* [`864f48d43`](https://github.com/npm/cli/commit/864f48d4327269f521161cf89888ea2b6db5fdab)
+  `pacote@11.3.0`
+
+## v7.6.1 (2021-03-04)
+
+### BUG FIXES
+
+* [`3c9a589b0`](https://github.com/npm/cli/commit/3c9a589b004fa828a304abaf52d1d781710e1143)
+  [#2807](https://github.com/npm/cli/issues/2807)
+  `npm explain` show when an edge is a bundled edge
+  ([@kumavis](https://github.com/kumavis))
+* [`b33c760ce`](https://github.com/npm/cli/commit/b33c760cea7fe2696d35b5530abc1b455980fef1)
+  [#2766](https://github.com/npm/cli/issues/2766)
+  unused arguments cleanup
+  ([@sandersn](https://github.com/sandersn))
+* [`4a5dd3a5a`](https://github.com/npm/cli/commit/4a5dd3a5a200b3f4f7b47168497d8e03dca3a2ca)
+  [#2772](https://github.com/npm/cli/issues/2772)
+  fix(npm) pass npm context everywhere
+  ([@wraithgar](https://github.com/wraithgar))
+* [`e69be2ac5`](https://github.com/npm/cli/commit/e69be2ac5c35e985732e2baa00b70d39332e4b9f)
+  [#2789](https://github.com/npm/cli/issues/2789)
+  fix npm prefix on all Windows unix shells
+  ([@isaacs](https://github.com/isaacs))
+* [`2d682e4ca`](https://github.com/npm/cli/commit/2d682e4cab0cf109a16332f3222f1e9a4027db69)
+  [#2803](https://github.com/npm/cli/issues/2803)
+  fix(search): don't pass unused args
+  ([@wraithgar](https://github.com/wraithgar))
+* [`b3e7dd19b`](https://github.com/npm/cli/commit/b3e7dd19bb4888dad2bfb6702aed6560a7f91bf8)
+  [#2822](https://github.com/npm/cli/issues/2822)
+  fix(diff): set option "where" for pacote
+  ([@ruyadorno](https://github.com/ruyadorno))
+* [`96006640b`](https://github.com/npm/cli/commit/96006640b902d31415260df5ce3ad8d066a64623)
+  [#2824](https://github.com/npm/cli/issues/2824)
+  fix(repo, auth.sso): don't promisify open-url
+  ([@wraithgar](https://github.com/wraithgar))
+
+### DOCUMENTATION
+
+* [`c8b73db82`](https://github.com/npm/cli/commit/c8b73db82f0f2445c20a0a64110586253accd66b)
+  [#2690](https://github.com/npm/cli/issues/2690)
+  fix(docs): update scripts docs
+  ([@wraithgar](https://github.com/wraithgar))
+* [`5d922394b`](https://github.com/npm/cli/commit/5d922394b7874b2b38d34f03f2decbe0eb3e8583)
+  [#2809](https://github.com/npm/cli/issues/2809)
+  update republish timeout after unpublish
+  ([@BAJ-](https://github.com/BAJ-))
+
+### DEPENDENCIES
+
+* [`2d4ae598f`](https://github.com/npm/cli/commit/2d4ae598f30049680797685f76154b16a7e15a66)
+  `@npmcli/arborist@2.2.6`
+
 ## v7.6.0 (2021-02-25)
 
 ### FEATURES

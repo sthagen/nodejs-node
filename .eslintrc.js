@@ -53,12 +53,6 @@ module.exports = {
   overrides: [
     {
       files: [
-        'doc/api/esm.md',
-        'doc/api/fs.md',
-        'doc/api/module.md',
-        'doc/api/modules.md',
-        'doc/api/packages.md',
-        'doc/api/wasi.md',
         'test/es-module/test-esm-type-flag.js',
         'test/es-module/test-esm-type-flag-alias.js',
         '*.mjs',
@@ -68,8 +62,23 @@ module.exports = {
     },
     {
       files: ['**/*.md'],
-      parserOptions: { ecmaFeatures: { impliedStrict: true } },
+      processor: 'markdown/markdown',
+    },
+    {
+      files: ['**/*.md/*.cjs', '**/*.md/*.js'],
+      parserOptions: {
+        sourceType: 'script',
+        ecmaFeatures: { impliedStrict: true }
+      },
       rules: { strict: 'off' },
+    },
+    {
+      files: [
+        '**/*.md/*.mjs',
+        'doc/api/esm.md/*.js',
+        'doc/api/packages.md/*.js',
+      ],
+      parserOptions: { sourceType: 'module' },
     },
   ],
   rules: {
@@ -298,7 +307,7 @@ module.exports = {
     'template-curly-spacing': 'error',
     'unicode-bom': 'error',
     'use-isnan': 'error',
-    'valid-typeof': 'error',
+    'valid-typeof': ['error', { requireStringLiterals: true }],
 
     // Custom rules from eslint-plugin-node-core
     'node-core/no-unescaped-regexp-dot': 'error',
@@ -306,6 +315,7 @@ module.exports = {
   },
   globals: {
     AbortController: 'readable',
+    AbortSignal: 'readable',
     Atomics: 'readable',
     BigInt: 'readable',
     BigInt64Array: 'readable',
@@ -319,5 +329,8 @@ module.exports = {
     TextDecoder: 'readable',
     queueMicrotask: 'readable',
     globalThis: 'readable',
+    btoa: 'readable',
+    atob: 'readable',
+    performance: 'readable',
   },
 };

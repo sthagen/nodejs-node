@@ -7,12 +7,6 @@ const fs = require('fs')
 const readdir = util.promisify(fs.readdir)
 
 const log = require('npmlog')
-const npm = require('./npm.js')
-const usageUtil = require('./utils/usage.js')
-
-const usage = usageUtil('ci', 'npm ci')
-
-const cmd = (args, cb) => ci().then(() => cb()).catch(cb)
 
 const removeNodeModules = async where => {
   const rimrafOpts = { glob: false }
@@ -23,56 +17,79 @@ const removeNodeModules = async where => {
   await Promise.all(entries.map(f => rimraf(`${path}/${f}`, rimrafOpts)))
   process.emit('timeEnd', 'npm-ci:rm')
 }
+const BaseCommand = require('./base-command.js')
 
-const ci = async () => {
-  if (npm.flatOptions.global) {
-    const err = new Error('`npm ci` does not work for global packages')
-    err.code = 'ECIGLOBAL'
-    throw err
+class CI extends BaseCommand {
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get description () {
+    return 'Install a project with a clean slate'
   }
 
-  const where = npm.prefix
-  const { scriptShell, ignoreScripts } = npm.flatOptions
-  const arb = new Arborist({ ...npm.flatOptions, path: where })
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get name () {
+    return 'ci'
+  }
 
-  await Promise.all([
-    arb.loadVirtual().catch(er => {
-      log.verbose('loadVirtual', er.stack)
-      const msg =
-        'The `npm ci` command can only install with an existing package-lock.json or\n' +
-        'npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or\n' +
-        'later to generate a package-lock.json file, then try again.'
-      throw new Error(msg)
-    }),
-    removeNodeModules(where),
-  ])
-  // npm ci should never modify the lockfile or package.json
-  await arb.reify({ ...npm.flatOptions, save: false })
+  exec (args, cb) {
+    this.ci().then(() => cb()).catch(cb)
+  }
 
-  // run the same set of scripts that `npm install` runs.
-  if (!ignoreScripts) {
-    const scripts = [
-      'preinstall',
-      'install',
-      'postinstall',
-      'prepublish', // XXX should we remove this finally??
-      'preprepare',
-      'prepare',
-      'postprepare',
-    ]
-    for (const event of scripts) {
-      await runScript({
-        path: where,
-        args: [],
-        scriptShell,
-        stdio: 'inherit',
-        stdioString: true,
-        banner: log.level !== 'silent',
-        event,
-      })
+  async ci () {
+    if (this.npm.config.get('global')) {
+      const err = new Error('`npm ci` does not work for global packages')
+      err.code = 'ECIGLOBAL'
+      throw err
     }
+
+    const where = this.npm.prefix
+    const opts = {
+      ...this.npm.flatOptions,
+      path: where,
+      log: this.npm.log,
+      save: false, // npm ci should never modify the lockfile or package.json
+    }
+
+    const arb = new Arborist(opts)
+    await Promise.all([
+      arb.loadVirtual().catch(er => {
+        log.verbose('loadVirtual', er.stack)
+        const msg =
+          'The `npm ci` command can only install with an existing package-lock.json or\n' +
+          'npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or\n' +
+          'later to generate a package-lock.json file, then try again.'
+        throw new Error(msg)
+      }),
+      removeNodeModules(where),
+    ])
+    await arb.reify(opts)
+
+    const ignoreScripts = this.npm.config.get('ignore-scripts')
+    // run the same set of scripts that `npm install` runs.
+    if (!ignoreScripts) {
+      const scripts = [
+        'preinstall',
+        'install',
+        'postinstall',
+        'prepublish', // XXX should we remove this finally??
+        'preprepare',
+        'prepare',
+        'postprepare',
+      ]
+      const scriptShell = this.npm.config.get('script-shell') || undefined
+      for (const event of scripts) {
+        await runScript({
+          path: where,
+          args: [],
+          scriptShell,
+          stdio: 'inherit',
+          stdioString: true,
+          banner: log.level !== 'silent',
+          event,
+        })
+      }
+    }
+    await reifyFinish(this.npm, arb)
   }
-  await reifyFinish(arb)
 }
 
-module.exports = Object.assign(cmd, {usage})
+module.exports = CI

@@ -1,18 +1,18 @@
-const { test } = require('tap')
-const requireInject = require('require-inject')
+const t = require('tap')
 
-test('prefix', (t) => {
+t.test('prefix', (t) => {
   t.plan(3)
   const dir = '/prefix/dir'
 
-  const prefix = requireInject('../../lib/prefix.js', {
-    '../../lib/npm.js': { prefix: dir },
-    '../../lib/utils/output.js': (output) => {
+  const Prefix = require('../../lib/prefix.js')
+  const prefix = new Prefix({
+    prefix: dir,
+    output: (output) => {
       t.equal(output, dir, 'prints the correct directory')
     },
   })
 
-  prefix([], (err) => {
+  prefix.exec([], (err) => {
     t.ifError(err, 'npm prefix')
     t.ok('should have printed directory')
   })

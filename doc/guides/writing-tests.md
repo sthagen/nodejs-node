@@ -221,7 +221,6 @@ const server = http.createServer(common.mustCall((req, res) => {
     server.close();
   }));
 }));
-
 ```
 
 **Note:** Many functions invoke their callback with an `err` value as the first
@@ -459,4 +458,4 @@ Nightly coverage reports for the Node.js master branch are available at
 [all maintained branches]: https://github.com/nodejs/lts
 [directory structure overview]: https://github.com/nodejs/node/blob/HEAD/test/README.md#test-directories
 [node.green]: https://node.green/
-[test fixture]: https://github.com/google/googletest/blob/HEAD/googletest/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests-same-data-multiple-tests
+[test fixture]: https://github.com/google/googletest/blob/HEAD/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests-same-data-multiple-tests
