@@ -1,7 +1,7 @@
 -include config.mk
 
 BUILDTYPE ?= Release
-PYTHON ?= python
+PYTHON ?= python3
 DESTDIR ?=
 SIGN ?=
 PREFIX ?= /usr/local
@@ -10,6 +10,7 @@ TEST_CI_ARGS ?=
 STAGINGSERVER ?= node-www
 LOGLEVEL ?= silent
 OSTYPE := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ARCHTYPE := $(shell uname -m | tr '[:upper:]' '[:lower:]')
 COVTESTS ?= test-cov
 COV_SKIP_TESTS ?= core_line_numbers.js,testFinalizer.js,test_function/test.js
 GTEST_FILTER ?= "*"
@@ -477,7 +478,7 @@ JS_SUITES ?= default
 NATIVE_SUITES ?= addons js-native-api node-api
 # CI_* variables should be kept synchronized with the ones in vcbuild.bat
 CI_NATIVE_SUITES ?= $(NATIVE_SUITES) benchmark
-CI_JS_SUITES ?= $(JS_SUITES)
+CI_JS_SUITES ?= $(JS_SUITES) pummel
 ifeq ($(node_use_openssl), false)
 	CI_DOC := doctool
 else
@@ -563,10 +564,6 @@ test-pummel: all
 
 test-internet: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) internet
-
-test-node-inspect: $(NODE_EXE)
-	USE_EMBEDDED_NODE_INSPECT=1 $(NODE) tools/test-npm-package \
-		--install deps/node-inspect test
 
 test-benchmark: | bench-addons-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) benchmark
@@ -972,6 +969,16 @@ release-only: check-xz
 	fi
 
 $(PKG): release-only
+# pkg building is currently only supported on an ARM64 macOS host for
+# ease of compiling fat-binaries for both macOS architectures.
+ifneq ($(OSTYPE),darwin)
+	$(warning Invalid OSTYPE)
+	$(error OSTYPE should be `darwin` currently is $(OSTYPE))
+endif 
+ifneq ($(ARCHTYPE),arm64)
+	$(warning Invalid ARCHTYPE)
+	$(error ARCHTYPE should be `arm64` currently is $(ARCHTYPE))
+endif
 	$(RM) -r $(MACOSOUTDIR)
 	mkdir -p $(MACOSOUTDIR)/installer/productbuild
 	cat tools/macos-installer/productbuild/distribution.xml.tmpl  \
@@ -992,14 +999,28 @@ $(PKG): release-only
 			| sed -E "s/\\{npmversion\\}/$(NPMVERSION)/g"  \
 		>$(MACOSOUTDIR)/installer/productbuild/Resources/$$lang/conclusion.html ; \
 	done
+	CC_host="cc -arch x86_64" CXX_host="c++ -arch x86_64"  \
+	CC_target="cc -arch x86_64" CXX_target="c++ -arch x86_64" \
+	CC="cc -arch x86_64" CXX="c++ -arch x86_64" $(PYTHON) ./configure \
+		--dest-cpu=x86_64 \
+		--tag=$(TAG) \
+		--release-urlbase=$(RELEASE_URLBASE) \
+		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
+	arch -x86_64 $(MAKE) install V=$(V) DESTDIR=$(MACOSOUTDIR)/dist/x64/node
+	SIGN="$(CODESIGN_CERT)" PKGDIR="$(MACOSOUTDIR)/dist/x64/node/usr/local" sh \
+		tools/osx-codesign.sh
 	$(PYTHON) ./configure \
-		--dest-cpu=x64 \
+		--dest-cpu=arm64 \
 		--tag=$(TAG) \
 		--release-urlbase=$(RELEASE_URLBASE) \
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
 	$(MAKE) install V=$(V) DESTDIR=$(MACOSOUTDIR)/dist/node
 	SIGN="$(CODESIGN_CERT)" PKGDIR="$(MACOSOUTDIR)/dist/node/usr/local" sh \
 		tools/osx-codesign.sh
+	lipo $(MACOSOUTDIR)/dist/x64/node/usr/local/bin/node \
+		$(MACOSOUTDIR)/dist/node/usr/local/bin/node \
+		-output $(MACOSOUTDIR)/dist/node/usr/local/bin/node \
+		-create
 	mkdir -p $(MACOSOUTDIR)/dist/npm/usr/local/lib/node_modules
 	mkdir -p $(MACOSOUTDIR)/pkgs
 	mv $(MACOSOUTDIR)/dist/node/usr/local/lib/node_modules/npm \

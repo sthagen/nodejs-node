@@ -628,10 +628,6 @@ function getBufferSources(buf) {
   return [...getArrayBufferViews(buf), new Uint8Array(buf).buffer];
 }
 
-function disableCrashOnUnhandledRejection() {
-  process.on('unhandledRejection', () => {});
-}
-
 function getTTYfd() {
   // Do our best to grab a tty fd.
   const tty = require('tty');
@@ -712,8 +708,8 @@ function gcUntil(name, condition) {
   });
 }
 
-function requireNoPackageJSONAbove() {
-  let possiblePackage = path.join(__dirname, '..', 'package.json');
+function requireNoPackageJSONAbove(dir = __dirname) {
+  let possiblePackage = path.join(dir, '..', 'package.json');
   let lastPackage = null;
   while (possiblePackage !== lastPackage) {
     if (fs.existsSync(possiblePackage)) {
@@ -732,7 +728,6 @@ const common = {
   canCreateSymLink,
   childShouldThrowAndAbort,
   createZeroFilledFile,
-  disableCrashOnUnhandledRejection,
   expectsError,
   expectWarning,
   gcUntil,

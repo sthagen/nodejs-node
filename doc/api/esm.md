@@ -206,7 +206,7 @@ added:
   - v14.13.1
   - v12.20.0
 changes:
-  - version: REPLACEME
+  - version: v16.0.0
     pr-url: https://github.com/nodejs/node/pull/37246
     description: Added `node:` import support to `require(...)`.
 -->
@@ -282,6 +282,9 @@ const buffer = readFileSync(new URL('./data.proto', import.meta.url));
 ### `import.meta.resolve(specifier[, parent])`
 
 > Stability: 1 - Experimental
+
+This feature is only available with the `--experimental-import-meta-resolve`
+command flag enabled.
 
 * `specifier` {string} The module specifier to resolve relative to `parent`.
 * `parent` {string|URL} The absolute parent module URL to resolve from. If none

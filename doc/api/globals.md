@@ -18,7 +18,7 @@ that are part of the JavaScript language itself, which are also globally
 accessible.
 
 ## Class: `AbortController`
-<!--YAML
+<!-- YAML
 added: v15.0.0
 changes:
   - version: v15.4.0
@@ -148,7 +148,7 @@ This variable may appear to be global but is not. See [`__filename`][].
 
 ## `atob(data)`
 <!-- YAML
-added: REPLACEME
+added: v16.0.0
 -->
 
 > Stability: 3 - Legacy. Use `Buffer.from(data, 'base64')` instead.
@@ -157,7 +157,7 @@ Global alias for [`buffer.atob()`][].
 
 ## `btoa(data)`
 <!-- YAML
-added: REPLACEME
+added: v16.0.0
 -->
 
 > Stability: 3 - Legacy. Use `buf.toString('base64')` instead.

@@ -274,6 +274,11 @@
             '<(V8_ROOT)/src/builtins/mips/builtins-mips.cc',
           ],
         }],
+        ['v8_target_arch=="riscv64" or v8_target_arch=="riscv64"', {
+          'sources': [
+            '<(V8_ROOT)/src/builtins/riscv64/builtins-riscv64.cc',
+          ],
+        }],        
         ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
           'sources': [
             '<(V8_ROOT)/src/builtins/mips64/builtins-mips64.cc',
@@ -686,6 +691,11 @@
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_current_cpu == \\"mips\\".*?sources \+= ")',
           ],
         }],
+        ['v8_target_arch=="riscv64"', {
+          'sources': [  ### gcmole(arch:riscv64) ###
+            '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_current_cpu == \\"riscv64.*?sources \+= ")',
+          ],
+        }],        
         ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
           'sources': [  ### gcmole(arch:mips64el) ###
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_current_cpu == \\"mips64\\".*?sources \+= ")',
@@ -764,7 +774,7 @@
         }],
         # Platforms that don't have Compare-And-Swap (CAS) support need to link atomic library
         # to implement atomic memory access
-        ['v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "arm"]', {
+        ['v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "arm", "riscv64"]', {
           'link_settings': {
             'libraries': ['-latomic', ],
           },
@@ -1410,6 +1420,11 @@
                   '<(V8_ROOT)/src/heap/base/asm/mips64/push_registers_asm.cc',
                 ],
               }],
+              ['_toolset == "host" and host_arch == "riscv64" or _toolset == "target" and target_arch=="riscv64"', {
+                'sources': [
+                  '<(V8_ROOT)/src/heap/base/asm/riscv64/push_registers_asm.cc',
+                ],
+              }],
             ]
           }],
           ['OS=="win"', {
@@ -1494,6 +1509,7 @@
           'variables': {
             'v8_dump_build_config_args': [
               '<(PRODUCT_DIR)/v8_build_config.json',
+              'current_cpu=<(v8_current_cpu)',
               'dcheck_always_on=<(dcheck_always_on)',
               'is_android=<(is_android)',
               'is_asan=<(asan)',
@@ -1502,20 +1518,30 @@
               'is_component_build=<(component)',
               'is_debug=<(CONFIGURATION_NAME)',
               # Not available in gyp.
+              'is_full_debug=0',
+              # Not available in gyp.
               'is_gcov_coverage=0',
               'is_msan=<(msan)',
               'is_tsan=<(tsan)',
               # Not available in gyp.
               'is_ubsan_vptr=0',
               'target_cpu=<(target_arch)',
+              'v8_current_cpu=<(v8_current_cpu)',
+              # Not available in gyp.
+              'v8_enable_atomic_marking_state=0',
+              # Not available in gyp.
+              'v8_enable_atomic_object_field_writes=0',
+              # Not available in gyp.
+              'v8_enable_concurrent_marking=0',
               'v8_enable_i18n_support=<(v8_enable_i18n_support)',
               'v8_enable_verify_predictable=<(v8_enable_verify_predictable)',
-              'v8_target_cpu=<(v8_target_arch)',
-              'v8_use_siphash=<(v8_use_siphash)',
               'v8_enable_verify_csa=<(v8_enable_verify_csa)',
               'v8_enable_lite_mode=<(v8_enable_lite_mode)',
               'v8_enable_pointer_compression=<(v8_enable_pointer_compression)',
               'v8_enable_webassembly=<(v8_enable_webassembly)',
+              # Not available in gyp.
+              'v8_control_flow_integrity=0',
+              'v8_target_cpu=<(v8_target_arch)',
             ]
           },
           'conditions': [

@@ -16,6 +16,7 @@ This directory contains modules used to test the Node.js implementation.
 * [Heap dump checker module](#heap-dump-checker-module)
 * [hijackstdio module](#hijackstdio-module)
 * [HTTP2 module](#http2-module)
+* [Inspector CLI module](#inspector-cli-module)
 * [Internet module](#internet-module)
 * [ongc module](#ongc-module)
 * [Report module](#report-module)
@@ -60,14 +61,6 @@ On non-Windows platforms, this always returns `true`.
 ### `createZeroFilledFile(filename)`
 
 Creates a 10 MB file of all null characters.
-
-### `disableCrashOnUnhandledRejection()`
-
-Removes the `process.on('unhandledRejection')` handler that crashes the process
-after a tick. The handler is useful for tests that use Promises and need to make
-sure no unexpected rejections occur, because currently they result in silent
-failures. However, it is useful in some rare cases to disable it, for example if
-the `unhandledRejection` hook is directly used by the test.
 
 ### `enoughTestCpu`
 
@@ -378,10 +371,12 @@ const { spawn } = require('child_process');
 spawn(...common.pwdCommand, { stdio: ['pipe'] });
 ```
 
-### `requireNoPackageJSONAbove()`
+### `requireNoPackageJSONAbove([dir])`
 
-Throws an `AssertionError` if a `package.json` file is in any ancestor
-directory. Such files may interfere with proper test functionality.
+* `dir` [&lt;string>][] default = \_\_dirname
+
+Throws an `AssertionError` if a `package.json` file exists in any ancestor
+directory above `dir`. Such files may interfere with proper test functionality.
 
 ### `runWithInvalidFD(func)`
 
@@ -828,6 +823,34 @@ upon initial establishment of a connection.
 ```js
 socket.write(http2.kClientMagic);
 ```
+
+## Inspector CLI module
+
+Provides common functionality for tests for `node inspect`.
+
+### `startCLI(args[[, flags], spawnOpts])`
+
+* `args` [&lt;string>][]
+* `flags` [&lt;string>][] default = []
+* `showOpts` [&lt;Object>][] default = {}
+* return [&lt;Object>][]
+
+Returns a null-prototype object with properties that are functions and getters
+used to interact with the `node inspect` CLI. These functions are:
+
+* `flushOutput()`
+* `waitFor()`
+* `waitForPrompt()`
+* `waitForInitialBreak()`
+* `breakInfo`
+* `ctrlC()`
+* `output`
+* `rawOutput`
+* `parseSourceLines()`
+* `writeLine()`
+* `command()`
+* `stepCommand()`
+* `quit()`
 
 ## Internet Module
 
