@@ -1,7 +1,15 @@
 'use strict';
 
 const common = require('../common');
-if (!common.hasCrypto) common.skip('missing crypto');
+
+if (!common.hasCrypto) {
+  common.skip('missing crypto');
+}
+
+if (process.config.variables.arm_version === '7') {
+  common.skip('Too slow for armv7 bots');
+}
+
 common.requireNoPackageJSONAbove();
 
 const { debuglog } = require('util');

@@ -53,18 +53,12 @@ onboarding session.
 * Notifications:
   * Use [https://github.com/notifications](https://github.com/notifications) or
     set up email
-  * Watching the main repo will flood your inbox (several hundred notifications
-    on typical weekdays), so be prepared
+  * Watching the main repository will flood your inbox (several hundred
+    notifications on typical weekdays), so be prepared
 
 The project has two venues for real-time discussion:
 * [`#nodejs-dev`](https://openjs-foundation.slack.com/archives/C019Y2T6STH) on
   the [OpenJS Foundation](https://slack-invite.openjsf.org/)
-* `#node-dev` on [webchat.freenode.net](https://webchat.freenode.net/) is a
-  great place to interact with the TSC and other Collaborators
-  * If there are any questions after the session, a good place to ask is
-    there!
-  * Presence is not mandatory, but please drop a note there if force-pushing
-    to `master`
 
 ## Project goals & values
 
@@ -87,7 +81,7 @@ The project has two venues for real-time discussion:
   * Be nice about closing issues! Let people know why, and that issues and PRs
     can be reopened if necessary
 
-* [**See "Labels"**](./doc/guides/onboarding-extras.md#labels)
+* See [Labels][].
   * There is [a bot](https://github.com/nodejs-github-bot/github-bot) that
     applies subsystem labels (for example, `doc`, `test`, `assert`, or `buffer`)
     so that we know what parts of the code base the pull request modifies. It is
@@ -185,11 +179,8 @@ The project has two venues for real-time discussion:
       `7006` in the `PR_ID`.
     * The remaining elements on the form are typically unchanged.
   * If you need help with something CI-related:
-    * Use #node-dev (IRC) to talk to other Collaborators.
-    * Use #node-build (IRC) to talk to the Build WG members who maintain the CI
-      infrastructure.
-    * Use the [Build WG repo](https://github.com/nodejs/build) to file issues
-      for the Build WG members who maintain the CI infrastructure.
+    * Use the [Build WG repository](https://github.com/nodejs/build) to file
+      issues for the Build WG members who maintain the CI infrastructure.
 
 ## Landing PRs
 
@@ -248,6 +239,7 @@ needs to be pointed out separately during the onboarding.
   the [summit](https://github.com/nodejs/summit) repository for details.
 
 [Code of Conduct]: https://github.com/nodejs/admin/blob/HEAD/CODE_OF_CONDUCT.md
+[Labels]: doc/guides/collaborator-guide.md#labels
 [Landing Pull Requests]: doc/guides/collaborator-guide.md#landing-pull-requests
 [Publicizing or hiding organization membership]: https://help.github.com/articles/publicizing-or-hiding-organization-membership/
 [`author-ready`]: doc/guides/collaborator-guide.md#author-ready-pull-requests

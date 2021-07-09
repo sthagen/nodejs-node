@@ -128,7 +128,7 @@ Build is essential to make sure that the CI works, release files are published,
 and the release blog post is available on the project website.
 
 Build can be contacted best by opening up an issue on the [Build issue
-tracker][], and by posting in `#node-build` on [webchat.freenode.net][].
+tracker][].
 
 When preparing a security release, contact Build at least two weekdays in
 advance of the expected release. To ensure that the security patch(es) can be
@@ -583,9 +583,9 @@ $ git push upstream master
 
 ### 14. Push the release tag
 
-Push the tag to the repo before you promote the builds. If you haven't pushed
-your tag first, then build promotion won't work properly. Push the tag using the
-following command:
+Push the tag to the repository before you promote the builds. If you
+haven't pushed your tag first, then build promotion won't work properly.
+Push the tag using the following command:
 
 ```console
 $ git push <remote> <vx.y.z>
@@ -896,9 +896,19 @@ test, or doc-related are to be listed as notable changes. Some SEMVER-MINOR
 commits may be listed as notable changes on a case-by-case basis. Use your
 judgment there.
 
+### Snap
+
+The Node.js [Snap][] package has a "default" for installs where the user hasn't
+specified a release line ("track" in Snap terminology). This should be updated
+to point to the most recently activated LTS. A member of the Node.js Build
+Infrastructure team is able to perform the switch of the default. An issue
+should be opened on the [Node.js Snap management repository][] requesting this
+take place once a new LTS line has been released.
+
 [Build issue tracker]: https://github.com/nodejs/build/issues/new
 [CI lockdown procedure]: https://github.com/nodejs/build/blob/HEAD/doc/jenkins-guide.md#restricting-access-for-security-releases
+[Node.js Snap management repository]: https://github.com/nodejs/snap
 [Partner Communities]: https://github.com/nodejs/community-committee/blob/HEAD/governance/PARTNER_COMMUNITIES.md
+[Snap]: https://snapcraft.io/node
 [nodejs.org release-post.js script]: https://github.com/nodejs/nodejs.org/blob/HEAD/scripts/release-post.js
 [nodejs.org repository]: https://github.com/nodejs/nodejs.org
-[webchat.freenode.net]: https://webchat.freenode.net/

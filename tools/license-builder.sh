@@ -30,7 +30,6 @@ fi
 
 # Dependencies bundled in distributions
 addlicense "Acorn" "deps/acorn" "$(cat "${rootdir}"/deps/acorn/acorn/LICENSE)"
-addlicense "Acorn plugins" "deps/acorn-plugins" "$(cat "${rootdir}"/deps/acorn-plugins/acorn-class-fields/LICENSE)"
 addlicense "c-ares" "deps/cares" "$(tail -n +3 "${rootdir}"/deps/cares/LICENSE.md)"
 addlicense "cjs-module-lexer" "deps/cjs-module-lexer" "$(cat "${rootdir}"/deps/cjs-module-lexer/LICENSE)"
 if [ -f "${rootdir}/deps/icu/LICENSE" ]; then
@@ -63,7 +62,7 @@ addlicense "llhttp" "deps/llhttp" "$(cat deps/llhttp/LICENSE-MIT)"
 addlicense "OpenSSL" "deps/openssl" \
            "$(sed -e '/^ \*\/$/,$d' -e '/^ [^*].*$/d' -e '/\/\*.*$/d' -e '/^$/d' -e 's/^[/ ]\* *//' "${rootdir}"/deps/openssl/openssl/LICENSE)"
 addlicense "Punycode.js" "lib/punycode.js" \
-           "$(curl -sL https://raw.githubusercontent.com/bestiejs/punycode.js/master/LICENSE-MIT.txt)"
+           "$(curl -sL https://raw.githubusercontent.com/bestiejs/punycode.js/HEAD/LICENSE-MIT.txt)"
 addlicense "V8" "deps/v8" "$(cat "${rootdir}"/deps/v8/LICENSE)"
 addlicense "SipHash" "deps/v8/src/third_party/siphash" \
            "$(sed -e '/You should have received a copy of the CC0/,$d' -e 's/^\/\* *//' -e 's/^ \* *//' deps/v8/src/third_party/siphash/halfsiphash.cc)"
