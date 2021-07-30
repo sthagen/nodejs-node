@@ -153,7 +153,7 @@ out/Makefile: config.gypi common.gypi node.gyp \
 # and included in config.gypi
 config.gypi: configure configure.py src/node_version.h
 	@if [ -x config.status ]; then \
-		./config.status; \
+		export PATH="$(NO_BIN_OVERRIDE_PATH)" && ./config.status; \
 	else \
 		echo Missing or stale $@, please run ./$<; \
 		exit 1; \
@@ -210,11 +210,10 @@ coverage-clean:
 		-type f -exec $(RM) {} \;
 
 .PHONY: coverage
-# Build and test with code coverage reporting.  Leave the lib directory
-# instrumented for any additional runs the user may want to make.
-# For C++ coverage reporting, this needs to be run in conjunction with configure
-#  --coverage.  html coverage reports will be created under coverage/
-# Related CI job: node-test-commit-linux-coverage
+# Build and test with code coverage reporting. HTML coverage reports will be
+# created under coverage/. For C++ coverage reporting, this needs to be run
+# in conjunction with configure --coverage.
+# Related CI job: node-test-commit-linux-coverage-daily
 coverage: coverage-test ## Run the tests and generate a coverage report.
 
 .PHONY: coverage-build
@@ -581,12 +580,10 @@ test-doc: doc-only lint-md ## Builds, lints, and verifies the docs.
 	else \
 		$(PYTHON) tools/test.py $(PARALLEL_ARGS) doctool; \
 	fi
-	$(NODE) tools/doc/checkLinks.mjs .
 
 .PHONY: test-doc-ci
 test-doc-ci: doc-only
 	$(PYTHON) tools/test.py --shell $(NODE) $(TEST_CI_ARGS) $(PARALLEL_ARGS) doctool
-	$(NODE) tools/doc/checkLinks.mjs .
 
 test-known-issues: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) known_issues

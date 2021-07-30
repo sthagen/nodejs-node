@@ -67,7 +67,7 @@ class LS extends ArboristWorkspaceCmd {
 
   async ls (args) {
     const all = this.npm.config.get('all')
-    const color = !!this.npm.color
+    const color = this.npm.color
     const depth = this.npm.config.get('depth')
     const dev = this.npm.config.get('dev')
     const development = this.npm.config.get('development')
@@ -138,7 +138,7 @@ class LS extends ArboristWorkspaceCmd {
           !(node instanceof Arborist.Node) || (currentDepth > depthToPrint)
         return (shouldSkipChildren)
           ? []
-          : [...(node.target || node).edgesOut.values()]
+          : [...(node.target).edgesOut.values()]
             .filter(filterBySelectedWorkspaces)
             .filter(filterByEdgesTypes({
               currentDepth,

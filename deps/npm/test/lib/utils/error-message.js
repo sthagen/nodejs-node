@@ -15,6 +15,9 @@ const { resolve } = require('path')
 const npm = require('../../../lib/npm.js')
 const CACHE = '/some/cache/dir'
 npm.config = {
+  flat: {
+    color: false,
+  },
   loaded: false,
   localPrefix: '/some/prefix/dir',
   get: key => {
@@ -97,6 +100,7 @@ t.test('just simple messages', t => {
     'ETOOMANYARGS',
     'ETARGET',
     'E403',
+    'ERR_SOCKET_TIMEOUT',
   ]
   t.plan(codes.length)
   codes.forEach(code => {
@@ -466,7 +470,7 @@ t.test('explain ERESOLVE errors', t => {
   t.matchSnapshot(errorMessage(er, npm))
   t.match(EXPLAIN_CALLED, [[
     er,
-    undefined,
+    false,
     path.resolve(npm.cache, 'eresolve-report.txt'),
   ]])
   t.end()
