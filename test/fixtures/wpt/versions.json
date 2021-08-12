@@ -1,6 +1,6 @@
 {
   "common": {
-    "commit": "bb97a689743eb5e3bc0bc92ac41ab266c54c134e",
+    "commit": "03c5072affa496c5fd2a506e5c40d23e36b5e3aa",
     "path": "common"
   },
   "console": {
@@ -8,7 +8,7 @@
     "path": "console"
   },
   "dom/abort": {
-    "commit": "1728d198c92834d92f7f399ef35e7823d5bfa0e4",
+    "commit": "c49cafb491d99d6318f8f24a26936cc66501f412",
     "path": "dom/abort"
   },
   "encoding": {
@@ -36,7 +36,7 @@
     "path": "html/webappapis/timers"
   },
   "interfaces": {
-    "commit": "80a417662387b6eda904607d78ad246c5d8bf191",
+    "commit": "fc086c82d5a7e9b01a684a23336d6d1f9e79e303",
     "path": "interfaces"
   },
   "performance-timeline": {
@@ -44,7 +44,7 @@
     "path": "performance-timeline"
   },
   "resources": {
-    "commit": "972ca5b6693bffebebc5805e1b9da68a6876e1f6",
+    "commit": "fbee645164468c030072c46a934e2c876b143f8e",
     "path": "resources"
   },
   "streams": {
@@ -58,5 +58,9 @@
   "user-timing": {
     "commit": "df24fb604e2d40528ac1d1b5dd970e32fc5c2978",
     "path": "user-timing"
+  },
+  "WebCryptoAPI": {
+    "commit": "cdd0f03df41b222aed098fbbb11c6a3cc500a86b",
+    "path": "WebCryptoAPI"
   }
 }
