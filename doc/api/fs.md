@@ -741,7 +741,7 @@ try {
 
 ### `fsPromises.cp(src, dest[, options])`
 <!-- YAML
-added: REPLACEME
+added: v16.7.0
 -->
 
 > Stability: 1 - Experimental
@@ -1143,6 +1143,9 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/37302
     description: The `recursive` option is deprecated, using it triggers a
                  deprecation warning.
+  - version: v14.14.0
+    pr-url: https://github.com/nodejs/node/pull/35579
+    description: The `recursive` option is deprecated, use `fsPromises.rm` instead.
   - version:
      - v13.3.0
      - v12.16.0
@@ -1881,7 +1884,7 @@ copyFile('source.txt', 'destination.txt', constants.COPYFILE_EXCL, callback);
 
 ### `fs.cp(src, dest[, options], callback)`
 <!-- YAML
-added: REPLACEME
+added: v16.7.0
 -->
 
 > Stability: 1 - Experimental
@@ -3295,6 +3298,9 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/37302
     description: The `recursive` option is deprecated, using it triggers a
                  deprecation warning.
+  - version: v14.14.0
+    pr-url: https://github.com/nodejs/node/pull/35579
+    description: The `recursive` option is deprecated, use `fs.rm` instead.
   - version:
      - v13.3.0
      - v12.16.0
@@ -4385,7 +4391,7 @@ copyFileSync('source.txt', 'destination.txt', constants.COPYFILE_EXCL);
 
 ### `fs.cpSync(src, dest[, options])`
 <!-- YAML
-added: REPLACEME
+added: v16.7.0
 -->
 
 > Stability: 1 - Experimental
@@ -4994,6 +5000,9 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/37302
     description: The `recursive` option is deprecated, using it triggers a
                  deprecation warning.
+  - version: v14.14.0
+    pr-url: https://github.com/nodejs/node/pull/35579
+    description: The `recursive` option is deprecated, use `fs.rmSync` instead.
   - version:
      - v13.3.0
      - v12.16.0

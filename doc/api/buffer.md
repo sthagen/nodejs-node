@@ -459,14 +459,20 @@ multiple worker threads.
 ### `new buffer.Blob([sources[, options]])`
 <!-- YAML
 added: v15.7.0
+changes:
+  - version: v16.7.0
+    pr-url: https://github.com/nodejs/node/pull/39708
+    description: Added the standard `endings` option to replace line-endings,
+                 and removed the non-standard `encoding` option.
 -->
 
 * `sources` {string[]|ArrayBuffer[]|TypedArray[]|DataView[]|Blob[]} An array
   of string, {ArrayBuffer}, {TypedArray}, {DataView}, or {Blob} objects, or
   any mix of such objects, that will be stored within the `Blob`.
 * `options` {Object}
-  * `encoding` {string} The character encoding to use for string sources.
-    **Default:** `'utf8'`.
+  * `endings` {string} One of either `'transparent'` or `'native'`. When set
+    to `'native'`, line endings in string source parts will be converted to
+    the platform native line-ending as specified by `require('os').EOL`.
   * `type` {string} The Blob content-type. The intent is for `type` to convey
     the MIME media type of the data, however no validation of the type format
     is performed.
@@ -476,7 +482,9 @@ Creates a new `Blob` object containing a concatenation of the given sources.
 {ArrayBuffer}, {TypedArray}, {DataView}, and {Buffer} sources are copied into
 the 'Blob' and can therefore be safely modified after the 'Blob' is created.
 
-String sources are also copied into the `Blob`.
+String sources are encoded as UTF-8 byte sequences and copied into the Blob.
+Unmatched surrogate pairs within each string part will be replaced by Unicode
+U+FFFD replacement characters.
 
 ### `blob.arrayBuffer()`
 <!-- YAML
@@ -507,6 +515,15 @@ added: v15.7.0
 Creates and returns a new `Blob` containing a subset of this `Blob` objects
 data. The original `Blob` is not altered.
 
+### `blob.stream()`
+<!-- YAML
+added: v16.7.0
+-->
+
+* Returns: {ReadableStream}
+
+Returns a new `ReadableStream` that allows the content of the `Blob` to be read.
+
 ### `blob.text()`
 <!-- YAML
 added: v15.7.0
@@ -514,8 +531,8 @@ added: v15.7.0
 
 * Returns: {Promise}
 
-Returns a promise that resolves the contents of the `Blob` decoded as a UTF-8
-string.
+Returns a promise that fulfills with the contents of the `Blob` decoded as a
+UTF-8 string.
 
 ### `blob.type`
 <!-- YAML
@@ -4942,6 +4959,20 @@ added: v3.0.0
 * {integer} The largest length allowed for a single `string` instance.
 
 An alias for [`buffer.constants.MAX_STRING_LENGTH`][].
+
+### `buffer.resolveObjectURL(id)`
+<!-- YAML
+added: v16.7.0
+-->
+
+> Stability: 1 - Experimental
+
+* `id` {string} A `'blob:nodedata:...` URL string returned by a prior call to
+  `URL.createObjectURL()`.
+* Returns: {Blob}
+
+Resolves a `'blob:nodedata:...'` an associated {Blob} object registered using
+a prior call to `URL.createObjectURL()`.
 
 ### `buffer.transcode(source, fromEnc, toEnc)`
 <!-- YAML

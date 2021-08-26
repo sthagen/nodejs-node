@@ -40,10 +40,12 @@ information described.
   * Approved
   * Pass `make test`
   * Have CVEs
+     * Make sure that dependent libraries have CVEs for their issues. We should
+       only create CVEs for vulnerabilities in Node.js itself. This is to avoid
+       having duplicate CVEs for the same vulnerability.
   * Described in the pre/post announcements
 
 * [ ] Pre-release announcement [email][]: ***LINK TO EMAIL***
-   * CC: `oss-security@lists.openwall.com`
    * Subject: `Node.js security updates for all active release lines, Month Year`
    * Body:
   ```text
@@ -51,6 +53,12 @@ information described.
   For more information see: https://nodejs.org/en/blog/vulnerability/month-year-security-releases/
   ```
   (Get access from existing manager: Ben Noordhuis, Rod Vagg, Michael Dawson)
+
+* [ ] CC `oss-security@lists.openwall.com` on pre-release
+
+The google groups UI does not support adding a CC, until we figure
+out a better way, forward the email you receive to
+`oss-security@lists.openwall.com` as a CC.
 
 * [ ] Pre-release announcement to nodejs.org blog: ***LINK TO BLOG***
   (Re-PR the pre-approved branch from nodejs-private/nodejs.org-private to
