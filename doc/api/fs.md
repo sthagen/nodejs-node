@@ -664,6 +664,9 @@ exist. `data` can be a string or a {Buffer}.
 
 If `options` is a string, then it specifies the `encoding`.
 
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
+
 The `path` may be specified as a {FileHandle} that has been opened
 for appending (using `fsPromises.open()`).
 
@@ -1026,7 +1029,9 @@ try {
 <!-- YAML
 added: v10.0.0
 changes:
-  - version: v15.2.0
+  - version:
+    - v15.2.0
+    - v14.17.0
     pr-url: https://github.com/nodejs/node/pull/35911
     description: The options argument may include an AbortSignal to abort an
                  ongoing readFile request.
@@ -1347,7 +1352,9 @@ changes:
   - version: v15.14.0
     pr-url: https://github.com/nodejs/node/pull/37490
     description: The `data` argument supports `AsyncIterable`, `Iterable` and `Stream`.
-  - version: v15.2.0
+  - version:
+    - v15.2.0
+    - v14.17.0
     pr-url: https://github.com/nodejs/node/pull/35993
     description: The options argument may include an AbortSignal to abort an
                  ongoing writeFile request.
@@ -1378,6 +1385,9 @@ Asynchronously writes data to a file, replacing the file if it already exists.
 The `encoding` option is ignored if `data` is a buffer.
 
 If `options` is a string, then it specifies the encoding.
+
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
 
 Any specified {FileHandle} has to support writing.
 
@@ -1644,6 +1654,9 @@ changes:
 
 Asynchronously append data to a file, creating the file if it does not yet
 exist. `data` can be a string or a {Buffer}.
+
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
 
 ```mjs
 import { appendFile } from 'fs';
@@ -4086,6 +4099,9 @@ a file descriptor.
 
 The `encoding` option is ignored if `data` is a buffer.
 
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
+
 If `data` is a plain object, it must have an own (not inherited) `toString`
 function property.
 
@@ -4259,6 +4275,9 @@ changes:
 
 Synchronously append data to a file, creating the file if it does not yet
 exist. `data` can be a string or a {Buffer}.
+
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
 
 ```mjs
 import { appendFileSync } from 'fs';
@@ -4616,7 +4635,9 @@ link(2) documentation for more detail. Returns `undefined`.
 <!-- YAML
 added: v0.1.30
 changes:
-  - version: v15.3.0
+  - version:
+    - v15.3.0
+    - v14.17.0
     pr-url: https://github.com/nodejs/node/pull/33716
     description: Accepts a `throwIfNoEntry` option to specify whether
                  an exception should be thrown if the entry does not exist.
@@ -5076,7 +5097,9 @@ utility). Returns `undefined`.
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v15.3.0
+  - version:
+    - v15.3.0
+    - v14.17.0
     pr-url: https://github.com/nodejs/node/pull/33716
     description: Accepts a `throwIfNoEntry` option to specify whether
                  an exception should be thrown if the entry does not exist.
@@ -5215,6 +5238,9 @@ Returns `undefined`.
 
 If `data` is a plain object, it must have an own (not inherited) `toString`
 function property.
+
+The `mode` option only affects the newly created file. See [`fs.open()`][]
+for more details.
 
 For detailed information, see the documentation of the asynchronous version of
 this API: [`fs.writeFile()`][].
@@ -6126,22 +6152,7 @@ Emitted when the {fs.WriteStream}'s underlying file descriptor has been closed.
 
 #### Event: `'open'`
 <!-- YAML
-added:
-  - v10.0.0
-  - v0.1.93
-changes:
-  - version: v14.17.0
-    pr-url: https://github.com/nodejs/node/pull/35993
-    description: The options argument may include an AbortSignal to abort an
-                 ongoing writeFile request.
-  - version: v14.12.0
-    pr-url: https://github.com/nodejs/node/pull/34993
-    description: The `data` parameter will stringify an object with an
-                 explicit `toString` function.
-  - version: v14.0.0
-    pr-url: https://github.com/nodejs/node/pull/31030
-    description: The `data` parameter won't coerce unsupported input to
-                 strings anymore.
+added: v0.1.93
 -->
 
 * `fd` {integer} Integer file descriptor used by the {fs.WriteStream}.
