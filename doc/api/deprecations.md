@@ -2789,12 +2789,15 @@ deprecated and should no longer be used.
 ### DEP0153: `dns.lookup` and `dnsPromises.lookup` options type coercion
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/39793
+    description: Runtime deprecation.
   - version: v16.8.0
     pr-url: https://github.com/nodejs/node/pull/38906
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only
+Type: Runtime
 
 Using a non-nullish non-integer value for `family` option, a non-nullish
 non-number value for `hints` option, a non-nullish non-boolean value for `all`
@@ -2813,6 +2816,23 @@ Type: Documentation-only (supports [`--pending-deprecation`][])
 
 The `'hash'` and `'mgf1Hash'` options are replaced with `'hashAlgorithm'`
 and `'mgf1HashAlgorithm'`.
+
+### DEP0155: Trailing slashes in pattern specifier resolutions
+<!-- YAML
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/40117
+    description: Runtime deprecation.
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/40039
+    description: Documentation-only deprecation
+                 with `--pending-deprecation` support.
+-->
+
+Type: Runtime
+
+The remapping of specifiers ending in `"/"` like `import 'pkg/x/'` is deprecated
+for package `"exports"` and `"imports"` pattern resolutions.
 
 [Legacy URL API]: url.md#legacy-url-api
 [NIST SP 800-38D]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf

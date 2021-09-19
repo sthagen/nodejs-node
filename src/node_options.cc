@@ -407,6 +407,11 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             &EnvironmentOptions::allow_native_addons,
             kAllowedInEnvironment,
             true);
+  AddOption("--global-search-paths",
+            "disable global module search paths",
+            &EnvironmentOptions::global_search_paths,
+            kAllowedInEnvironment,
+            true);
   AddOption("--warnings",
             "silence all process warnings",
             &EnvironmentOptions::warnings,
@@ -1076,6 +1081,12 @@ void Initialize(Local<Object> target,
       ->Set(context,
             FIXED_ONE_BYTE_STRING(env->isolate(), "shouldNotRegisterESMLoader"),
             Boolean::New(isolate, env->should_not_register_esm_loader()))
+      .Check();
+
+  target
+      ->Set(context,
+            FIXED_ONE_BYTE_STRING(env->isolate(), "noGlobalSearchPaths"),
+            Boolean::New(isolate, env->no_global_search_paths()))
       .Check();
 
   Local<Object> types = Object::New(isolate);
