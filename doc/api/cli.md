@@ -1,6 +1,7 @@
 # Command-line options
 
 <!--introduced_in=v5.9.1-->
+
 <!--type=misc-->
 
 Node.js comes with a variety of CLI options. These options expose built-in
@@ -600,7 +601,7 @@ This option is a no-op. It is kept for compatibility.
 
 ### `--no-addons`
 <!-- YAML
-added: REPLACEME
+added: v16.10.0
 -->
 
 Disable the `node-addons` exports condition as well as disable loading
@@ -631,7 +632,7 @@ dynamically when `async_hooks` is enabled.
 
 ### `--no-global-search-paths`
 <!-- YAML
-added: REPLACEME
+added: v16.10.0
 -->
 
 Do not search modules from global paths like `$HOME/.node_modules` and

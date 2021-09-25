@@ -1,6 +1,7 @@
 # Process
 
 <!-- introduced_in=v0.10.0 -->
+
 <!-- type=global -->
 
 <!-- source_link=lib/process.js -->
@@ -665,6 +666,7 @@ A few of the warning types that are most common include:
 ### Signal events
 
 <!--type=event-->
+
 <!--name=SIGINT, SIGHUP, etc.-->
 
 Signal events will be emitted when the Node.js process receives a signal. Please
@@ -2596,7 +2598,7 @@ tarball.
   that are no longer supported).
   * `'Dubnium'` for the 10.x LTS line beginning with 10.13.0.
   * `'Erbium'` for the 12.x LTS line beginning with 12.13.0.
-  For other LTS Release code names, see [Node.js Changelog Archive](https://github.com/nodejs/node/blob/HEAD/doc/changelogs/CHANGELOG_ARCHIVE.md)
+    For other LTS Release code names, see [Node.js Changelog Archive](https://github.com/nodejs/node/blob/HEAD/doc/changelogs/CHANGELOG_ARCHIVE.md)
 
 <!-- eslint-skip -->
 ```js

@@ -1,6 +1,7 @@
 # Errors
 
 <!--introduced_in=v4.0.0-->
+
 <!--type=misc-->
 
 Applications running in Node.js will generally experience four categories of
@@ -1030,7 +1031,7 @@ The [debugger][] timed out waiting for the required host/port to be free.
 <a id="ERR_DLOPEN_DISABLED"></a>
 ### `ERR_DLOPEN_DISABLED`
 <!-- YAML
-added: REPLACEME
+added: v16.10.0
 -->
 
 Loading native addons has been disabled using [`--no-addons`][].
