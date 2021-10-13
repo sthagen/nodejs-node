@@ -456,7 +456,9 @@ An alias of [`assert.ok()`][].
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v16.0.0
+  - version:
+      - v16.0.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/38113
     description: In Legacy assertion mode, changed status from Deprecated to
                  Legacy.
@@ -475,18 +477,18 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/12142
     description: The `Set` and `Map` content is also compared.
   - version:
-    - v6.4.0
-    - v4.7.1
+      - v6.4.0
+      - v4.7.1
     pr-url: https://github.com/nodejs/node/pull/8002
     description: Typed array slices are handled correctly now.
   - version:
-    - v6.1.0
-    - v4.5.0
+      - v6.1.0
+      - v4.5.0
     pr-url: https://github.com/nodejs/node/pull/6432
     description: Objects with circular references can be used as inputs now.
   - version:
-    - v5.10.1
-    - v4.4.3
+      - v5.10.1
+      - v4.4.3
     pr-url: https://github.com/nodejs/node/pull/5910
     description: Handle non-`Uint8Array` typed arrays correctly.
 -->
@@ -690,7 +692,7 @@ are recursively evaluated also by the following rules.
 import assert from 'assert/strict';
 
 // This fails because 1 !== '1'.
-deepStrictEqual({ a: 1 }, { a: '1' });
+assert.deepStrictEqual({ a: 1 }, { a: '1' });
 // AssertionError: Expected inputs to be strictly deep-equal:
 // + actual - expected
 //
@@ -956,7 +958,6 @@ function. See [`assert.throws()`][] for more details.
 Besides the async nature to await the completion behaves identically to
 [`assert.doesNotThrow()`][].
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -981,7 +982,6 @@ const assert = require('assert/strict');
 })();
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -991,7 +991,6 @@ assert.doesNotReject(Promise.reject(new TypeError('Wrong value')))
   });
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```cjs
 const assert = require('assert/strict');
 
@@ -1040,7 +1039,6 @@ function. See [`assert.throws()`][] for more details.
 The following, for instance, will throw the [`TypeError`][] because there is no
 matching error type in the assertion:
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -1052,7 +1050,6 @@ assert.doesNotThrow(
 );
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```cjs
 const assert = require('assert/strict');
 
@@ -1067,7 +1064,6 @@ assert.doesNotThrow(
 However, the following will result in an [`AssertionError`][] with the message
 'Got unwanted exception...':
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -1079,7 +1075,6 @@ assert.doesNotThrow(
 );
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```cjs
 const assert = require('assert/strict');
 
@@ -1095,7 +1090,6 @@ If an [`AssertionError`][] is thrown and a value is provided for the `message`
 parameter, the value of `message` will be appended to the [`AssertionError`][]
 message:
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -1109,7 +1103,6 @@ assert.doesNotThrow(
 // Throws: AssertionError: Got unwanted exception: Whoops
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```cjs
 const assert = require('assert/strict');
 
@@ -1127,7 +1120,9 @@ assert.doesNotThrow(
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v16.0.0
+  - version:
+      - v16.0.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/38113
     description: In Legacy assertion mode, changed status from Deprecated to
                  Legacy.
@@ -1455,7 +1450,9 @@ instance of an [`Error`][] then it will be thrown instead of the
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v16.0.0
+  - version:
+      - v16.0.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/38113
     description: In Legacy assertion mode, changed status from Deprecated to
                  Legacy.
@@ -1470,18 +1467,18 @@ changes:
     pr-url: https://github.com/nodejs/node/pull/12142
     description: The `Set` and `Map` content is also compared.
   - version:
-    - v6.4.0
-    - v4.7.1
+      - v6.4.0
+      - v4.7.1
     pr-url: https://github.com/nodejs/node/pull/8002
     description: Typed array slices are handled correctly now.
   - version:
-    - v6.1.0
-    - v4.5.0
+      - v6.1.0
+      - v4.5.0
     pr-url: https://github.com/nodejs/node/pull/6432
     description: Objects with circular references can be used as inputs now.
   - version:
-    - v5.10.1
-    - v4.4.3
+      - v5.10.1
+      - v4.4.3
     pr-url: https://github.com/nodejs/node/pull/5910
     description: Handle non-`Uint8Array` typed arrays correctly.
 -->
@@ -1635,7 +1632,9 @@ instead of the [`AssertionError`][].
 <!-- YAML
 added: v0.1.21
 changes:
-  - version: v16.0.0
+  - version:
+      - v16.0.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/38113
     description: In Legacy assertion mode, changed status from Deprecated to
                  Legacy.
@@ -2338,7 +2337,6 @@ message as the thrown error message is going to result in an
 `ERR_AMBIGUOUS_ARGUMENT` error. Please read the example below carefully if using
 a string as the second argument gets considered:
 
-<!-- eslint-disable no-restricted-syntax -->
 ```mjs
 import assert from 'assert/strict';
 
@@ -2375,7 +2373,6 @@ assert.throws(throwingFirst, /Second$/);
 // AssertionError [ERR_ASSERTION]
 ```
 
-<!-- eslint-disable no-restricted-syntax -->
 ```cjs
 const assert = require('assert/strict');
 

@@ -217,7 +217,9 @@ added:
   - v14.13.1
   - v12.20.0
 changes:
-  - version: v16.0.0
+  - version:
+      - v16.0.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/37246
     description: Added `node:` import support to `require(...)`.
 -->
@@ -297,7 +299,9 @@ added:
   - v13.9.0
   - v12.16.2
 changes:
-  - version: v16.2.0
+  - version:
+      - v16.2.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/38587
     description: Add support for WHATWG `URL` object to `parentURL` parameter.
 -->
@@ -699,13 +703,13 @@ a URL should be interpreted, retrieved, and parsed.
 
 The final value of `format` must be one of the following:
 
-| `format`     | Description                    | Acceptable types For `source` returned by `resolve` or `load` |
-| ------------ | ------------------------------ | -------------------------------------------------------------------------- |
-| `'builtin'`  | Load a Node.js builtin module  | Not applicable                                                             |
-| `'commonjs'` | Load a Node.js CommonJS module | Not applicable                                                             |
-| `'json'`     | Load a JSON file               | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] }                      |
-| `'module'`   | Load an ES module              | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] }                      |
-| `'wasm'`     | Load a WebAssembly module      | { [`ArrayBuffer`][], [`TypedArray`][] }                                    |
+| `format`     | Description                    | Acceptable types for `source` returned by `load`      |
+| ------------ | ------------------------------ | ----------------------------------------------------- |
+| `'builtin'`  | Load a Node.js builtin module  | Not applicable                                        |
+| `'commonjs'` | Load a Node.js CommonJS module | Not applicable                                        |
+| `'json'`     | Load a JSON file               | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] } |
+| `'module'`   | Load an ES module              | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] } |
+| `'wasm'`     | Load a WebAssembly module      | { [`ArrayBuffer`][], [`TypedArray`][] }               |
 
 The value of `source` is ignored for type `'builtin'` because currently it is
 not possible to replace the value of a Node.js builtin (core) module. The value
@@ -975,7 +979,7 @@ async function getPackageType(url) {
   // Compose a file path to a package.json in the same directory,
   // which may or may not exist
   const packagePath = resolvePath(dir, 'package.json');
-  // Try to read the possibly non-existant package.json
+  // Try to read the possibly nonexistent package.json
   const type = await readFile(packagePath, { encoding: 'utf8' })
     .then((filestring) => JSON.parse(filestring).type)
     .catch((err) => {
@@ -1103,6 +1107,8 @@ The resolver can throw the following errors:
 >    1. Throw an _Invalid Module Specifier_ error.
 > 1. Let _packageSubpath_ be _"."_ concatenated with the substring of
 >    _packageSpecifier_ from the position at the length of _packageName_.
+> 1. If _packageSubpath_ ends in _"/"_, then
+>    1. Throw an _Invalid Module Specifier_ error.
 > 1. Let _selfUrl_ be the result of
 >    **PACKAGE_SELF_RESOLVE**(_packageName_, _packageSubpath_, _parentURL_).
 > 1. If _selfUrl_ is not **undefined**, return _selfUrl_.
@@ -1114,18 +1120,15 @@ The resolver can throw the following errors:
 >       concatenated with _packageSpecifier_, relative to _parentURL_.
 >    1. Set _parentURL_ to the parent folder URL of _parentURL_.
 >    1. If the folder at _packageURL_ does not exist, then
->       1. Set _parentURL_ to the parent URL path of _parentURL_.
 >       1. Continue the next loop iteration.
 >    1. Let _pjson_ be the result of **READ_PACKAGE_JSON**(_packageURL_).
 >    1. If _pjson_ is not **null** and _pjson_._exports_ is not **null** or
 >       **undefined**, then
->       1. Let _exports_ be _pjson.exports_.
 >       1. Return the result of **PACKAGE_EXPORTS_RESOLVE**(_packageURL_,
 >          _packageSubpath_, _pjson.exports_, _defaultConditions_).
 >    1. Otherwise, if _packageSubpath_ is equal to _"."_, then
->       1. Return the result of applying the legacy **LOAD_AS_DIRECTORY**
->          CommonJS resolver to _packageURL_, throwing a _Module Not Found_
->          error for no resolution.
+>       1. If _pjson.main_ is a string, then
+>          1. Return the URL resolution of _main_ in _packageURL_.
 >    1. Otherwise,
 >       1. Return the URL resolution of _packageSubpath_ in _packageURL_.
 > 1. Throw a _Module Not Found_ error.
@@ -1141,13 +1144,11 @@ The resolver can throw the following errors:
 >    1. Return **undefined**.
 > 1. If _pjson.name_ is equal to _packageName_, then
 >    1. Return the result of **PACKAGE_EXPORTS_RESOLVE**(_packageURL_,
->       _subpath_, _pjson.exports_, _defaultConditions_).
+>       _packageSubpath_, _pjson.exports_, _defaultConditions_).
 > 1. Otherwise, return **undefined**.
 
 **PACKAGE_EXPORTS_RESOLVE**(_packageURL_, _subpath_, _exports_, _conditions_)
 
-> 1. If _subpath_ ends in _"/"_, then
->    1. Throw an _Invalid Module Specifier_ error.
 > 1. If _exports_ is an Object with both a key starting with _"."_ and a key not
 >    starting with _"."_, throw an _Invalid Package Configuration_ error.
 > 1. If _subpath_ is equal to _"."_, then
@@ -1173,8 +1174,7 @@ The resolver can throw the following errors:
 **PACKAGE_IMPORTS_RESOLVE**(_specifier_, _parentURL_, _conditions_)
 
 > 1. Assert: _specifier_ begins with _"#"_.
-> 1. If _specifier_ is exactly equal to _"#"_, starts with _"#/"_, or ends in
->    _"/"_, then
+> 1. If _specifier_ is exactly equal to _"#"_ or starts with _"#/"_, then
 >    1. Throw an _Invalid Module Specifier_ error.
 > 1. Let _packageURL_ be the result of **READ_PACKAGE_SCOPE**(_parentURL_).
 > 1. If _packageURL_ is not **null**, then
@@ -1188,7 +1188,6 @@ The resolver can throw the following errors:
 **PACKAGE_IMPORTS_EXPORTS_RESOLVE**(_matchKey_, _matchObj_, _packageURL_,
 _isImports_, _conditions_)
 
-> 1. Assert: _matchKey_ does not end in _"/"_.
 > 1. If _matchKey_ is a key of _matchObj_ and does not contain _"*"_, then
 >    1. Let _target_ be the value of _matchObj_\[_matchKey_\].
 >    1. Return the result of **PACKAGE_TARGET_RESOLVE**(_packageURL_, _target_,

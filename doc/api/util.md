@@ -1111,6 +1111,21 @@ doSomething[kCustomPromisifiedSymbol] = (foo) => {
 };
 ```
 
+## `util.stripVTControlCharacters(str)`
+<!-- YAML
+added: v16.11.0
+-->
+
+* `str` {string}
+* Returns: {string}
+
+Returns `str` with any ANSI escape codes removed.
+
+```js
+console.log(util.stripVTControlCharacters('\u001B[4mvalue\u001B[0m'));
+// Prints "value"
+```
+
 ## Class: `util.TextDecoder`
 <!-- YAML
 added: v8.3.0
@@ -1308,7 +1323,9 @@ The encoding supported by the `TextEncoder` instance. Always set to `'utf-8'`.
 
 ## `util.toUSVString(string)`
 <!-- YAML
-added: v16.8.0
+added:
+  - v16.8.0
+  - v14.18.0
 -->
 
 * `string` {string}

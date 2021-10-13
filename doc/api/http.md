@@ -407,7 +407,10 @@ body which has been transmitted are equal or not.
 ### Event: `'abort'`
 <!-- YAML
 added: v1.4.1
+deprecated: REPLACEME
 -->
+
+> Stability: 0 - Deprecated. Listen for the `'close'` event instead.
 
 Emitted when the request has been aborted by the client. This event is only
 emitted on the first call to `abort()`.
@@ -564,7 +567,7 @@ added: v0.7.8
 -->
 
 Emitted when the underlying socket times out from inactivity. This only notifies
-that the socket has been idle. The request must be aborted manually.
+that the socket has been idle. The request must be destroyed manually.
 
 See also: [`request.setTimeout()`][].
 
@@ -645,11 +648,14 @@ in the response to be dropped and the socket to be destroyed.
 ### `request.aborted`
 <!-- YAML
 added: v0.11.14
+deprecated: REPLACEME
 changes:
   - version: v11.0.0
     pr-url: https://github.com/nodejs/node/pull/20230
     description: The `aborted` property is no longer a timestamp number.
 -->
+
+> Stability: 0 - Deprecated. Check [`request.destroyed`][] instead.
 
 * {boolean}
 
@@ -1357,12 +1363,12 @@ explicitly.
 added: v16.10.0
 -->
 
-* {number} Requests per socket. **Default:** null (no limit)
+* {number} Requests per socket. **Default:** 0 (no limit)
 
 The maximum number of requests socket can handle
 before closing keep alive connection.
 
-A value of `null` will disable the limit.
+A value of `0` will disable the limit.
 
 When the limit is reached it will set the `Connection` header value to `close`,
 but will not actually close the connection, subsequent requests sent
@@ -1988,7 +1994,10 @@ may be reused multiple times in case of keep-alive.
 ### Event: `'aborted'`
 <!-- YAML
 added: v0.3.8
+deprecated: REPLACEME
 -->
+
+> Stability: 0 - Deprecated. Listen for `'close'` event instead.
 
 Emitted when the request has been aborted.
 
@@ -2002,7 +2011,10 @@ Indicates that the underlying connection was closed.
 ### `message.aborted`
 <!-- YAML
 added: v10.1.0
+deprecated: REPLACEME
 -->
+
+> Stability: 0 - Deprecated. Check `message.destroyed` from {stream.Readable}.
 
 * {boolean}
 
@@ -2851,7 +2863,9 @@ This can be overridden for servers and client requests by passing the
 <!-- YAML
 added: v0.3.6
 changes:
-  - version: v16.7.0
+  - version:
+      - v16.7.0
+      - v14.18.0
     pr-url: https://github.com/nodejs/node/pull/39310
     description: When using a `URL` object parsed username and
                  password will now be properly URI decoded.
@@ -2911,7 +2925,7 @@ changes:
   * `localPort` {number} Local port to connect from.
   * `lookup` {Function} Custom lookup function. **Default:** [`dns.lookup()`][].
   * `maxHeaderSize` {number} Optionally overrides the value of
-    [`--max-http-header-size`][] for requests received from the server, i.e.
+    [`--max-http-header-size`][] for responses received from the server, i.e.
     the maximum length of response headers in bytes.
     **Default:** 16384 (16 KB).
   * `method` {string} A string specifying the HTTP request method. **Default:**
@@ -3237,6 +3251,7 @@ try {
 [`outgoingMessage.socket`]: #outgoingmessagesocket
 [`removeHeader(name)`]: #requestremoveheadername
 [`request.destroy()`]: #requestdestroyerror
+[`request.destroyed`]: #requestdestroyed
 [`request.end()`]: #requestenddata-encoding-callback
 [`request.flushHeaders()`]: #requestflushheaders
 [`request.getHeader()`]: #requestgetheadername

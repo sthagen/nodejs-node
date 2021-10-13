@@ -188,7 +188,7 @@ testclean:
 .PHONY: distclean
 distclean:
 	$(RM) -r out
-	$(RM) config.gypi icu_config.gypi config_fips.gypi
+	$(RM) config.gypi icu_config.gypi
 	$(RM) config.mk
 	$(RM) -r $(NODE_EXE) $(NODE_G_EXE)
 	$(RM) -r node_modules
@@ -827,6 +827,9 @@ else
 ifeq ($(findstring s390,$(UNAME_M)),s390)
 DESTCPU ?= s390
 else
+ifeq ($(findstring arm64,$(UNAME_M)),arm64)
+DESTCPU ?= arm64
+else
 ifeq ($(findstring arm,$(UNAME_M)),arm)
 DESTCPU ?= arm
 else
@@ -840,6 +843,7 @@ ifeq ($(findstring riscv64,$(UNAME_M)),riscv64)
 DESTCPU ?= riscv64
 else
 DESTCPU ?= x86
+endif
 endif
 endif
 endif
@@ -1252,6 +1256,13 @@ tools/.mdlintstamp: $(LINT_MD_FILES)
 .PHONY: lint-md
 # Lints the markdown documents maintained by us in the codebase.
 lint-md: lint-js-doc | tools/.mdlintstamp
+
+run-format-md = tools/lint-md/lint-md.mjs --format $(LINT_MD_FILES)
+.PHONY: format-md
+# Formats the markdown documents maintained by us in the codebase.
+format-md:
+	@$(call available-node,$(run-format-md))
+
 
 
 LINT_JS_TARGETS = .eslintrc.js benchmark doc lib test tools
