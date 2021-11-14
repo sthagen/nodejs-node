@@ -7,6 +7,9 @@
 <!-- YAML
 added: v8.5.0
 changes:
+  - version: v17.1.0
+    pr-url: https://github.com/nodejs/node/pull/40250
+    description: Add support for import assertions.
   - version:
     - v17.0.0
     - v16.12.0
@@ -219,6 +222,28 @@ absolute URL strings.
 ```js
 import fs from 'node:fs/promises';
 ```
+
+## Import assertions
+
+<!-- YAML
+added: v17.1.0
+-->
+
+The [Import Assertions proposal][] adds an inline syntax for module import
+statements to pass on more information alongside the module specifier.
+
+```js
+import fooData from './foo.json' assert { type: 'json' };
+
+const { default: barData } =
+  await import('./bar.json', { assert: { type: 'json' } });
+```
+
+Node.js supports the following `type` values:
+
+| `type`   | Resolves to      |
+| -------- | ---------------- |
+| `'json'` | [JSON modules][] |
 
 ## Builtin modules
 
@@ -517,10 +542,8 @@ same path.
 
 Assuming an `index.mjs` with
 
-<!-- eslint-skip -->
-
 ```js
-import packageConfig from './package.json';
+import packageConfig from './package.json' assert { type: 'json' };
 ```
 
 The `--experimental-json-modules` flag is needed for the module
@@ -608,12 +631,20 @@ CommonJS modules loaded.
 
 #### `resolve(specifier, context, defaultResolve)`
 
+<!-- YAML
+changes:
+  - version: v17.1.0
+    pr-url: https://github.com/nodejs/node/pull/40250
+    description: Add support for import assertions.
+-->
+
 > Note: The loaders API is being redesigned. This hook may disappear or its
 > signature may change. Do not rely on the API described below.
 
 * `specifier` {string}
 * `context` {Object}
   * `conditions` {string\[]}
+  * `importAssertions` {Object}
   * `parentURL` {string|undefined}
 * `defaultResolve` {Function} The Node.js default resolver.
 * Returns: {Object}
@@ -690,13 +721,15 @@ export async function resolve(specifier, context, defaultResolve) {
 * `context` {Object}
   * `format` {string|null|undefined} The format optionally supplied by the
     `resolve` hook.
+  * `importAssertions` {Object}
 * `defaultLoad` {Function}
 * Returns: {Object}
   * `format` {string}
   * `source` {string|ArrayBuffer|TypedArray}
 
 The `load` hook provides a way to define a custom method of determining how
-a URL should be interpreted, retrieved, and parsed.
+a URL should be interpreted, retrieved, and parsed. It is also in charge of
+validating the import assertion.
 
 The final value of `format` must be one of the following:
 
@@ -892,16 +925,13 @@ purposes.
 
 ```js
 // coffeescript-loader.mjs
-import { readFile } from 'fs/promises';
-import { readFileSync } from 'fs';
-import { createRequire } from 'module';
-import { dirname, extname, resolve as resolvePath } from 'path';
-import { cwd } from 'process';
-import { fileURLToPath, pathToFileURL } from 'url';
-
+import { readFile } from 'node:fs/promises';
+import { dirname, extname, resolve as resolvePath } from 'node:path';
+import { cwd } from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import CoffeeScript from 'coffeescript';
 
-const baseURL = pathToFileURL(`${cwd}/`).href;
+const baseURL = pathToFileURL(`${cwd()}/`).href;
 
 // CoffeeScript files end in .coffee, .litcoffee or .coffee.md.
 const extensionsRegex = /\.coffee$|\.litcoffee$|\.coffee\.md$/;
@@ -1119,21 +1149,21 @@ The resolver can throw the following errors:
 >    **PACKAGE\_SELF\_RESOLVE**(_packageName_, _packageSubpath_, _parentURL_).
 > 10. If _selfUrl_ is not **undefined**, return _selfUrl_.
 > 11. While _parentURL_ is not the file system root,
->    1. Let _packageURL_ be the URL resolution of _"node_modules/"_
->       concatenated with _packageSpecifier_, relative to _parentURL_.
->    2. Set _parentURL_ to the parent folder URL of _parentURL_.
->    3. If the folder at _packageURL_ does not exist, then
->       1. Continue the next loop iteration.
->    4. Let _pjson_ be the result of **READ\_PACKAGE\_JSON**(_packageURL_).
->    5. If _pjson_ is not **null** and _pjson_._exports_ is not **null** or
->       **undefined**, then
->       1. Return the result of **PACKAGE\_EXPORTS\_RESOLVE**(_packageURL_,
->          _packageSubpath_, _pjson.exports_, _defaultConditions_).
->    6. Otherwise, if _packageSubpath_ is equal to _"."_, then
->       1. If _pjson.main_ is a string, then
->          1. Return the URL resolution of _main_ in _packageURL_.
->    7. Otherwise,
->       1. Return the URL resolution of _packageSubpath_ in _packageURL_.
+>     1. Let _packageURL_ be the URL resolution of _"node\_modules/"_
+>        concatenated with _packageSpecifier_, relative to _parentURL_.
+>     2. Set _parentURL_ to the parent folder URL of _parentURL_.
+>     3. If the folder at _packageURL_ does not exist, then
+>        1. Continue the next loop iteration.
+>     4. Let _pjson_ be the result of **READ\_PACKAGE\_JSON**(_packageURL_).
+>     5. If _pjson_ is not **null** and _pjson_._exports_ is not **null** or
+>        **undefined**, then
+>        1. Return the result of **PACKAGE\_EXPORTS\_RESOLVE**(_packageURL_,
+>           _packageSubpath_, _pjson.exports_, _defaultConditions_).
+>     6. Otherwise, if _packageSubpath_ is equal to _"."_, then
+>        1. If _pjson.main_ is a string, then
+>           1. Return the URL resolution of _main_ in _packageURL_.
+>     7. Otherwise,
+>        1. Return the URL resolution of _packageSubpath_ in _packageURL_.
 > 12. Throw a _Module Not Found_ error.
 
 **PACKAGE\_SELF\_RESOLVE**(_packageName_, _packageSubpath_, _parentURL_)
@@ -1245,7 +1275,7 @@ _internal_, _conditions_)
 >             1. Return **PACKAGE\_RESOLVE**(_target_ with every instance of
 >                _"\*"_ replaced by _subpath_, _packageURL_ + _"/"_).
 >          2. Return **PACKAGE\_RESOLVE**(_target_ + _subpath_,
->             _packageURL_ + _"/"_)_.
+>             _packageURL_ + _"/"_).
 >       2. Otherwise, throw an _Invalid Package Target_ error.
 >    3. If _target_ split on _"/"_ or _"\\"_ contains any _"."_, _".."_ or
 >       _"node\_modules"_ segments after the first segment, case insensitive and
@@ -1361,6 +1391,8 @@ success!
 [Dynamic `import()`]: https://wiki.developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports
 [ECMAScript Top-Level `await` proposal]: https://github.com/tc39/proposal-top-level-await/
 [ES Module Integration Proposal for Web Assembly]: https://github.com/webassembly/esm-integration
+[Import Assertions proposal]: https://github.com/tc39/proposal-import-assertions
+[JSON modules]: #json-modules
 [Node.js Module Resolution Algorithm]: #resolver-algorithm-specification
 [Terminology]: #terminology
 [URL]: https://url.spec.whatwg.org/
@@ -1383,7 +1415,7 @@ success!
 [`process.dlopen`]: process.md#processdlopenmodule-filename-flags
 [`string`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
 [`util.TextDecoder`]: util.md#class-utiltextdecoder
-[cjs-module-lexer]: https://github.com/guybedford/cjs-module-lexer/tree/1.2.2
+[cjs-module-lexer]: https://github.com/nodejs/cjs-module-lexer/tree/1.2.2
 [custom https loader]: #https-loader
 [load hook]: #loadurl-context-defaultload
 [resolve hook]: #resolvespecifier-context-defaultresolve

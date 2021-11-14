@@ -295,14 +295,6 @@ added: v9.0.0
 Specify the `module` of a custom experimental [ECMAScript Module loader][].
 `module` may be either a path to a file, or an ECMAScript Module name.
 
-### `--experimental-modules`
-
-<!-- YAML
-added: v8.5.0
--->
-
-Enable latest experimental modules features (deprecated).
-
 ### `--experimental-policy`
 
 <!-- YAML
@@ -861,7 +853,7 @@ warning will be written to stderr instead.
 
 The `file` name may be an absolute path. If it is not, the default directory it
 will be written to is controlled by the
-[`--diagnostic-dir`]() command-line option.
+[`--diagnostic-dir`][] command-line option.
 
 ### `--report-compact`
 

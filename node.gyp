@@ -642,6 +642,7 @@
         'src/tracing/trace_event_common.h',
         'src/tracing/traced_value.h',
         'src/timer_wrap.h',
+        'src/timer_wrap-inl.h',
         'src/tty_wrap.h',
         'src/udp_wrap.h',
         'src/util.h',
@@ -1473,5 +1474,31 @@
         },
       ]
     }], # end aix section
+    # TODO(RaisinTen): Enable this to build on other platforms as well.
+    ['(OS=="mac" or (OS=="linux" and target_arch=="x64")) and \
+      node_use_openssl=="true"', {
+      'targets': [
+        {
+          'target_name': 'test_crypto_engine',
+          'type': 'shared_library',
+          'include_dirs': ['deps/openssl/openssl/include'],
+          'sources': ['test/fixtures/test_crypto_engine.c'],
+          'conditions': [
+            ['OS=="mac"', {
+              'dependencies': ['deps/openssl/openssl.gyp:openssl'],
+              'xcode_settings': {
+                'OTHER_CFLAGS': ['-Wno-deprecated-declarations'],
+              },
+            }],
+            ['OS=="linux" and target_arch=="x64"', {
+              'cflags': [
+                '-Wno-deprecated-declarations',
+                '-fPIC',
+              ],
+            }],
+          ],
+        }, # test_crypto_engine
+      ], # end targets
+    }], # end node_use_openssl section
   ], # end conditions block
 }
