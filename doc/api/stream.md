@@ -596,6 +596,18 @@ added: v11.4.0
 Is `true` if it is safe to call [`writable.write()`][stream-write], which means
 the stream has not been destroyed, errored or ended.
 
+##### `writable.writableAborted`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1 - Experimental
+
+* {boolean}
+
+Returns whether the stream was destroyed or errored before emitting `'finish'`.
+
 ##### `writable.writableEnded`
 
 <!-- YAML
@@ -621,7 +633,7 @@ added:
 Number of times [`writable.uncork()`][stream-uncork] needs to be
 called in order to fully uncork the stream.
 
-##### `writable.writableErrored`
+##### `writable.errored`
 
 <!-- YAML
 added:
@@ -1377,7 +1389,7 @@ added: v12.9.0
 
 Becomes `true` when [`'end'`][] event is emitted.
 
-##### `readable.readableErrored`
+##### `readable.errored`
 
 <!-- YAML
 added:
@@ -2187,7 +2199,7 @@ for performance reasons.
 ### `stream.Readable.fromWeb(readableStream[, options])`
 
 <!-- YAML
-added: v16.11.0
+added: v17.0.0
 -->
 
 > Stability: 1 - Experimental

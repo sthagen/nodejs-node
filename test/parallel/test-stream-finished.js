@@ -7,7 +7,8 @@ const {
   Transform,
   finished,
   Duplex,
-  PassThrough
+  PassThrough,
+  Stream,
 } = require('stream');
 const assert = require('assert');
 const EE = require('events');
@@ -612,7 +613,7 @@ testClosed((opts) => new Writable({ write() {}, ...opts }));
   const w = new Writable();
   const _err = new Error();
   w.destroy(_err);
-  assert.strictEqual(w.writableErrored, _err);
+  assert.strictEqual(w.errored, _err);
   finished(w, common.mustCall((err) => {
     assert.strictEqual(_err, err);
     assert.strictEqual(w.closed, true);
@@ -625,7 +626,7 @@ testClosed((opts) => new Writable({ write() {}, ...opts }));
 {
   const w = new Writable();
   w.destroy();
-  assert.strictEqual(w.writableErrored, null);
+  assert.strictEqual(w.errored, null);
   finished(w, common.mustCall((err) => {
     assert.strictEqual(w.closed, true);
     assert.strictEqual(err.code, 'ERR_STREAM_PREMATURE_CLOSE');
@@ -633,4 +634,29 @@ testClosed((opts) => new Writable({ write() {}, ...opts }));
       assert.strictEqual(err.code, 'ERR_STREAM_PREMATURE_CLOSE');
     }));
   }));
+}
+
+{
+  // Legacy Streams do not inherit from Readable or Writable.
+  // We cannot really assume anything about them, so we cannot close them
+  // automatically.
+  const s = new Stream();
+  finished(s, common.mustNotCall());
+}
+
+{
+  const server = http.createServer(common.mustCall(function(req, res) {
+    fs.createReadStream(__filename).pipe(res);
+    finished(res, common.mustCall(function(err) {
+      assert.strictEqual(err, undefined);
+    }));
+  })).listen(0, function() {
+    http.request(
+      { method: 'GET', port: this.address().port },
+      common.mustCall(function(res) {
+        res.resume();
+        server.close();
+      })
+    ).end();
+  });
 }
