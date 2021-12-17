@@ -290,6 +290,8 @@ For information about the governance of the Node.js project, see
   **Beth Griggs** <<bgriggs@redhat.com>> (she/her)
 * [bmeck](https://github.com/bmeck) -
   **Bradley Farias** <<bradley.meck@gmail.com>>
+* [bnb](https://github.com/bnb) -
+  **Tierney Cyren** <<hello@bnb.im>> (they/he)
 * [boneskull](https://github.com/boneskull) -
   **Christopher Hiller** <<boneskull@boneskull.com>> (he/him)
 * [BridgeAR](https://github.com/BridgeAR) -
@@ -426,8 +428,6 @@ For information about the governance of the Node.js project, see
   **Nikolai Vavilov** <<vvnicholas@gmail.com>>
 * [shisama](https://github.com/shisama) -
   **Masashi Hirano** <<shisama07@gmail.com>> (he/him)
-* [silverwind](https://github.com/silverwind) -
-  **Roman Reiss** <<me@silverwind.io>>
 * [srl295](https://github.com/srl295) -
   **Steven R Loomis** <<srloomis@us.ibm.com>>
 * [starkwang](https://github.com/starkwang) -
@@ -450,8 +450,6 @@ For information about the governance of the Node.js project, see
   **Mohammed Keyvanzadeh** <<mohammadkeyvanzade94@gmail.com>> (he/him)
 * [watilde](https://github.com/watilde) -
   **Daijiro Wachi** <<daijiro.wachi@gmail.com>> (he/him)
-* [watson](https://github.com/watson) -
-  **Thomas Watson** <<w@tson.dk>>
 * [XadillaX](https://github.com/XadillaX) -
   **Khaidi Chu** <<i@2333.moe>> (he/him)
 * [yashLadha](https://github.com/yashLadha) -
@@ -602,6 +600,8 @@ For information about the governance of the Node.js project, see
   **Sebastiaan Deckers** <<sebdeckers83@gmail.com>>
 * [shigeki](https://github.com/shigeki) -
   **Shigeki Ohtsu** <<ohtsu@ohtsu.org>> (he/him)
+* [silverwind](https://github.com/silverwind) -
+  **Roman Reiss** <<me@silverwind.io>>
 * [stefanmb](https://github.com/stefanmb) -
   **Stefan Budeanu** <<stefan@budeanu.com>>
 * [tellnes](https://github.com/tellnes) -
@@ -618,6 +618,8 @@ For information about the governance of the Node.js project, see
   **Vladimir Kurchatkin** <<vladimir.kurchatkin@gmail.com>>
 * [vsemozhetbyt](https://github.com/vsemozhetbyt) -
   **Vse Mozhet Byt** <<vsemozhetbyt@gmail.com>> (he/him)
+* [watson](https://github.com/watson) -
+  **Thomas Watson** <<w@tson.dk>>
 * [whitlockjc](https://github.com/whitlockjc) -
   **Jeremy Whitlock** <<jwhitlock@apache.org>>
 * [yhwang](https://github.com/yhwang) -

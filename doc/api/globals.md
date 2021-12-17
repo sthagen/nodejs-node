@@ -104,6 +104,17 @@ changes:
 
 Returns a new already aborted `AbortSignal`.
 
+#### Static method: `AbortSignal.timeout(delay)`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `delay` {number} The number of milliseconds to wait before triggering
+  the AbortSignal.
+
+Returns a new `AbortSignal` which will be aborted in `delay` milliseconds.
+
 #### Event: `'abort'`
 
 <!-- YAML
@@ -179,6 +190,14 @@ const ac = new AbortController();
 ac.abort(new Error('boom!'));
 console.log(ac.signal.reason);  // Error('boom!');
 ```
+
+#### `abortSignal.throwIfAborted()`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+If `abortSignal.aborted` is `true`, throws `abortSignal.reason`.
 
 ## Class: `Buffer`
 
