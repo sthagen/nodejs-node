@@ -344,7 +344,10 @@ The location information will be one of:
 * `plain-filename.js:line:column`, if the frame represents a call internal
   to Node.js.
 * `/absolute/path/to/file.js:line:column`, if the frame represents a call in
-  a user program, or its dependencies.
+  a user program (using CommonJS module system), or its dependencies.
+* `<transport-protocol>:///url/to/module/file.mjs:line:column`, if the frame
+  represents a call in a user program (using ES module system), or
+  its dependencies.
 
 The string representing the stack trace is lazily generated when the
 `error.stack` property is **accessed**.
@@ -2546,6 +2549,15 @@ reports.
 An unspecified or non-specific system error has occurred within the Node.js
 process. The error object will have an `err.info` object property with
 additional details.
+
+<a id="ERR_TLS_CERT_ALTNAME_FORMAT"></a>
+
+### `ERR_TLS_CERT_ALTNAME_FORMAT`
+
+This error is thrown by `checkServerIdentity` if a user-supplied
+`subjectaltname` property violates encoding rules. Certificate objects produced
+by Node.js itself always comply with encoding rules and will never cause
+this error.
 
 <a id="ERR_TLS_CERT_ALTNAME_INVALID"></a>
 

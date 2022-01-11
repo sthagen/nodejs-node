@@ -47,7 +47,7 @@ if (isMainThread) {
 }
 ```
 
-The above example spawns a Worker thread for each `parse()` call. In actual
+The above example spawns a Worker thread for each `parseJSAsync()` call. In
 practice, use a pool of Workers for these kinds of tasks. Otherwise, the
 overhead of creating Workers would likely exceed their benefit.
 
@@ -347,9 +347,11 @@ if (isMainThread) {
 
 <!-- YAML
 added: v15.4.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41271
+    description: No longer experimental.
 -->
-
-> Stability: 1 - Experimental
 
 Instances of `BroadcastChannel` allow asynchronous one-to-many communication
 with all other `BroadcastChannel` instances bound to the same channel name.

@@ -591,14 +591,15 @@ would provide the exports interface for the instantiation of `module.wasm`.
 
 ## Top-level `await`
 
+<!--
+added: v14.8.0
+-->
+
 > Stability: 1 - Experimental
 
-The `await` keyword may be used in the top level (outside of async functions)
-within modules as per the [ECMAScript Top-Level `await` proposal][].
+The `await` keyword may be used in the top level body of an ECMAScript module.
 
 Assuming an `a.mjs` with
-
-<!-- eslint-skip -->
 
 ```js
 export const five = await Promise.resolve(5);
@@ -616,6 +617,23 @@ console.log(five); // Logs `5`
 node b.mjs # works
 ```
 
+If a top level `await` expression never resolves, the `node` process will exit
+with a `13` [status code][].
+
+```js
+import { spawn } from 'child_process';
+import { execPath } from 'process';
+
+spawn(execPath, [
+  '--input-type=module',
+  '--eval',
+  // Never-resolving Promise:
+  'await new Promise(() => {})',
+]).once('exit', (code) => {
+  console.log(code); // Logs `13`
+});
+```
+
 <i id="esm_experimental_loaders"></i>
 
 ## Loaders
@@ -629,8 +647,8 @@ node b.mjs # works
 To customize the default module resolution, loader hooks can optionally be
 provided via a `--experimental-loader ./loader-name.mjs` argument to Node.js.
 
-When hooks are used they only apply to ES module loading and not to any
-CommonJS modules loaded.
+When hooks are used they apply to the entry point and all `import` calls. They
+won't apply to `require` calls; those still follow [CommonJS][] rules.
 
 ### Hooks
 
@@ -833,7 +851,7 @@ its own `require` using  `module.createRequire()`.
    }} utilities Things that preload code might find useful
  * @returns {string} Code to run before application startup
  */
-export function globalPreload() {
+export function globalPreload(utilities) {
   return `\
 globalThis.someInjectedProperty = 42;
 console.log('I just set some globals!');
@@ -1426,7 +1444,6 @@ success!
 [Conditional exports]: packages.md#conditional-exports
 [Core modules]: modules.md#core-modules
 [Dynamic `import()`]: https://wiki.developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports
-[ECMAScript Top-Level `await` proposal]: https://github.com/tc39/proposal-top-level-await/
 [ES Module Integration Proposal for WebAssembly]: https://github.com/webassembly/esm-integration
 [Import Assertions]: #import-assertions
 [Import Assertions proposal]: https://github.com/tc39/proposal-import-assertions
@@ -1461,5 +1478,6 @@ success!
 [percent-encoded]: url.md#percent-encoding-in-urls
 [resolve hook]: #resolvespecifier-context-defaultresolve
 [special scheme]: https://url.spec.whatwg.org/#special-scheme
+[status code]: process.md#exit-codes
 [the official standard format]: https://tc39.github.io/ecma262/#sec-modules
 [url.pathToFileURL]: url.md#urlpathtofileurlpath

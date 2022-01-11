@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 
-const SINCE = +process.argv[2] || '3 months ago';
+const SINCE = process.argv[2] || '3 months ago';
 
 async function runGitCommand(cmd, options = {}) {
   const childProcess = cp.spawn('/bin/sh', ['-c', cmd], {
@@ -260,10 +260,11 @@ if (inactive.length) {
   });
   console.log(`DETAILS_FOR_COMMIT_BODY=${commitDetails.join(' ')}`);
 
-  // Using console.warn() to avoid messing with find-inactive-tsc which consumes
-  // stdout.
-  console.warn('Generating new README.md file...');
-  const newReadmeText = await moveTscToEmeritus(inactive);
-  fs.writeFileSync(new URL('../README.md', import.meta.url), newReadmeText);
-  console.warn('Updated README.md generated. Please commit these changes.');
+  if (process.env.GITHUB_ACTIONS) {
+    // Using console.warn() to avoid messing with find-inactive-tsc which
+    // consumes stdout.
+    console.warn('Generating new README.md file...');
+    const newReadmeText = await moveTscToEmeritus(inactive);
+    fs.writeFileSync(new URL('../README.md', import.meta.url), newReadmeText);
+  }
 }

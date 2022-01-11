@@ -199,6 +199,16 @@ added: v17.3.0
 
 If `abortSignal.aborted` is `true`, throws `abortSignal.reason`.
 
+## Class: `Blob`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+<!-- type=global -->
+
+See {Blob}.
+
 ## Class: `Buffer`
 
 <!-- YAML
@@ -228,6 +238,14 @@ added: v16.0.0
 > Stability: 3 - Legacy. Use `Buffer.from(data, 'base64')` instead.
 
 Global alias for [`buffer.atob()`][].
+
+## `BroadcastChannel`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+See {BroadcastChannel}.
 
 ## `btoa(data)`
 
