@@ -1035,7 +1035,7 @@ readable.on('readable', function() {
   // There is some data to read now.
   let data;
 
-  while (data = this.read()) {
+  while ((data = this.read()) !== null) {
     console.log(data);
   }
 });
@@ -1256,9 +1256,9 @@ added: v0.9.4
 * `size` {number} Optional argument to specify how much data to read.
 * Returns: {string|Buffer|null|any}
 
-The `readable.read()` method pulls some data out of the internal buffer and
-returns it. If no data available to be read, `null` is returned. By default,
-the data will be returned as a `Buffer` object unless an encoding has been
+The `readable.read()` method reads data out of the internal buffer and
+returns it. If no data is available to be read, `null` is returned. By default,
+the data is returned as a `Buffer` object unless an encoding has been
 specified using the `readable.setEncoding()` method or the stream is operating
 in object mode.
 
@@ -1740,7 +1740,7 @@ showBoth();
 ### `readable.map(fn[, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v17.4.0
 -->
 
 > Stability: 1 - Experimental
@@ -1751,7 +1751,7 @@ added: REPLACEME
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
       abort the `fn` call early.
 * `options` {Object}
-  * `concurrency` {number} the maximal concurrent invocation of `fn` to call
+  * `concurrency` {number} the maximum concurrent invocation of `fn` to call
     on the stream at once. **Default:** `1`.
   * `signal` {AbortSignal} allows destroying the stream if the signal is
     aborted.
@@ -1784,7 +1784,7 @@ for await (const result of dnsResults) {
 ### `readable.filter(fn[, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v17.4.0
 -->
 
 > Stability: 1 - Experimental
@@ -1795,7 +1795,7 @@ added: REPLACEME
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
       abort the `fn` call early.
 * `options` {Object}
-  * `concurrency` {number} the maximal concurrent invocation of `fn` to call
+  * `concurrency` {number} the maximum concurrent invocation of `fn` to call
     on the stream at once. **Default:** `1`.
   * `signal` {AbortSignal} allows destroying the stream if the signal is
     aborted.
@@ -1828,6 +1828,65 @@ for await (const result of dnsResults) {
   // Logs domains with more than 60 seconds on the resolved dns record.
   console.log(result);
 }
+```
+
+### `readable.forEach(fn[, options])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1 - Experimental
+
+* `fn` {Function|AsyncFunction} a function to call on each item of the stream.
+  * `data` {any} a chunk of data from the stream.
+  * `options` {Object}
+    * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
+      abort the `fn` call early.
+* `options` {Object}
+  * `concurrency` {number} the maximum concurrent invocation of `fn` to call
+    on the stream at once. **Default:** `1`.
+  * `signal` {AbortSignal} allows destroying the stream if the signal is
+    aborted.
+* Returns: {Promise} a promise for when the stream has finished.
+
+This method allows iterating a stream. For each item in the stream the
+`fn` function will be called. If the `fn` function returns a promise - that
+promise will be `await`ed.
+
+This method is different from `for await...of` loops in that it can optionally
+process items concurrently. In addition, a `forEach` iteration can only be
+stopped by having passed a `signal` option and aborting the related
+`AbortController` while `for await...of` can be stopped with `break` or
+`return`. In either case the stream will be destroyed.
+
+This method is different from listening to the [`'data'`][] event in that it
+uses the [`readable`][] event in the underlying machinary and can limit the
+number of concurrent `fn` calls.
+
+```mjs
+import { Readable } from 'stream';
+import { Resolver } from 'dns/promises';
+
+// With a synchronous predicate.
+for await (const item of Readable.from([1, 2, 3, 4]).filter((x) => x > 2)) {
+  console.log(item); // 3, 4
+}
+// With an asynchronous predicate, making at most 2 queries at a time.
+const resolver = new Resolver();
+const dnsResults = await Readable.from([
+  'nodejs.org',
+  'openjsf.org',
+  'www.linuxfoundation.org',
+]).map(async (domain) => {
+  const { address } = await resolver.resolve4(domain, { ttl: true });
+  return address;
+}, { concurrency: 2 });
+await dnsResults.forEach((result) => {
+  // Logs result, similar to `for await (const result of dnsResults)`
+  console.log(result);
+});
+console.log('done'); // Stream has finished
 ```
 
 ### Duplex and transform streams
@@ -2334,7 +2393,7 @@ Returns whether the stream has encountered an error.
 ### `stream.isReadable(stream)`
 
 <!-- YAML
-added: REPLACEME
+added: v17.4.0
 -->
 
 > Stability: 1 - Experimental

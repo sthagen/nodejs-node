@@ -2498,10 +2498,16 @@ added: v15.6.0
   * `partialWildcards` {boolean} **Default:** `true`.
   * `multiLabelWildcards` {boolean} **Default:** `false`.
   * `singleLabelSubdomains` {boolean} **Default:** `false`.
-* Returns: {string|undefined} Returns `name` if the certificate matches,
-  `undefined` if it does not.
+* Returns: {string|undefined} Returns a subject name that matches `name`,
+  or `undefined` if no subject name matches `name`.
 
 Checks whether the certificate matches the given host name.
+
+If the certificate matches the given host name, the matching subject name is
+returned. The returned name might be an exact match (e.g., `foo.example.com`)
+or it might contain wildcards (e.g., `*.example.com`). Because host name
+comparisons are case-insensitive, the returned subject name might also differ
+from the given `name` in capitalization.
 
 ### `x509.checkIP(ip[, options])`
 
@@ -4058,7 +4064,7 @@ console.log(getHashes()); // ['DSA', 'DSA-SHA', 'DSA-SHA1', ...]
 ### `crypto.getRandomValues(typedArray)`
 
 <!-- YAML
-added: REPLACEME
+added: v17.4.0
 -->
 
 * `typedArray` {Buffer|TypedArray|DataView|ArrayBuffer}
@@ -5248,7 +5254,7 @@ If the `callback` function is provided this function uses libuv's threadpool.
 ### `crypto.subtle`
 
 <!-- YAML
-added: REPLACEME
+added: v17.4.0
 -->
 
 * Type: {SubtleCrypto}
