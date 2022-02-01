@@ -875,7 +875,7 @@ console.log(`This processor architecture is ${arch}`);
 ```cjs
 const { arch } = require('process');
 
-console.log(`This processor architecture is ${process.arch}`);
+console.log(`This processor architecture is ${arch}`);
 ```
 
 ## `process.argv`
@@ -2613,7 +2613,7 @@ added: v0.1.16
 * {string}
 
 The `process.platform` property returns a string identifying the operating
-system platform on which the Node.js process is running.
+system platform for which the Node.js binary was compiled.
 
 Currently possible values are:
 

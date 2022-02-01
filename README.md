@@ -188,8 +188,6 @@ For information about the governance of the Node.js project, see
   **Joyee Cheung** <<joyeec9h3@gmail.com>> (she/her)
 * [mcollina](https://github.com/mcollina) -
   **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
-* [Mesteery](https://github.com/Mesteery) -
-  **Mestery** <<mestery@protonmail.com>> (he/him)
 * [mhdawson](https://github.com/mhdawson) -
   **Michael Dawson** <<midawson@redhat.com>> (he/him)
 * [mmarchini](https://github.com/mmarchini) -
@@ -382,6 +380,8 @@ For information about the governance of the Node.js project, see
   **Zijian Liu** <<lxxyxzj@gmail.com>> (he/him)
 * [mcollina](https://github.com/mcollina) -
   **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
+* [Mesteery](https://github.com/Mesteery) -
+  **Mestery** <<mestery@protonmail.com>> (he/him)
 * [mhdawson](https://github.com/mhdawson) -
   **Michael Dawson** <<midawson@redhat.com>> (he/him)
 * [miladfarca](https://github.com/miladfarca) -
@@ -649,7 +649,7 @@ maintaining the Node.js project.
 * [marsonya](https://github.com/marsonya) -
   **Akhil Marsonya** <<akhil.marsonya27@gmail.com>> (he/him)
 * [Mesteery](https://github.com/Mesteery) -
-  **Mestery** <<mestery@pm.me>>
+  **Mestery** <<mestery@protonmail.com>> (he/him)
 * [PoojaDurgad](https://github.com/PoojaDurgad) -
   **Pooja Durgad** <<Pooja.D.P@ibm.com>>
 * [RaisinTen](https://github.com/RaisinTen) -
@@ -728,6 +728,30 @@ use these keys to verify a downloaded file.
   `7937DFD2AB06298B2293C3187D33FF9D0246406D`
 
 </details>
+
+### Security release stewards
+
+When possible, the commitment to take slots in the
+security release steward rotation is made by companies in order
+to ensure individuals who act as security stewards have the
+support and recognition from their employer to be able to
+prioritize security releases. Security release stewards manage security
+releases on a rotation basis as outlined in the
+[security release process](./doc/contributing/security-release-process.md).
+
+* Datadog
+  * [bengl](https://github.com/bengl) -
+    **Bryan English** <<bryan@bryanenglish.com>> (he/him)
+  * [vdeturckheim](https://github.com/vdeturckheim) -
+    **Vladimir de Turckheim** <<vlad2t@hotmail.com>> (he/him)
+* NearForm
+  * [mcollina](https://github.com/mcollina) -
+    **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
+* Red Hat and IBM
+  * [joesepi](https://github.com/joesepi)-
+    **Joe Sepi** <<joesepi@ibm.com>> (he/him)
+  * [mhdawson](https://github.com/mhdawson) -
+    **Michael Dawson** <<midawson@redhat.com>> (he/him)
 
 ## License
 

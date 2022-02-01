@@ -117,8 +117,7 @@ There is the ECMAScript module loader:
   `'./startup/index.js'`) must be fully specified.
 * It does no extension searching. A file extension must be provided
   when the specifier is a relative or absolute file URL.
-* It can load JSON modules, but an import assertion is required (behind
-  `--experimental-json-modules` flag).
+* It can load JSON modules, but an import assertion is required.
 * It accepts only `.js`, `.mjs`, and `.cjs` extensions for JavaScript text
   files.
 * It can be used to load JavaScript CommonJS modules. Such modules
@@ -1032,7 +1031,7 @@ conditional exports for consumers could be to add an export, e.g.
 ## Node.js `package.json` field definitions
 
 This section describes the fields used by the Node.js runtime. Other tools (such
-as [npm](https://docs.npmjs.com/creating-a-package-json-file)) use
+as [npm](https://docs.npmjs.com/cli/v8/configuring-npm/package-json)) use
 additional fields which are ignored by Node.js and not documented here.
 
 The following fields in `package.json` files are used in Node.js:
@@ -1093,21 +1092,25 @@ added: v0.4.0
 }
 ```
 
-The `"main"` field defines the script that is used when the [package directory
-is loaded via `require()`](modules.md#folders-as-modules). Its value
-is a path.
+The `"main"` field defines the entry point of a package when imported by name
+via a `node_modules` lookup.  Its value is a path.
+
+When a package has an [`"exports"`][] field, this will take precedence over the
+`"main"` field when importing the package by name.
+
+It also defines the script that is used when the [package directory is loaded
+via `require()`](modules.md#folders-as-modules).
 
 ```cjs
 require('./path/to/directory'); // This resolves to ./path/to/directory/main.js.
 ```
 
-When a package has an [`"exports"`][] field, this will take precedence over the
-`"main"` field when importing the package by name.
-
 ### `"packageManager"`
 
 <!-- YAML
-added: v16.9.0
+added:
+  - v16.9.0
+  - v14.19.0
 -->
 
 > Stability: 1 - Experimental

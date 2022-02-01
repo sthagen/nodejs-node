@@ -6,9 +6,10 @@
 
 <!-- source_link=lib/cluster.js -->
 
-A single instance of Node.js runs in a single thread. To take advantage of
-multi-core systems, the user will sometimes want to launch a cluster of Node.js
-processes to handle the load.
+Clusters of Node.js processes can be used to run multiple instances of Node.js
+that can distribute workloads among their application threads. When process
+isolation is not needed, use the [`worker_threads`][] module instead, which
+allows running multiple application threads within a single Node.js instance.
 
 The cluster module allows easy creation of child processes that all share
 server ports.
@@ -855,7 +856,6 @@ deprecated: v16.0.0
 -->
 
 Deprecated alias for [`cluster.isPrimary`][].
-details.
 
 ## `cluster.isPrimary`
 
@@ -1062,49 +1062,29 @@ added: v0.7.0
 
 * {Object}
 
-A hash that stores the active worker objects, keyed by `id` field. Makes it
+A hash that stores the active worker objects, keyed by `id` field. This makes it
 easy to loop through all the workers. It is only available in the primary
 process.
 
 A worker is removed from `cluster.workers` after the worker has disconnected
 _and_ exited. The order between these two events cannot be determined in
 advance. However, it is guaranteed that the removal from the `cluster.workers`
-list happens before last `'disconnect'` or `'exit'` event is emitted.
+list happens before the last `'disconnect'` or `'exit'` event is emitted.
 
 ```mjs
 import cluster from 'cluster';
 
-// Go through all workers
-function eachWorker(callback) {
-  for (const id in cluster.workers) {
-    callback(cluster.workers[id]);
-  }
-}
-eachWorker((worker) => {
+for (const worker of Object.values(cluster.workers)) {
   worker.send('big announcement to all workers');
-});
+}
 ```
 
 ```cjs
 const cluster = require('cluster');
 
-// Go through all workers
-function eachWorker(callback) {
-  for (const id in cluster.workers) {
-    callback(cluster.workers[id]);
-  }
-}
-eachWorker((worker) => {
+for (const worker of Object.values(cluster.workers)) {
   worker.send('big announcement to all workers');
-});
-```
-
-Using the worker's unique id is the easiest way to locate the worker.
-
-```js
-socket.on('data', (id) => {
-  const worker = cluster.workers[id];
-});
+}
 ```
 
 [Advanced serialization for `child_process`]: child_process.md#advanced-serialization
@@ -1122,3 +1102,4 @@ socket.on('data', (id) => {
 [`process` event: `'message'`]: process.md#event-message
 [`server.close()`]: net.md#event-close
 [`worker.exitedAfterDisconnect`]: #workerexitedafterdisconnect
+[`worker_threads`]: worker_threads.md

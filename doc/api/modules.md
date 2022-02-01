@@ -429,8 +429,8 @@ A required module prefixed with `'./'` is relative to the file calling
 Without a leading `'/'`, `'./'`, or `'../'` to indicate a file, the module must
 either be a core module or is loaded from a `node_modules` folder.
 
-If the given path does not exist, `require()` will throw an [`Error`][] with its
-`code` property set to `'MODULE_NOT_FOUND'`.
+If the given path does not exist, `require()` will throw a
+[`MODULE_NOT_FOUND`][] error.
 
 ## Folders as modules
 
@@ -481,7 +481,7 @@ folders as modules, and work for both `require` and `import`.
 
 If the module identifier passed to `require()` is not a
 [core](#core-modules) module, and does not begin with `'/'`, `'../'`, or
-`'./'`, then Node.js starts at the parent directory of the current module, and
+`'./'`, then Node.js starts at the directory of the current module, and
 adds `/node_modules`, and attempts to load the module from that location.
 Node.js will not append `node_modules` to a path already ending in
 `node_modules`.
@@ -1084,7 +1084,7 @@ This section was moved to
 [`"type"`]: packages.md#type
 [`ERR_REQUIRE_ESM`]: errors.md#err_require_esm
 [`ERR_UNSUPPORTED_DIR_IMPORT`]: errors.md#err_unsupported_dir_import
-[`Error`]: errors.md#class-error
+[`MODULE_NOT_FOUND`]: errors.md#module_not_found
 [`__dirname`]: #__dirname
 [`__filename`]: #__filename
 [`import()`]: https://wiki.developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports
