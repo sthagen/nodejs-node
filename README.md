@@ -12,7 +12,7 @@
 
 Node.js is an open-source, cross-platform, JavaScript runtime environment.
 
-For information on using Node.js, see the [Node.js Website][].
+For information on using Node.js, see the [Node.js website][].
 
 The Node.js project uses an [open governance model](./GOVERNANCE.md). The
 [OpenJS Foundation][] provides support for the project.
@@ -701,7 +701,7 @@ gpg --keyserver pool.sks-keyservers.net --recv-keys 108F52B48DB57BB0CC439B2997B0
 gpg --keyserver pool.sks-keyservers.net --recv-keys B9E2F5981AA6E0CD28160D9FF13993A75599653C
 ```
 
-See the section above on [Verifying Binaries](#verifying-binaries) for how to
+See the section above on [Verifying binaries](#verifying-binaries) for how to
 use these keys to verify a downloaded file.
 
 <details>
@@ -748,7 +748,7 @@ releases on a rotation basis as outlined in the
   * [mcollina](https://github.com/mcollina) -
     **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
 * Red Hat and IBM
-  * [joesepi](https://github.com/joesepi)-
+  * [joesepi](https://github.com/joesepi) -
     **Joe Sepi** <<joesepi@ibm.com>> (he/him)
   * [mhdawson](https://github.com/mhdawson) -
     **Michael Dawson** <<midawson@redhat.com>> (he/him)
@@ -763,7 +763,7 @@ license text.
 
 [Code of Conduct]: https://github.com/nodejs/admin/blob/HEAD/CODE_OF_CONDUCT.md
 [Contributing to the project]: CONTRIBUTING.md
-[Node.js Website]: https://nodejs.org/
+[Node.js website]: https://nodejs.org/
 [OpenJS Foundation]: https://openjsf.org/
 [Strategic initiatives]: doc/contributing/strategic-initiatives.md
 [Technical values and prioritization]: doc/contributing/technical-values.md

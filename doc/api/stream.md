@@ -1740,12 +1740,15 @@ showBoth();
 ### `readable.map(fn[, options])`
 
 <!-- YAML
-added: v17.4.0
+added:
+  - v17.4.0
+  - v16.14.0
 -->
 
 > Stability: 1 - Experimental
 
-* `fn` {Function|AsyncFunction} a function to map over every item in the stream.
+* `fn` {Function|AsyncFunction} a function to map over every chunk in the
+  stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -1758,7 +1761,7 @@ added: v17.4.0
 * Returns: {Readable} a stream mapped with the function `fn`.
 
 This method allows mapping over the stream. The `fn` function will be called
-for every item in the stream. If the `fn` function returns a promise - that
+for every chunk in the stream. If the `fn` function returns a promise - that
 promise will be `await`ed before being passed to the result stream.
 
 ```mjs
@@ -1766,8 +1769,8 @@ import { Readable } from 'stream';
 import { Resolver } from 'dns/promises';
 
 // With a synchronous mapper.
-for await (const item of Readable.from([1, 2, 3, 4]).map((x) => x * 2)) {
-  console.log(item); // 2, 4, 6, 8
+for await (const chunk of Readable.from([1, 2, 3, 4]).map((x) => x * 2)) {
+  console.log(chunk); // 2, 4, 6, 8
 }
 // With an asynchronous mapper, making at most 2 queries at a time.
 const resolver = new Resolver();
@@ -1784,12 +1787,14 @@ for await (const result of dnsResults) {
 ### `readable.filter(fn[, options])`
 
 <!-- YAML
-added: v17.4.0
+added:
+  - v17.4.0
+  - v16.14.0
 -->
 
 > Stability: 1 - Experimental
 
-* `fn` {Function|AsyncFunction} a function to filter items from stream.
+* `fn` {Function|AsyncFunction} a function to filter chunks from the stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -1801,8 +1806,8 @@ added: v17.4.0
     aborted.
 * Returns: {Readable} a stream filtered with the predicate `fn`.
 
-This method allows filtering the stream. For each item in the stream the `fn`
-function will be called and if it returns a truthy value, the item will be
+This method allows filtering the stream. For each chunk in the stream the `fn`
+function will be called and if it returns a truthy value, the chunk will be
 passed to the result stream. If the `fn` function returns a promise - that
 promise will be `await`ed.
 
@@ -1811,8 +1816,8 @@ import { Readable } from 'stream';
 import { Resolver } from 'dns/promises';
 
 // With a synchronous predicate.
-for await (const item of Readable.from([1, 2, 3, 4]).filter((x) => x > 2)) {
-  console.log(item); // 3, 4
+for await (const chunk of Readable.from([1, 2, 3, 4]).filter((x) => x > 2)) {
+  console.log(chunk); // 3, 4
 }
 // With an asynchronous predicate, making at most 2 queries at a time.
 const resolver = new Resolver();
@@ -1838,7 +1843,7 @@ added: REPLACEME
 
 > Stability: 1 - Experimental
 
-* `fn` {Function|AsyncFunction} a function to call on each item of the stream.
+* `fn` {Function|AsyncFunction} a function to call on each chunk of the stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -1850,12 +1855,12 @@ added: REPLACEME
     aborted.
 * Returns: {Promise} a promise for when the stream has finished.
 
-This method allows iterating a stream. For each item in the stream the
+This method allows iterating a stream. For each chunk in the stream the
 `fn` function will be called. If the `fn` function returns a promise - that
 promise will be `await`ed.
 
 This method is different from `for await...of` loops in that it can optionally
-process items concurrently. In addition, a `forEach` iteration can only be
+process chunks concurrently. In addition, a `forEach` iteration can only be
 stopped by having passed a `signal` option and aborting the related
 `AbortController` while `for await...of` can be stopped with `break` or
 `return`. In either case the stream will be destroyed.
@@ -1869,8 +1874,8 @@ import { Readable } from 'stream';
 import { Resolver } from 'dns/promises';
 
 // With a synchronous predicate.
-for await (const item of Readable.from([1, 2, 3, 4]).filter((x) => x > 2)) {
-  console.log(item); // 3, 4
+for await (const chunk of Readable.from([1, 2, 3, 4]).filter((x) => x > 2)) {
+  console.log(chunk); // 3, 4
 }
 // With an asynchronous predicate, making at most 2 queries at a time.
 const resolver = new Resolver();
@@ -1935,7 +1940,7 @@ added: REPLACEME
 
 > Stability: 1 - Experimental
 
-* `fn` {Function|AsyncFunction} a function to call on each item of the stream.
+* `fn` {Function|AsyncFunction} a function to call on each chunk of the stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -1976,6 +1981,56 @@ console.log(anyBigFile); // `true` if any file in the list is bigger than 1MB
 console.log('done'); // Stream has finished
 ```
 
+### `readable.find(fn[, options])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1 - Experimental
+
+* `fn` {Function|AsyncFunction} a function to call on each chunk of the stream.
+  * `data` {any} a chunk of data from the stream.
+  * `options` {Object}
+    * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
+      abort the `fn` call early.
+* `options` {Object}
+  * `concurrency` {number} the maximum concurrent invocation of `fn` to call
+    on the stream at once. **Default:** `1`.
+  * `signal` {AbortSignal} allows destroying the stream if the signal is
+    aborted.
+* Returns: {Promise} a promise evaluating to the first chunk for which `fn`
+  evaluated with a truthy value, or `undefined` if no element was found.
+
+This method is similar to `Array.prototype.find` and calls `fn` on each chunk
+in the stream to find a chunk with a truthy value for `fn`. Once an `fn` call's
+awaited return value is truthy, the stream is destroyed and the promise is
+fulfilled with value for which `fn` returned a truthy value. If all of the
+`fn` calls on the chunks return a falsy value, the promise is fulfilled with
+`undefined`.
+
+```mjs
+import { Readable } from 'stream';
+import { stat } from 'fs/promises';
+
+// With a synchronous predicate.
+await Readable.from([1, 2, 3, 4]).find((x) => x > 2); // 3
+await Readable.from([1, 2, 3, 4]).find((x) => x > 0); // 1
+await Readable.from([1, 2, 3, 4]).find((x) => x > 10); // undefined
+
+// With an asynchronous predicate, making at most 2 file checks at a time.
+const foundBigFile = await Readable.from([
+  'file1',
+  'file2',
+  'file3',
+]).find(async (fileName) => {
+  const stats = await stat(fileName);
+  return stat.size > 1024 * 1024;
+}, { concurrency: 2 });
+console.log(foundBigFile); // File name of large file, if any file in the list is bigger than 1MB
+console.log('done'); // Stream has finished
+```
+
 ### `readable.every(fn[, options])`
 
 <!-- YAML
@@ -1984,7 +2039,7 @@ added: REPLACEME
 
 > Stability: 1 - Experimental
 
-* `fn` {Function|AsyncFunction} a function to call on each item of the stream.
+* `fn` {Function|AsyncFunction} a function to call on each chunk of the stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -2034,7 +2089,7 @@ added: REPLACEME
 > Stability: 1 - Experimental
 
 * `fn` {Function|AsyncGeneratorFunction|AsyncFunction} a function to map over
-  every item in the stream.
+  every chunk in the stream.
   * `data` {any} a chunk of data from the stream.
   * `options` {Object}
     * `signal` {AbortSignal} aborted if the stream is destroyed allowing to
@@ -2058,8 +2113,8 @@ import { Readable } from 'stream';
 import { createReadStream } from 'fs';
 
 // With a synchronous mapper.
-for await (const item of Readable.from([1, 2, 3, 4]).flatMap((x) => [x, x])) {
-  console.log(item); // 1, 1, 2, 2, 3, 3, 4, 4
+for await (const chunk of Readable.from([1, 2, 3, 4]).flatMap((x) => [x, x])) {
+  console.log(chunk); // 1, 1, 2, 2, 3, 3, 4, 4
 }
 // With an asynchronous mapper, combine the contents of 4 files
 const concatResult = Readable.from([
@@ -2368,6 +2423,11 @@ const cleanup = finished(rs, (err) => {
 <!-- YAML
 added: v10.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/32158
     description: The `pipeline(..., cb)` will wait for the `'close'` event
@@ -2516,6 +2576,28 @@ run().catch(console.error);
 `stream.pipeline()` leaves dangling event listeners on the streams
 after the `callback` has been invoked. In the case of reuse of streams after
 failure, this can cause event listener leaks and swallowed errors.
+
+`stream.pipeline()` closes all the streams when an error is raised.
+The `IncomingRequest` usage with `pipeline` could lead to an unexpected behavior
+once it would destroy the socket without sending the expected response.
+See the example below:
+
+```js
+const fs = require('fs');
+const http = require('http');
+const { pipeline } = require('stream');
+
+const server = http.createServer((req, res) => {
+  const fileStream = fs.createReadStream('./fileNotExist.txt');
+  pipeline(fileStream, res, (err) => {
+    if (err) {
+      console.log(err); // No such file
+      // this message can't be sent once `pipeline` already destroyed the socket
+      return res.end('error!!!');
+    }
+  });
+});
+```
 
 ### `stream.compose(...streams)`
 
@@ -2676,7 +2758,9 @@ Returns whether the stream has been read from or cancelled.
 ### `stream.isErrored(stream)`
 
 <!-- YAML
-added: v17.3.0
+added:
+  - v17.3.0
+  - v16.14.0
 -->
 
 > Stability: 1 - Experimental
@@ -2689,7 +2773,9 @@ Returns whether the stream has encountered an error.
 ### `stream.isReadable(stream)`
 
 <!-- YAML
-added: v17.4.0
+added:
+  - v17.4.0
+  - v16.14.0
 -->
 
 > Stability: 1 - Experimental

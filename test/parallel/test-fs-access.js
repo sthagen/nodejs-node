@@ -60,6 +60,7 @@ if (!common.isWindows && process.getuid() === 0) {
     process.setuid('nobody');
     hasWriteAccessForReadonlyFile = false;
   } catch {
+    // Continue regardless of error.
   }
 }
 
@@ -138,7 +139,7 @@ assert.throws(
     fs.access(__filename, fs.F_OK);
   },
   {
-    code: 'ERR_INVALID_CALLBACK',
+    code: 'ERR_INVALID_ARG_TYPE',
     name: 'TypeError'
   });
 
@@ -147,7 +148,7 @@ assert.throws(
     fs.access(__filename, fs.F_OK, {});
   },
   {
-    code: 'ERR_INVALID_CALLBACK',
+    code: 'ERR_INVALID_ARG_TYPE',
     name: 'TypeError'
   });
 

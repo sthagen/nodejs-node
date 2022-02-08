@@ -181,7 +181,10 @@ See [Advanced serialization for `child_process`][] for more details.
 
 <!-- YAML
 added: v10.12.0
+deprecated: REPLACEME
 -->
+
+> Stability: 0 - Deprecated
 
 * `type` {string} The resolution type. One of `'resolve'` or `'reject'`.
 * `promise` {Promise} The promise that resolved or rejected more than once.
@@ -199,6 +202,9 @@ This is useful for tracking potential errors in an application while using the
 `Promise` constructor, as multiple resolutions are silently swallowed. However,
 the occurrence of this event does not necessarily indicate an error. For
 example, [`Promise.race()`][] can trigger a `'multipleResolves'` event.
+
+Because of the unreliability of the event in cases like the
+[`Promise.race()`][] example above it has been deprecated.
 
 ```mjs
 import process from 'process';
@@ -1824,7 +1830,9 @@ previous setting of `process.exitCode`.
 ## `process.getActiveResourcesInfo()`
 
 <!-- YAML
-added: v17.3.0
+added:
+  - v17.3.0
+  - v16.14.0
 -->
 
 > Stability: 1 - Experimental
@@ -2353,6 +2361,11 @@ console.log(memoryUsage.rss());
 <!-- YAML
 added: v0.1.26
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v1.8.1
     pr-url: https://github.com/nodejs/node/pull/1077
     description: Additional arguments after `callback` are now supported.

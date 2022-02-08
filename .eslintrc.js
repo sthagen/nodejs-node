@@ -295,9 +295,7 @@ module.exports = {
     'valid-typeof': ['error', { requireStringLiterals: true }],
 
     // ESLint recommended rules that we disable
-    'no-empty': 'off',
     'no-inner-declarations': 'off',
-    'no-prototype-builtins': 'off',
 
     // JSDoc recommended rules that we disable
     'jsdoc/require-jsdoc': 'off',

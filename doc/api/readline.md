@@ -923,6 +923,11 @@ questionExample();
 <!-- YAML
 added: v0.7.7
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v12.7.0
     pr-url: https://github.com/nodejs/node/pull/28674
     description: The stream's write() callback and return value are exposed.
@@ -946,6 +951,11 @@ in a specified direction identified by `dir`.
 <!-- YAML
 added: v0.7.7
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v12.7.0
     pr-url: https://github.com/nodejs/node/pull/28641
     description: The stream's write() callback and return value are exposed.
@@ -1095,6 +1105,11 @@ function completer(linePartial, callback) {
 <!-- YAML
 added: v0.7.7
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v12.7.0
     pr-url: https://github.com/nodejs/node/pull/28674
     description: The stream's write() callback and return value are exposed.
@@ -1116,6 +1131,11 @@ given [TTY][] `stream`.
 <!-- YAML
 added: v0.7.7
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v12.7.0
     pr-url: https://github.com/nodejs/node/pull/28674
     description: The stream's write() callback and return value are exposed.
@@ -1354,7 +1374,18 @@ const { createInterface } = require('readline');
   <tr>
     <td><kbd>Ctrl</kbd>+<kbd>-</kbd></td>
     <td>Undo previous change</td>
-    <td>Any keystroke emits key code <code>0x1F</code> would do this action.</td>
+    <td>Any keystroke that emits key code <code>0x1F</code> will do this action.
+    In many terminals, for example <code>xterm</code>,
+    this is bound to <kbd>Ctrl</kbd>+<kbd>-</kbd>.</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><kbd>Ctrl</kbd>+<kbd>6</kbd></td>
+    <td>Redo previous change</td>
+    <td>Many terminals don't have a default redo keystroke.
+    We choose key code <code>0x1E</code> to perform redo.
+    In <code>xterm</code>, it is bound to <kbd>Ctrl</kbd>+<kbd>6</kbd>
+    by default.</td>
     <td></td>
   </tr>
   <tr>

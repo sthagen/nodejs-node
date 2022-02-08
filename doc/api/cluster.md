@@ -452,8 +452,8 @@ added: v6.0.0
 
 * {boolean}
 
-This property is `true` if the worker exited due to `.kill()` or
-`.disconnect()`. If the worker exited any other way, it is `false`. If the
+This property is `true` if the worker exited due to `.disconnect()`.
+If the worker exited any other way, it is `false`. If the
 worker has not exited, it is `undefined`.
 
 The boolean [`worker.exitedAfterDisconnect`][] allows distinguishing between
@@ -577,19 +577,14 @@ added: v0.9.12
 * `signal` {string} Name of the kill signal to send to the worker
   process. **Default:** `'SIGTERM'`
 
-This function will kill the worker. In the primary, it does this
-by disconnecting the `worker.process`, and once disconnected, killing
-with `signal`. In the worker, it does it by disconnecting the channel,
-and then exiting with code `0`.
+This function will kill the worker. In the primary worker, it does this by
+disconnecting the `worker.process`, and once disconnected, killing with
+`signal`. In the worker, it does it by killing the process with `signal`.
 
-Because `kill()` attempts to gracefully disconnect the worker process, it is
-susceptible to waiting indefinitely for the disconnect to complete. For example,
-if the worker enters an infinite loop, a graceful disconnect will never occur.
-If the graceful disconnect behavior is not needed, use `worker.process.kill()`.
+The `kill()` function kills the worker process without waiting for a graceful
+disconnect, it has the same behavior as `worker.process.kill()`.
 
-Causes `.exitedAfterDisconnect` to be set.
-
-This method is aliased as `worker.destroy()` for backward compatibility.
+This method is aliased as `worker.destroy()` for backwards compatibility.
 
 In a worker, `process.kill()` exists, but it is not this function;
 it is [`kill()`][].
@@ -635,10 +630,10 @@ changes:
 
 Send a message to a worker or primary, optionally with a handle.
 
-In the primary this sends a message to a specific worker. It is identical to
+In the primary, this sends a message to a specific worker. It is identical to
 [`ChildProcess.send()`][].
 
-In a worker this sends a message to the primary. It is identical to
+In a worker, this sends a message to the primary. It is identical to
 `process.send()`.
 
 This example will echo back all messages from the primary:
@@ -741,7 +736,7 @@ added: v0.7.0
 * `address` {Object}
 
 After calling `listen()` from a worker, when the `'listening'` event is emitted
-on the server a `'listening'` event will also be emitted on `cluster` in the
+on the server, a `'listening'` event will also be emitted on `cluster` in the
 primary.
 
 The event handler is executed with two arguments, the `worker` contains the
@@ -761,7 +756,7 @@ The `addressType` is one of:
 * `4` (TCPv4)
 * `6` (TCPv6)
 * `-1` (Unix domain socket)
-* `'udp4'` or `'udp6'` (UDP v4 or v6)
+* `'udp4'` or `'udp6'` (UDPv4 or UDPv6)
 
 ## Event: `'message'`
 

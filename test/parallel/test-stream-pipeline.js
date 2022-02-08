@@ -66,7 +66,7 @@ const tsp = require('timers/promises');
   }, /ERR_MISSING_ARGS/);
   assert.throws(() => {
     pipeline();
-  }, /ERR_INVALID_CALLBACK/);
+  }, /ERR_INVALID_ARG_TYPE/);
 }
 
 {
@@ -560,7 +560,7 @@ const tsp = require('timers/promises');
 
   assert.throws(
     () => pipeline(read, transform, write),
-    { code: 'ERR_INVALID_CALLBACK' }
+    { code: 'ERR_INVALID_ARG_TYPE' }
   );
 }
 
@@ -700,7 +700,7 @@ const tsp = require('timers/promises');
     await Promise.resolve();
     yield 'hello';
   }, async function*(source) { // eslint-disable-line require-yield
-    for await (const chunk of source) {} // eslint-disable-line no-unused-vars
+    for await (const chunk of source) { } // eslint-disable-line no-unused-vars, no-empty
   }, common.mustCall((err) => {
     assert.strictEqual(err, undefined);
   }));
@@ -716,7 +716,7 @@ const tsp = require('timers/promises');
     await Promise.resolve();
     throw new Error('kaboom');
   }, async function*(source) { // eslint-disable-line require-yield
-    for await (const chunk of source) {} // eslint-disable-line no-unused-vars
+    for await (const chunk of source) { } // eslint-disable-line no-unused-vars, no-empty
   }, common.mustCall((err) => {
     assert.strictEqual(err.message, 'kaboom');
   }));

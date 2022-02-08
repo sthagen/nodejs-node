@@ -357,7 +357,7 @@ the default configuration. If these clients _must_ be supported, the
 [TLS recommendations][] may offer a compatible cipher suite. For more details
 on the format, see the OpenSSL [cipher list format][] documentation.
 
-There are only 5 TLSv1.3 cipher suites:
+There are only five TLSv1.3 cipher suites:
 
 * `'TLS_AES_256_GCM_SHA384'`
 * `'TLS_CHACHA20_POLY1305_SHA256'`
@@ -365,11 +365,11 @@ There are only 5 TLSv1.3 cipher suites:
 * `'TLS_AES_128_CCM_SHA256'`
 * `'TLS_AES_128_CCM_8_SHA256'`
 
-The first 3 are enabled by default. The last 2 `CCM`-based suites are supported
+The first three are enabled by default. The two `CCM`-based suites are supported
 by TLSv1.3 because they may be more performant on constrained systems, but they
 are not enabled by default since they offer less security.
 
-## X509 Certificate Error codes
+## X509 certificate error codes
 
 Multiple functions can fail due to certificate errors that are reported by
 OpenSSL. In such a case, the function provides an {Error} via its callback that
@@ -1131,7 +1131,9 @@ certificate.
 
 <!-- YAML
 changes:
-  - version: v17.2.0
+  - version:
+      - v17.2.0
+      - v16.14.0
     pr-url: https://github.com/nodejs/node/pull/39809
     description: Add fingerprint512.
   - version: v11.4.0
@@ -1365,7 +1367,7 @@ Returns the string representation of the local IP address.
 added: v0.11.4
 -->
 
-* {number}
+* {integer}
 
 Returns the numeric representation of the local port.
 
@@ -1396,7 +1398,7 @@ Returns the string representation of the remote IP family. `'IPv4'` or `'IPv6'`.
 added: v0.11.4
 -->
 
-* {number}
+* {integer}
 
 Returns the numeric representation of the remote port. For example, `443`.
 
@@ -1404,6 +1406,12 @@ Returns the numeric representation of the remote port. For example, `443`.
 
 <!-- YAML
 added: v0.11.8
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `options` {Object}

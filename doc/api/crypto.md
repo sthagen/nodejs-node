@@ -543,7 +543,7 @@ once will result in an error being thrown.
 added: v1.0.0
 -->
 
-* Returns: {Buffer} When using an authenticated encryption mode (`GCM`, `CCM`
+* Returns: {Buffer} When using an authenticated encryption mode (`GCM`, `CCM`,
   and `OCB` are currently supported), the `cipher.getAuthTag()` method returns a
   [`Buffer`][] containing the _authentication tag_ that has been computed from
   the given data.
@@ -566,7 +566,7 @@ added: v1.0.0
   * `encoding` {string} The string encoding to use when `buffer` is a string.
 * Returns: {Cipher} for method chaining.
 
-When using an authenticated encryption mode (`GCM`, `CCM` and `OCB` are
+When using an authenticated encryption mode (`GCM`, `CCM`, and `OCB` are
 currently supported), the `cipher.setAAD()` method sets the value used for the
 _additional authenticated data_ (AAD) input parameter.
 
@@ -863,7 +863,7 @@ changes:
   * `encoding` {string} String encoding to use when `buffer` is a string.
 * Returns: {Decipher} for method chaining.
 
-When using an authenticated encryption mode (`GCM`, `CCM` and `OCB` are
+When using an authenticated encryption mode (`GCM`, `CCM`, and `OCB` are
 currently supported), the `decipher.setAAD()` method sets the value used for the
 _additional authenticated data_ (AAD) input parameter.
 
@@ -897,7 +897,7 @@ changes:
 * `encoding` {string} String encoding to use when `buffer` is a string.
 * Returns: {Decipher} for method chaining.
 
-When using an authenticated encryption mode (`GCM`, `CCM` and `OCB` are
+When using an authenticated encryption mode (`GCM`, `CCM`, and `OCB` are
 currently supported), the `decipher.setAuthTag()` method is used to pass in the
 received _authentication tag_. If no tag is provided, or if the cipher text
 has been tampered with, [`decipher.final()`][] will throw, indicating that the
@@ -2464,7 +2464,7 @@ added: v15.6.0
 added: v15.6.0
 -->
 
-* Type: {boolean} Will be `true` if this is a Certificate Authority (ca)
+* Type: {boolean} Will be `true` if this is a Certificate Authority (CA)
   certificate.
 
 ### `x509.checkEmail(email[, options])`
@@ -2615,7 +2615,9 @@ The SHA-256 fingerprint of this certificate.
 ### `x509.fingerprint512`
 
 <!-- YAML
-added: v17.2.0
+added:
+  - v17.2.0
+  - v16.14.0
 -->
 
 * Type: {string}
@@ -2869,6 +2871,12 @@ This property is deprecated. Please use `crypto.setFips()` and
 
 <!-- YAML
 added: v15.8.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `candidate` {ArrayBuffer|SharedArrayBuffer|TypedArray|Buffer|DataView|bigint}
@@ -3547,6 +3555,12 @@ Both keys must have the same `asymmetricKeyType`, which must be one of `'dh'`
 
 <!-- YAML
 added: v15.0.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `type`: {string} The intended use of the generated secret key. Currently
@@ -3592,6 +3606,11 @@ generateKey('hmac', { length: 64 }, (err, key) => {
 <!-- YAML
 added: v10.12.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v16.10.0
     pr-url: https://github.com/nodejs/node/pull/39927
     description: Add ability to define `RSASSA-PSS-params` sequence parameters
@@ -3852,6 +3871,12 @@ console.log(key.export().toString('hex'));  // e89..........41e
 
 <!-- YAML
 added: v15.8.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `size` {number} The size (in bits) of the prime to generate.
@@ -4118,6 +4143,12 @@ A convenient alias for [`crypto.webcrypto.getRandomValues()`][].
 
 <!-- YAML
 added: v15.0.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `digest` {string} The digest algorithm to use.
@@ -4221,6 +4252,11 @@ console.log(Buffer.from(derivedKey).toString('hex'));  // '24156e2...5391653'
 <!-- YAML
 added: v0.5.5
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/35093
     description: The password and salt arguments can also be ArrayBuffer
@@ -4602,6 +4638,11 @@ be passed instead of a public key.
 <!-- YAML
 added: v0.5.8
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v9.0.0
     pr-url: https://github.com/nodejs/node/pull/16454
     description: Passing `null` as the `callback` argument now throws
@@ -4782,6 +4823,11 @@ added:
   - v7.10.0
   - v6.13.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v9.0.0
     pr-url: https://github.com/nodejs/node/pull/15231
     description: The `buffer` argument may be any `TypedArray` or `DataView`.
@@ -4918,6 +4964,12 @@ request.
 added:
   - v14.10.0
   - v12.19.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
 -->
 
 * `min` {integer} Start of random range (inclusive). **Default:** `0`.
@@ -5021,6 +5073,11 @@ cryptographic pseudorandom number generator.
 <!-- YAML
 added: v10.5.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v15.0.0
     pr-url: https://github.com/nodejs/node/pull/35093
     description: The password and salt arguments can also be ArrayBuffer
@@ -5244,6 +5301,11 @@ Throws an error if FIPS mode is not available.
 <!-- YAML
 added: v12.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v15.12.0
     pr-url: https://github.com/nodejs/node/pull/37500
     description: Optional callback argument added.
@@ -5340,6 +5402,11 @@ not introduce timing vulnerabilities.
 <!-- YAML
 added: v12.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/41678
+    description: Passing an invalid callback to the `callback` argument
+                 now throws `ERR_INVALID_ARG_TYPE` instead of
+                 `ERR_INVALID_CALLBACK`.
   - version: v15.12.0
     pr-url: https://github.com/nodejs/node/pull/37500
     description: Optional callback argument added.
@@ -5761,8 +5828,8 @@ See the [list of SSL OP Flags][] for details.
   </tr>
   <tr>
     <td><code>SSL_OP_PRIORITIZE_CHACHA</code></td>
-    <td>Instructs OpenSSL server to prioritize ChaCha20Poly1305
-    when client does.
+    <td>Instructs OpenSSL server to prioritize ChaCha20-Poly1305
+    when the client does.
     This option has no effect if
     <code>SSL_OP_CIPHER_SERVER_PREFERENCE</code>
     is not enabled.</td>
