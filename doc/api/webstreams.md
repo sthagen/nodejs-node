@@ -149,7 +149,7 @@ added: v16.5.0
   {ReadableStream}.
 
 The `readableStream.locked` property is `false` by default, and is
-switch to `true` while there is an active reader consuming the
+switched to `true` while there is an active reader consuming the
 stream's data.
 
 #### `readableStream.cancel([reason])`
@@ -1380,6 +1380,7 @@ They are accessed using:
 import {
   arrayBuffer,
   blob,
+  buffer,
   json,
   text,
 } from 'node:stream/consumers';
@@ -1389,6 +1390,7 @@ import {
 const {
   arrayBuffer,
   blob,
+  buffer,
   json,
   text,
 } = require('stream/consumers');

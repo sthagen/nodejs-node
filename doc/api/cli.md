@@ -280,13 +280,13 @@ effort to report stack traces relative to the original source file.
 Overriding `Error.prepareStackTrace` prevents `--enable-source-maps` from
 modifying the stack trace.
 
-### `--experimental-fetch`
+### `--experimental-global-webcrypto`
 
 <!-- YAML
-added: v17.5.0
+added: v17.6.0
 -->
 
-Enable experimental support for the [Fetch API][].
+Expose the [Web Crypto API][] on the global scope.
 
 ### `--experimental-import-meta-resolve`
 
@@ -310,7 +310,7 @@ Specify the `module` of a custom experimental [ECMAScript module loader][].
 ### `--experimental-network-imports`
 
 <!-- YAML
-added: REPLACEME
+added: v17.6.0
 -->
 
 > Stability: 1 - Experimental
@@ -324,6 +324,14 @@ added: v11.8.0
 -->
 
 Use the specified file as a security policy.
+
+### `--no-experimental-fetch`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Disable experimental support for the [Fetch API][].
 
 ### `--no-experimental-repl-await`
 
@@ -1579,7 +1587,7 @@ Node.js options that are allowed are:
 * `--enable-fips`
 * `--enable-source-maps`
 * `--experimental-abortcontroller`
-* `--experimental-fetch`
+* `--experimental-global-webcrypto`
 * `--experimental-import-meta-resolve`
 * `--experimental-json-modules`
 * `--experimental-loader`
@@ -1608,6 +1616,7 @@ Node.js options that are allowed are:
 * `--napi-modules`
 * `--no-addons`
 * `--no-deprecation`
+* `--no-experimental-fetch`
 * `--no-experimental-repl-await`
 * `--no-extra-info-on-fatal-exception`
 * `--no-force-async-hooks-checks`
@@ -1982,6 +1991,7 @@ $ node --max-old-space-size=1536 index.js
 [Source Map]: https://sourcemaps.info/spec.html
 [Subresource Integrity]: https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity
 [V8 JavaScript code coverage]: https://v8project.blogspot.com/2017/12/javascript-code-coverage.html
+[Web Crypto API]: webcrypto.md
 [`"type"`]: packages.md#type
 [`--cpu-prof-dir`]: #--cpu-prof-dir
 [`--diagnostic-dir`]: #--diagnostic-dirdirectory

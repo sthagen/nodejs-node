@@ -181,7 +181,7 @@ See [Advanced serialization for `child_process`][] for more details.
 
 <!-- YAML
 added: v10.12.0
-deprecated: REPLACEME
+deprecated: v17.6.0
 -->
 
 > Stability: 0 - Deprecated
@@ -340,7 +340,7 @@ changes:
 
 * `err` {Error} The uncaught exception.
 * `origin` {string} Indicates if the exception originates from an unhandled
-  rejection or from an synchronous error. Can either be `'uncaughtException'` or
+  rejection or from a synchronous error. Can either be `'uncaughtException'` or
   `'unhandledRejection'`. The latter is used when in an exception happens in a
   `Promise` based async context (or if a `Promise` is rejected) and
   [`--unhandled-rejections`][] flag set to `strict` or `throw` (which is the
@@ -870,7 +870,7 @@ added: v0.5.0
 
 The operating system CPU architecture for which the Node.js binary was compiled.
 Possible values are: `'arm'`, `'arm64'`, `'ia32'`, `'mips'`,`'mipsel'`, `'ppc'`,
-`'ppc64'`, `'s390'`, `'s390x'`, `'x32'`, and `'x64'`.
+`'ppc64'`, `'s390'`, `'s390x'`, and `'x64'`.
 
 ```mjs
 import { arch } from 'process';

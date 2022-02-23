@@ -301,12 +301,13 @@ if (global.structuredClone) {
 }
 
 if (global.fetch) {
-  knownGlobals.push(
-    global.fetch,
-    global.Request,
-    global.Response,
-    global.Headers,
-  );
+  knownGlobals.push(fetch);
+}
+if (hasCrypto && global.crypto) {
+  knownGlobals.push(global.crypto);
+  knownGlobals.push(global.Crypto);
+  knownGlobals.push(global.CryptoKey);
+  knownGlobals.push(global.SubtleCrypto);
 }
 
 function allowGlobals(...allowlist) {

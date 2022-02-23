@@ -41,6 +41,8 @@ calling `require('crypto')` will result in an error being thrown.
 
 When using CommonJS, the error thrown can be caught using try/catch:
 
+<!-- eslint-skip -->
+
 ```cjs
 let crypto;
 try {
@@ -4137,7 +4139,9 @@ added: v17.4.0
 * `typedArray` {Buffer|TypedArray|DataView|ArrayBuffer}
 * Returns: {Buffer|TypedArray|DataView|ArrayBuffer} Returns `typedArray`.
 
-A convenient alias for [`crypto.webcrypto.getRandomValues()`][].
+A convenient alias for [`crypto.webcrypto.getRandomValues()`][]. This
+implementation is not compliant with the Web Crypto spec, to write
+web-compatible code use [`crypto.webcrypto.getRandomValues()`][] instead.
 
 ### `crypto.hkdf(digest, ikm, salt, info, keylen, callback)`
 

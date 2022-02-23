@@ -318,6 +318,11 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
   AddOption("--experimental-fetch",
             "experimental Fetch API",
             &EnvironmentOptions::experimental_fetch,
+            kAllowedInEnvironment,
+            true);
+  AddOption("--experimental-global-webcrypto",
+            "expose experimental Web Crypto API on the global scope",
+            &EnvironmentOptions::experimental_global_web_crypto,
             kAllowedInEnvironment);
   AddOption("--experimental-json-modules", "", NoOp{}, kAllowedInEnvironment);
   AddOption("--experimental-loader",

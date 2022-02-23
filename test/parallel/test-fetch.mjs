@@ -1,15 +1,19 @@
-// Flags: --experimental-fetch --no-warnings
-
-import '../common/index.mjs';
+import * as common from '../common/index.mjs';
 
 import assert from 'assert';
 import events from 'events';
 import http from 'http';
 
 assert.strictEqual(typeof globalThis.fetch, 'function');
+assert.strictEqual(typeof globalThis.FormData, 'function');
 assert.strictEqual(typeof globalThis.Headers, 'function');
 assert.strictEqual(typeof globalThis.Request, 'function');
 assert.strictEqual(typeof globalThis.Response, 'function');
+
+common.expectWarning(
+  'ExperimentalWarning',
+  'The Fetch API is an experimental feature. This feature could change at any time'
+);
 
 const server = http.createServer((req, res) => {
   // TODO: Remove this once keep-alive behavior can be disabled from the client
