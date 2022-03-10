@@ -54,8 +54,8 @@ try {
 
 When using the lexical ESM `import` keyword, the error can only be
 caught if a handler for `process.on('uncaughtException')` is registered
-_before_ any attempt to load the module is made -- using, for instance,
-a preload module.
+_before_ any attempt to load the module is made (using, for instance,
+a preload module).
 
 When using ESM, if there is a chance that the code may be run on a build
 of Node.js where crypto support is not enabled, consider using the
@@ -2082,6 +2082,20 @@ encryption mechanism, PEM-level encryption is not supported when encrypting
 a PKCS#8 key. See [RFC 5208][] for PKCS#8 encryption and [RFC 1421][] for
 PKCS#1 and SEC1 encryption.
 
+### `keyObject.equals(otherKeyObject)`
+
+<!-- YAML
+added: v17.7.0
+-->
+
+* `otherKeyObject`: {KeyObject} A `KeyObject` with which to
+  compare `keyObject`.
+* Returns: {boolean}
+
+Returns `true` or `false` depending on whether the keys have exactly the same
+type, value, and parameters. This method is not
+[constant time](https://en.wikipedia.org/wiki/Timing_attack).
+
 ### `keyObject.symmetricKeySize`
 
 <!-- YAML
@@ -2956,8 +2970,7 @@ option is not required but can be used to set the length of the authentication
 tag that will be returned by `getAuthTag()` and defaults to 16 bytes.
 
 The `algorithm` is dependent on OpenSSL, examples are `'aes192'`, etc. On
-recent OpenSSL releases, `openssl list -cipher-algorithms`
-(`openssl list-cipher-algorithms` for older versions of OpenSSL) will
+recent OpenSSL releases, `openssl list -cipher-algorithms` will
 display the available cipher algorithms.
 
 The `password` is used to derive the cipher key and initialization vector (IV).
@@ -3027,8 +3040,7 @@ option is not required but can be used to set the length of the authentication
 tag that will be returned by `getAuthTag()` and defaults to 16 bytes.
 
 The `algorithm` is dependent on OpenSSL, examples are `'aes192'`, etc. On
-recent OpenSSL releases, `openssl list -cipher-algorithms`
-(`openssl list-cipher-algorithms` for older versions of OpenSSL) will
+recent OpenSSL releases, `openssl list -cipher-algorithms` will
 display the available cipher algorithms.
 
 The `key` is the raw key used by the `algorithm` and `iv` is an
@@ -3128,8 +3140,7 @@ option is not required but can be used to restrict accepted authentication tags
 to those with the specified length.
 
 The `algorithm` is dependent on OpenSSL, examples are `'aes192'`, etc. On
-recent OpenSSL releases, `openssl list -cipher-algorithms`
-(`openssl list-cipher-algorithms` for older versions of OpenSSL) will
+recent OpenSSL releases, `openssl list -cipher-algorithms` will
 display the available cipher algorithms.
 
 The `key` is the raw key used by the `algorithm` and `iv` is an
@@ -3245,8 +3256,7 @@ can be used to specify the desired output length in bytes.
 
 The `algorithm` is dependent on the available algorithms supported by the
 version of OpenSSL on the platform. Examples are `'sha256'`, `'sha512'`, etc.
-On recent releases of OpenSSL, `openssl list -digest-algorithms`
-(`openssl list-message-digest-algorithms` for older versions of OpenSSL) will
+On recent releases of OpenSSL, `openssl list -digest-algorithms` will
 display the available digest algorithms.
 
 Example: generating the sha256 sum of a file
@@ -3329,8 +3339,7 @@ Optional `options` argument controls stream behavior.
 
 The `algorithm` is dependent on the available algorithms supported by the
 version of OpenSSL on the platform. Examples are `'sha256'`, `'sha512'`, etc.
-On recent releases of OpenSSL, `openssl list -digest-algorithms`
-(`openssl list-message-digest-algorithms` for older versions of OpenSSL) will
+On recent releases of OpenSSL, `openssl list -digest-algorithms` will
 display the available digest algorithms.
 
 The `key` is the HMAC key used to generate the cryptographic HMAC hash. If it is

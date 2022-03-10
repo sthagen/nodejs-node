@@ -354,12 +354,12 @@ For information about the governance of the Node.js project, see
   **Fedor Indutny** <<fedor@indutny.com>>
 * [JacksonTian](https://github.com/JacksonTian) -
   **Jackson Tian** <<shyvo1987@gmail.com>>
+* [JakobJingleheimer](https://github.com/JakobJingleheimer) -
+  **Jacob Smith** <<jacob@frende.me>> (he/him)
 * [jasnell](https://github.com/jasnell) -
   **James M Snell** <<jasnell@gmail.com>> (he/him)
 * [jkrems](https://github.com/jkrems) -
   **Jan Krems** <<jan.krems@gmail.com>> (he/him)
-* [joaocgreis](https://github.com/joaocgreis) -
-  **João Reis** <<reis@janeasystems.com>>
 * [joesepi](https://github.com/joesepi) -
   **Joe Sepi** <<sepi@joesepi.com>> (he/him)
 * [joyeecheung](https://github.com/joyeecheung) -
@@ -528,6 +528,8 @@ For information about the governance of the Node.js project, see
   **John-David Dalton** <<john.david.dalton@gmail.com>>
 * [jhamhader](https://github.com/jhamhader) -
   **Yuval Brik** <<yuval@brik.org.il>>
+* [joaocgreis](https://github.com/joaocgreis) -
+  **João Reis** <<reis@janeasystems.com>>
 * [joshgav](https://github.com/joshgav) -
   **Josh Gavant** <<josh.gavant@outlook.com>>
 * [julianduque](https://github.com/julianduque) -
@@ -667,6 +669,8 @@ Primary GPG keys for Node.js Releasers (some Releasers sign with subkeys):
 
 * **Beth Griggs** <<bgriggs@redhat.com>>
   `4ED778F539E3634C779C87C6D7062848A1AB005C`
+* **Bryan English** <<bryan@bryanenglish.com>>
+  `141F07595B7B3FFE74309A937405533BE57C7D57`
 * **Colin Ihrig** <<cjihrig@gmail.com>>
   `94AE36675C464D64BAFA68DD7434390BDBE9B9C5`
 * **Danielle Adams** <<adamzdanielle@gmail.com>>
@@ -693,6 +697,7 @@ to sign releases):
 
 ```bash
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 4ED778F539E3634C779C87C6D7062848A1AB005C
+gpg --keyserver hkps://keys.openpgp.org --recv-keys 141F07595B7B3FFE74309A937405533BE57C7D57
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 94AE36675C464D64BAFA68DD7434390BDBE9B9C5
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 74F12602B6F1C4E913FAA37AD3A89613643B6201
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 71DCFD284A79C3B38668286BC97EC7A07EDE3FC1

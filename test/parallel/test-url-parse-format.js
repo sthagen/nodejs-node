@@ -975,8 +975,38 @@ const parseTests = {
     query: null,
     pathname: '/everybody',
     path: '/everybody',
-    href: '//fhqwhgads@example.com/everybody#to-the-limit'
+    href: '//fhqwhgads@example.com/everybody#to-the-limit',
   },
+
+  'http:@localhost': {
+    protocol: 'http:',
+    slashes: null,
+    auth: null,
+    host: 'localhost',
+    port: null,
+    hostname: 'localhost',
+    hash: null,
+    search: null,
+    query: null,
+    pathname: '/',
+    path: '/',
+    href: 'http://localhost/',
+  },
+
+  '\bhttp://example.com/\b': {
+    protocol: 'http:',
+    slashes: true,
+    auth: null,
+    host: 'example.com',
+    port: null,
+    hostname: 'example.com',
+    hash: null,
+    search: null,
+    query: null,
+    pathname: '/',
+    path: '/',
+    href: 'http://example.com/'
+  }
 };
 
 for (const u in parseTests) {

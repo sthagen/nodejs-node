@@ -1,9 +1,12 @@
 name: Close stale feature requests
 on:
   workflow_dispatch:
-  schedule:
-    # Run every day at 1:00 AM UTC.
-    - cron: 0 1 * * *
+    inputs:
+      daysBeforeStale:
+        description: Idle number of days before marking feature requests stale
+        required: true
+        default: 906
+        type: number
 
 # yamllint disable rule:empty-lines
 env:
@@ -15,7 +18,7 @@ env:
 
     For more information on how the project manages
     feature requests, please consult the
-    [feature request management document](https://github.com/nodejs/node/blob/HEAD/doc/guides/feature-request-management.md).
+    [feature request management document](https://github.com/nodejs/node/blob/HEAD/doc/contributing/feature-request-management.md).
 
   WARN_MESSAGE: >
     There has been no activity on this feature request for
@@ -25,7 +28,7 @@ env:
 
     For more information on how the project manages
     feature requests, please consult the
-    [feature request management document](https://github.com/nodejs/node/blob/HEAD/doc/guides/feature-request-management.md).
+    [feature request management document](https://github.com/nodejs/node/blob/HEAD/doc/contributing/feature-request-management.md).
 # yamllint enable
 
 jobs:
@@ -36,13 +39,13 @@ jobs:
       - uses: actions/stale@v4
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          days-before-stale: 1226
+          days-before-stale: ${{ github.event.inputs.daysBeforeStale }}
           days-before-close: 30
-          stale-issue-label: stalled
+          stale-issue-label: stale
           close-issue-message: ${{ env.CLOSE_MESSAGE }}
           stale-issue-message: ${{ env.WARN_MESSAGE }}
           only-labels: feature request
           exempt-pr-labels: never-stale
           # max requests it will send per run to the GitHub API before it deliberately exits to avoid hitting API rate limits
-          operations-per-run: 30
+          operations-per-run: 500
           remove-stale-when-updated: true
