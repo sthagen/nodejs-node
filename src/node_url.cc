@@ -142,19 +142,9 @@ URLHost::~URLHost() {
   XX(ARG_FRAGMENT)                                                            \
   XX(ARG_COUNT)  // This one has to be last.
 
-#define ERR_ARGS(XX)                                                          \
-  XX(ERR_ARG_FLAGS)                                                           \
-  XX(ERR_ARG_INPUT)                                                           \
-
 enum url_cb_args {
 #define XX(name) name,
   ARGS(XX)
-#undef XX
-};
-
-enum url_error_cb_args {
-#define XX(name) name,
-  ERR_ARGS(XX)
 #undef XX
 };
 
@@ -240,7 +230,7 @@ unsigned hex2bin(const T ch) {
     return 10 + (ch - 'A');
   if (ch >= 'a' && ch <= 'f')
     return 10 + (ch - 'a');
-  return static_cast<unsigned>(-1);
+  UNREACHABLE();
 }
 
 std::string PercentDecode(const char* input, size_t len) {
@@ -1679,12 +1669,8 @@ void Parse(Environment* env,
     SetArgs(env, argv, url);
     cb->Call(context, recv, arraysize(argv), argv).FromMaybe(Local<Value>());
   } else if (error_cb->IsFunction()) {
-    Local<Value> argv[2] = { undef, undef };
-    argv[ERR_ARG_FLAGS] = Integer::NewFromUnsigned(isolate, url.flags);
-    argv[ERR_ARG_INPUT] =
-      String::NewFromUtf8(env->isolate(), input).ToLocalChecked();
-    error_cb.As<Function>()->Call(context, recv, arraysize(argv), argv)
-        .FromMaybe(Local<Value>());
+    Local<Value> flags = Integer::NewFromUnsigned(isolate, url.flags);
+    USE(error_cb.As<Function>()->Call(context, recv, 1, &flags));
   }
 }
 
