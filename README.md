@@ -1,5 +1,3 @@
-<!--lint disable no-literal-urls-->
-
 <p align="center">
   <a href="https://nodejs.org/">
     <img
@@ -428,6 +426,8 @@ For information about the governance of the Node.js project, see
   **Santiago Gimeno** <<santiago.gimeno@gmail.com>>
 * [shisama](https://github.com/shisama) -
   **Masashi Hirano** <<shisama07@gmail.com>> (he/him)
+* [ShogunPanda](https://github.com/ShogunPanda) -
+  **Paolo Insogna** <<paolo@cowtech.it>> (he/him)
 * [srl295](https://github.com/srl295) -
   **Steven R Loomis** <<srloomis@us.ibm.com>>
 * [starkwang](https://github.com/starkwang) -
