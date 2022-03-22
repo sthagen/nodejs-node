@@ -1,12 +1,4 @@
-<p align="center">
-  <a href="https://nodejs.org/">
-    <img
-      alt="Node.js"
-      src="https://nodejs.org/static/images/logo-light.svg"
-      width="400"
-    />
-  </a>
-</p>
+# Node.js
 
 Node.js is an open-source, cross-platform, JavaScript runtime environment.
 
@@ -17,7 +9,7 @@ The Node.js project uses an [open governance model](./GOVERNANCE.md). The
 
 **This project has a [Code of Conduct][].**
 
-# Table of contents
+## Table of contents
 
 * [Support](#support)
 * [Release types](#release-types)
@@ -59,7 +51,7 @@ Looking for help? Check out the
 * **Nightly**: Code from the Current branch built every 24-hours when there are
   changes. Use with caution.
 
-Current and LTS releases follow [Semantic Versioning](https://semver.org). A
+Current and LTS releases follow [semantic versioning](https://semver.org). A
 member of the Release Team [signs](#release-keys) each Current and LTS release.
 For more information, see the
 [Release README](https://github.com/nodejs/Release#readme).
