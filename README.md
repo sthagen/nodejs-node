@@ -113,7 +113,7 @@ import the keys:
 $ gpg --keyserver hkps://keys.openpgp.org --recv-keys DD8F2338BAE7501E3DD5AC78C273792F7D83545D
 ```
 
-See the bottom of this README for a full script to import active release keys.
+See [Release keys](#release-keys) for a script to import active release keys.
 
 Next, download the `SHASUMS256.txt.sig` for the release:
 
@@ -332,8 +332,6 @@ For information about the governance of the Node.js project, see
   **Guy Bedford** <<guybedford@gmail.com>> (he/him)
 * [HarshithaKP](https://github.com/HarshithaKP) -
   **Harshitha K P** <<harshitha014@gmail.com>> (she/her)
-* [hashseed](https://github.com/hashseed) -
-  **Yang Guo** <<yangguo@chromium.org>> (he/him)
 * [himself65](https://github.com/himself65) -
   **Zeyu Yang** <<himself65@outlook.com>> (he/him)
 * [hiroppy](https://github.com/hiroppy) -
@@ -374,6 +372,8 @@ For information about the governance of the Node.js project, see
   **Akhil Marsonya** <<akhil.marsonya27@gmail.com>> (he/him)
 * [mcollina](https://github.com/mcollina) -
   **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
+* [meixg](https://github.com/meixg) -
+  **Xuguang Mei** <<meixuguang@gmail.com>> (he/him)
 * [Mesteery](https://github.com/Mesteery) -
   **Mestery** <<mestery@protonmail.com>> (he/him)
 * [mhdawson](https://github.com/mhdawson) -
@@ -502,6 +502,8 @@ For information about the governance of the Node.js project, see
   **Gibson Fahnestock** <<gibfahn@gmail.com>> (he/him)
 * [glentiki](https://github.com/glentiki) -
   **Glen Keane** <<glenkeane.94@gmail.com>> (he/him)
+* [hashseed](https://github.com/hashseed) -
+  **Yang Guo** <<yangguo@chromium.org>> (he/him)
 * [iarna](https://github.com/iarna) -
   **Rebecca Turner** <<me@re-becca.org>>
 * [imran-iq](https://github.com/imran-iq) -
@@ -645,7 +647,7 @@ maintaining the Node.js project.
 * [marsonya](https://github.com/marsonya) -
   **Akhil Marsonya** <<akhil.marsonya27@gmail.com>> (he/him)
 * [meixg](https://github.com/meixg) -
-  **Xuguang Mei** <<meixg@foxmail.com>> (he/him)
+  **Xuguang Mei** <<meixuguang@gmail.com>> (he/him)
 * [Mesteery](https://github.com/Mesteery) -
   **Mestery** <<mestery@protonmail.com>> (he/him)
 * [PoojaDurgad](https://github.com/PoojaDurgad) -
@@ -702,8 +704,8 @@ gpg --keyserver hkps://keys.openpgp.org --recv-keys 108F52B48DB57BB0CC439B2997B0
 gpg --keyserver hkps://keys.openpgp.org --recv-keys B9E2F5981AA6E0CD28160D9FF13993A75599653C
 ```
 
-See the section above on [Verifying binaries](#verifying-binaries) for how to
-use these keys to verify a downloaded file.
+See [Verifying binaries](#verifying-binaries) for how to use these keys to
+verify a downloaded file.
 
 <details>
 

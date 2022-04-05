@@ -437,7 +437,7 @@ heap limit. `count` should be a non-negative integer (in which case
 Node.js will write no more than `max_count` snapshots to disk).
 
 When generating snapshots, garbage collection may be triggered and bring
-the heap usage down, therefore multiple snapshots may be written to disk
+the heap usage down. Therefore multiple snapshots may be written to disk
 before the Node.js instance finally runs out of memory. These heap snapshots
 can be compared to determine what objects are being allocated during the
 time consecutive snapshots are taken. It's not guaranteed that Node.js will
@@ -1052,6 +1052,15 @@ minimum allocation from the secure heap. The minimum value is `2`.
 The maximum value is the lesser of `--secure-heap` or `2147483647`.
 The value given must be a power of two.
 
+### `--test-only`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Configures the test runner to only execute top level tests that have the `only`
+option set.
+
 ### `--throw-deprecation`
 
 <!-- YAML
@@ -1641,6 +1650,7 @@ Node.js options that are allowed are:
 * `--require`, `-r`
 * `--secure-heap-min`
 * `--secure-heap`
+* `--test-only`
 * `--throw-deprecation`
 * `--title`
 * `--tls-cipher-list`

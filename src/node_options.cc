@@ -498,6 +498,10 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "write warnings to file instead of stderr",
             &EnvironmentOptions::redirect_warnings,
             kAllowedInEnvironment);
+  AddOption("--test-only",
+            "run tests with 'only' option set",
+            &EnvironmentOptions::test_only,
+            kAllowedInEnvironment);
   AddOption("--test-udp-no-try-send", "",  // For testing only.
             &EnvironmentOptions::test_udp_no_try_send);
   AddOption("--throw-deprecation",
@@ -725,6 +729,11 @@ PerProcessOptionsParser::PerProcessOptionsParser(
             "disable Object.prototype.__proto__",
             &PerProcessOptions::disable_proto,
             kAllowedInEnvironment);
+  AddOption("--build-snapshot",
+            "Generate a snapshot blob when the process exits."
+            "Currently only supported in the node_mksnapshot binary.",
+            &PerProcessOptions::build_snapshot,
+            kDisallowedInEnvironment);
 
   // 12.x renamed this inadvertently, so alias it for consistency within the
   // release line, while using the original name for consistency with older

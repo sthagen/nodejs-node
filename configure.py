@@ -788,6 +788,13 @@ parser.add_argument('--node-builtin-modules-path',
     default=False,
     help='node will load builtin modules from disk instead of from binary')
 
+parser.add_argument('--node-snapshot-main',
+    action='store',
+    dest='node_snapshot_main',
+    default=None,
+    help='Run a file when building the embedded snapshot. Currently ' +
+         'experimental.')
+
 # Create compile_commands.json in out/Debug and out/Release.
 parser.add_argument('-C',
     action='store_true',
@@ -1115,6 +1122,7 @@ def host_arch_win():
     'x86'    : 'ia32',
     'arm'    : 'arm',
     'mips'   : 'mips',
+    'ARM64'  : 'arm64'
   }
 
   return matchup.get(arch, 'ia32')
@@ -1215,6 +1223,18 @@ def configure_node(o):
     warn('building --without-snapshot is no longer possible')
 
   o['variables']['want_separate_host_toolset'] = int(cross_compiling)
+
+  if options.node_snapshot_main is not None:
+    if options.shared:
+      # This should be possible to fix, but we will need to refactor the
+      # libnode target to avoid building it twice.
+      error('--node-snapshot-main is incompatible with --shared')
+    if options.without_node_snapshot:
+      error('--node-snapshot-main is incompatible with ' +
+            '--without-node-snapshot')
+    if cross_compiling:
+      error('--node-snapshot-main is incompatible with cross compilation')
+    o['variables']['node_snapshot_main'] = options.node_snapshot_main
 
   if options.without_node_snapshot or options.node_builtin_modules_path:
     o['variables']['node_use_node_snapshot'] = 'false'
@@ -1604,7 +1624,7 @@ def configure_intl(o):
 
   # write an empty file to start with
   write(icu_config_name, do_not_edit +
-        pprint.pformat(icu_config, indent=2) + '\n')
+        pprint.pformat(icu_config, indent=2, width=1024) + '\n')
 
   # always set icu_small, node.gyp depends on it being defined.
   o['variables']['icu_small'] = b(False)
@@ -1856,7 +1876,7 @@ def configure_intl(o):
 
   # write updated icu_config.gypi with a bunch of paths
   write(icu_config_name, do_not_edit +
-        pprint.pformat(icu_config, indent=2) + '\n')
+        pprint.pformat(icu_config, indent=2, width=1024) + '\n')
   return  # end of configure_intl
 
 def configure_inspector(o):
@@ -1985,7 +2005,7 @@ if make_global_settings:
 print_verbose(output)
 
 write('config.gypi', do_not_edit +
-      pprint.pformat(output, indent=2) + '\n')
+      pprint.pformat(output, indent=2, width=1024) + '\n')
 
 write('config.status', '#!/bin/sh\nset -x\nexec ./configure ' +
       ' '.join([pipes.quote(arg) for arg in original_argv]) + '\n')

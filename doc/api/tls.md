@@ -385,9 +385,6 @@ The default cipher suite prefers GCM ciphers for [Chrome's 'modern
 cryptography' setting][] and also prefers ECDHE and DHE ciphers for perfect
 forward secrecy, while offering _some_ backward compatibility.
 
-128 bit AES is preferred over 192 and 256 bit AES in light of [specific
-attacks affecting larger AES key sizes][].
-
 Old clients that rely on insecure and deprecated RC4 or DES-based ciphers
 (like Internet Explorer 6) cannot complete the handshaking process with
 the default configuration. If these clients _must_ be supported, the
@@ -605,7 +602,7 @@ no OCSP response.
 
 Calling `callback(err)` will result in a `socket.destroy(err)` call.
 
-The typical flow of an OCSP Request is as follows:
+The typical flow of an OCSP request is as follows:
 
 1. Client connects to the server and sends an `'OCSPRequest'` (via the status
    info extension in ClientHello).
@@ -1525,6 +1522,11 @@ Verifies the certificate `cert` is issued to `hostname`.
 Returns {Error} object, populating it with `reason`, `host`, and `cert` on
 failure. On success, returns {undefined}.
 
+This function is intended to be used in combination with the
+`checkServerIdentity` option that can be passed to [`tls.connect()`][] and as
+such operates on a [certificate object][]. For other purposes, consider using
+[`x509.checkHost()`][] instead.
+
 This function can be overwritten by providing an alternative function as the
 `options.checkServerIdentity` option that is passed to `tls.connect()`. The
 overwriting function can call `tls.checkServerIdentity()` of course, to augment
@@ -2257,9 +2259,9 @@ added: v11.4.0
 [`tls.createServer()`]: #tlscreateserveroptions-secureconnectionlistener
 [`tls.getCiphers()`]: #tlsgetciphers
 [`tls.rootCertificates`]: #tlsrootcertificates
+[`x509.checkHost()`]: crypto.md#x509checkhostname-options
 [asn1.js]: https://www.npmjs.com/package/asn1.js
 [certificate object]: #certificate-object
 [cipher list format]: https://www.openssl.org/docs/man1.1.1/man1/ciphers.html#CIPHER-LIST-FORMAT
 [forward secrecy]: https://en.wikipedia.org/wiki/Perfect_forward_secrecy
 [perfect forward secrecy]: #perfect-forward-secrecy
-[specific attacks affecting larger AES key sizes]: https://www.schneier.com/blog/archives/2009/07/another_new_aes.html

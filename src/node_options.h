@@ -148,6 +148,7 @@ class EnvironmentOptions : public Options {
 #endif  // HAVE_INSPECTOR
   std::string redirect_warnings;
   std::string diagnostic_dir;
+  bool test_only = false;
   bool test_udp_no_try_send = false;
   bool throw_deprecation = false;
   bool trace_atomics_wait = false;
@@ -229,6 +230,7 @@ class PerProcessOptions : public Options {
   bool zero_fill_all_buffers = false;
   bool debug_arraybuffer_allocations = false;
   std::string disable_proto;
+  bool build_snapshot;
 
   std::vector<std::string> security_reverts;
   bool print_bash_completion = false;
