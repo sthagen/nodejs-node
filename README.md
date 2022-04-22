@@ -180,8 +180,6 @@ For information about the governance of the Node.js project, see
   **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
 * [mhdawson](https://github.com/mhdawson) -
   **Michael Dawson** <<midawson@redhat.com>> (he/him)
-* [mmarchini](https://github.com/mmarchini) -
-  **Mary Marchini** <<oss@mmarchini.me>> (she/her)
 * [MylesBorins](https://github.com/MylesBorins) -
   **Myles Borins** <<myles.borins@gmail.com>> (he/him)
 * [RaisinTen](https://github.com/RaisinTen) -
@@ -227,6 +225,8 @@ For information about the governance of the Node.js project, see
   **Isaac Z. Schlueter** <<i@izs.me>>
 * [joshgav](https://github.com/joshgav) -
   **Josh Gavant** <<josh.gavant@outlook.com>>
+* [mmarchini](https://github.com/mmarchini) -
+  **Mary Marchini** <<oss@mmarchini.me>> (she/her)
 * [mscdex](https://github.com/mscdex) -
   **Brian White** <<mscdex@mscdex.net>>
 * [nebrius](https://github.com/nebrius) -
@@ -262,8 +262,6 @@ For information about the governance of the Node.js project, see
   **Anna Henningsen** <<anna@addaleax.net>> (she/her)
 * [aduh95](https://github.com/aduh95) -
   **Antoine du Hamel** <<duhamelantoine1995@gmail.com>> (he/him)
-* [ak239](https://github.com/ak239) -
-  **Aleksei Koziatinskii** <<ak239spb@gmail.com>>
 * [antsmartian](https://github.com/antsmartian) -
   **Anto Aravinth** <<anto.aravinth.cse@gmail.com>> (he/him)
 * [apapirovski](https://github.com/apapirovski) -
@@ -380,8 +378,6 @@ For information about the governance of the Node.js project, see
   **Milad Fa** <<mfarazma@redhat.com>> (he/him)
 * [mildsunrise](https://github.com/mildsunrise) -
   **Alba Mendez** <<me@alba.sh>> (she/her)
-* [mmarchini](https://github.com/mmarchini) -
-  **Mary Marchini** <<oss@mmarchini.me>> (she/her)
 * [mscdex](https://github.com/mscdex) -
   **Brian White** <<mscdex@mscdex.net>>
 * [MylesBorins](https://github.com/MylesBorins) -
@@ -396,6 +392,8 @@ For information about the governance of the Node.js project, see
   **Andrey Pechkurov** <<apechkurov@gmail.com>> (he/him)
 * [Qard](https://github.com/Qard) -
   **Stephen Belanger** <<admin@stephenbelanger.com>> (he/him)
+* [RafaelGSS](https://github.com/RafaelGSS) -
+  **Rafael Gonzaga** <<rafael.nunu@hotmail.com>> (he/him)
 * [RaisinTen](https://github.com/RaisinTen) -
   **Darshan Sen** <<raisinten@gmail.com>> (he/him)
 * [rexagod](https://github.com/rexagod) -
@@ -458,6 +456,8 @@ For information about the governance of the Node.js project, see
 
 ### Collaborator emeriti
 
+* [ak239](https://github.com/ak239) -
+  **Aleksei Koziatinskii** <<ak239spb@gmail.com>>
 * [andrasq](https://github.com/andrasq) -
   **Andras** <<andras@kinvey.com>>
 * [AnnaMag](https://github.com/AnnaMag) -
@@ -550,6 +550,8 @@ For information about the governance of the Node.js project, see
   **Mikeal Rogers** <<mikeal.rogers@gmail.com>>
 * [misterdjules](https://github.com/misterdjules) -
   **Julien Gilli** <<jgilli@netflix.com>>
+* [mmarchini](https://github.com/mmarchini) -
+  **Mary Marchini** <<oss@mmarchini.me>> (she/her)
 * [monsanto](https://github.com/monsanto) -
   **Christopher Monsanto** <<chris@monsan.to>>
 * [MoonBall](https://github.com/MoonBall) -

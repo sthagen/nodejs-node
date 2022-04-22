@@ -116,7 +116,7 @@ This section was moved to [Modules: Packages](packages.md).
 ### Terminology
 
 The _specifier_ of an `import` statement is the string after the `from` keyword,
-e.g. `'path'` in `import { sep } from 'path'`. Specifiers are also used in
+e.g. `'path'` in `import { sep } from 'node:path'`. Specifiers are also used in
 `export from` statements, and as the argument to an `import()` expression.
 
 There are three types of specifiers:
@@ -178,7 +178,7 @@ The volume root may be referenced via `/`, `//` or `file:///`. Given the
 differences between [URL][] and path resolution (such as percent encoding
 details), it is recommended to use [url.pathToFileURL][] when importing a path.
 
-#### `data:` Imports
+#### `data:` imports
 
 <!-- YAML
 added: v12.10.0
@@ -186,24 +186,23 @@ added: v12.10.0
 
 [`data:` URLs][] are supported for importing with the following MIME types:
 
-* `text/javascript` for ES Modules
+* `text/javascript` for ES modules
 * `application/json` for JSON
 * `application/wasm` for Wasm
 
-`data:` URLs only resolve [_Bare specifiers_][Terminology] for builtin modules
-and [_Absolute specifiers_][Terminology]. Resolving
-[_Relative specifiers_][Terminology] does not work because `data:` is not a
-[special scheme][]. For example, attempting to load `./foo`
-from `data:text/javascript,import "./foo";` fails to resolve because there
-is no concept of relative resolution for `data:` URLs. An example of a `data:`
-URLs being used is:
-
 ```js
 import 'data:text/javascript,console.log("hello!");';
-import _ from 'data:application/json,"world!"';
+import _ from 'data:application/json,"world!"' assert { type: 'json' };
 ```
 
-#### `node:` Imports
+`data:` URLs only resolve [bare specifiers][Terminology] for builtin modules
+and [absolute specifiers][Terminology]. Resolving
+[relative specifiers][Terminology] does not work because `data:` is not a
+[special scheme][]. For example, attempting to load `./foo`
+from `data:text/javascript,import "./foo";` fails to resolve because there
+is no concept of relative resolution for `data:` URLs.
+
+#### `node:` imports
 
 <!-- YAML
 added:
@@ -261,12 +260,12 @@ exports. Named exports of builtin modules are updated only by calling
 [`module.syncBuiltinESMExports()`][].
 
 ```js
-import EventEmitter from 'events';
+import EventEmitter from 'node:events';
 const e = new EventEmitter();
 ```
 
 ```js
-import { readFile } from 'fs';
+import { readFile } from 'node:fs';
 readFile('./foo.txt', (err, source) => {
   if (err) {
     console.error(err);
@@ -277,9 +276,9 @@ readFile('./foo.txt', (err, source) => {
 ```
 
 ```js
-import fs, { readFileSync } from 'fs';
-import { syncBuiltinESMExports } from 'module';
-import { Buffer } from 'buffer';
+import fs, { readFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { Buffer } from 'node:buffer';
 
 fs.readFileSync = () => Buffer.from('Hello, ESM');
 syncBuiltinESMExports();
@@ -309,7 +308,7 @@ current module file.
 This enables useful patterns such as relative file loading:
 
 ```js
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 const buffer = readFileSync(new URL('./data.proto', import.meta.url));
 ```
 
@@ -593,8 +592,8 @@ If a top level `await` expression never resolves, the `node` process will exit
 with a `13` [status code][].
 
 ```js
-import { spawn } from 'child_process';
-import { execPath } from 'process';
+import { spawn } from 'node:child_process';
+import { execPath } from 'node:process';
 
 spawn(execPath, [
   '--input-type=module',
@@ -647,7 +646,7 @@ references to the local dependencies:
 
 ```mjs
 // file.mjs
-import worker_threads from 'worker_threads';
+import worker_threads from 'node:worker_threads';
 import { configure, resize } from 'https://example.com/imagelib.mjs';
 configure({ worker_threads });
 ```
@@ -674,6 +673,15 @@ of Node.js applications.
 <i id="esm_experimental_loaders"></i>
 
 ## Loaders
+
+<!-- YAML
+added: v8.8.0
+changes:
+  - version: v16.12.0
+    pr-url: https://github.com/nodejs/node/pull/37468
+    description: Removed `getFormat`, `getSource`, `transformSource`, and
+                 `globalPreload`; added `load` hook and `getGlobalPreload` hook.
+-->
 
 > Stability: 1 - Experimental
 
@@ -949,7 +957,7 @@ and there is no security.
 
 ```js
 // https-loader.mjs
-import { get } from 'https';
+import { get } from 'node:https';
 
 export function resolve(specifier, context, defaultResolve) {
   const { parentURL = null } = context;
@@ -1119,7 +1127,7 @@ async function getPackageType(url) {
 import { scream } from './scream.coffee'
 console.log scream 'hello, world'
 
-import { version } from 'process'
+import { version } from 'node:process'
 console.log "Brought to you by Node.js version #{version}"
 ```
 
