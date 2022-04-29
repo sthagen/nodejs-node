@@ -203,10 +203,8 @@ class PerIsolateOptions : public Options {
  public:
   std::shared_ptr<EnvironmentOptions> per_env { new EnvironmentOptions() };
   bool track_heap_objects = false;
-  bool node_snapshot = true;
   bool report_uncaught_exception = false;
   bool report_on_signal = false;
-  bool experimental_top_level_await = true;
   std::string report_signal = "SIGUSR2";
   inline EnvironmentOptions* get_per_env_options();
   void CheckOptions(std::vector<std::string>* errors) override;
@@ -231,7 +229,11 @@ class PerProcessOptions : public Options {
   bool zero_fill_all_buffers = false;
   bool debug_arraybuffer_allocations = false;
   std::string disable_proto;
-  bool build_snapshot;
+  bool build_snapshot = false;
+  // We enable the shared read-only heap which currently requires that the
+  // snapshot used in different isolates in the same process to be the same.
+  // Therefore --node-snapshot is a per-process option.
+  bool node_snapshot = true;
 
   std::vector<std::string> security_reverts;
   bool print_bash_completion = false;

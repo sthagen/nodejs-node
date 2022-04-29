@@ -650,10 +650,6 @@ PerIsolateOptionsParser::PerIsolateOptionsParser(
             "track heap object allocations for heap snapshots",
             &PerIsolateOptions::track_heap_objects,
             kAllowedInEnvironment);
-  AddOption("--node-snapshot",
-            "",  // It's a debug-only option.
-            &PerIsolateOptions::node_snapshot,
-            kAllowedInEnvironment);
 
   // Explicitly add some V8 flags to mark them as allowed in NODE_OPTIONS.
   AddOption("--abort-on-uncaught-exception",
@@ -704,14 +700,8 @@ PerIsolateOptionsParser::PerIsolateOptionsParser(
             kAllowedInEnvironment);
   Implies("--report-signal", "--report-on-signal");
 
-  AddOption("--experimental-top-level-await",
-            "",
-            &PerIsolateOptions::experimental_top_level_await,
-            kAllowedInEnvironment);
-  AddOption("--harmony-top-level-await", "", V8Option{});
-  Implies("--experimental-top-level-await", "--harmony-top-level-await");
-  Implies("--harmony-top-level-await", "--experimental-top-level-await");
-  ImpliesNot("--no-harmony-top-level-await", "--experimental-top-level-await");
+  AddOption(
+      "--experimental-top-level-await", "", NoOp{}, kAllowedInEnvironment);
 
   Insert(eop, &PerIsolateOptions::get_per_env_options);
 }
@@ -755,7 +745,10 @@ PerProcessOptionsParser::PerProcessOptionsParser(
             "Currently only supported in the node_mksnapshot binary.",
             &PerProcessOptions::build_snapshot,
             kDisallowedInEnvironment);
-
+  AddOption("--node-snapshot",
+            "",  // It's a debug-only option.
+            &PerProcessOptions::node_snapshot,
+            kAllowedInEnvironment);
   // 12.x renamed this inadvertently, so alias it for consistency within the
   // release line, while using the original name for consistency with older
   // release lines.
