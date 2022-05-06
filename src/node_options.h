@@ -161,7 +161,7 @@ class EnvironmentOptions : public Options {
   bool trace_warnings = false;
   bool extra_info_on_fatal_exception = true;
   std::string unhandled_rejections;
-  std::string userland_loader;
+  std::vector<std::string> userland_loaders;
   bool verify_base_objects =
 #ifdef DEBUG
       true;
@@ -205,6 +205,7 @@ class PerIsolateOptions : public Options {
   bool track_heap_objects = false;
   bool report_uncaught_exception = false;
   bool report_on_signal = false;
+  bool experimental_shadow_realm = false;
   std::string report_signal = "SIGUSR2";
   inline EnvironmentOptions* get_per_env_options();
   void CheckOptions(std::vector<std::string>* errors) override;

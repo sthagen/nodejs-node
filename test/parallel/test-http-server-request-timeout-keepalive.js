@@ -24,7 +24,7 @@ function performRequestWithDelay(client, firstDelay, secondDelay, closeAfter) {
   }, firstDelay + secondDelay).unref();
 }
 
-const requestTimeout = common.platformTimeout(2000);
+const requestTimeout = common.platformTimeout(5000);
 const server = createServer({
   headersTimeout: 0,
   requestTimeout,
@@ -67,7 +67,7 @@ server.listen(0, common.mustCall(() => {
         performRequestWithDelay(
           client,
           requestTimeout / 5,
-          requestTimeout,
+          requestTimeout * 2,
           true
         );
       }, defer).unref();
@@ -88,7 +88,7 @@ server.listen(0, common.mustCall(() => {
   client.on('error', errOrEnd);
   client.on('end', errOrEnd);
 
-  // Perform a second request expected to finish before requestTimeout
+  // Perform a first request which is completed immediately
   performRequestWithDelay(
     client,
     requestTimeout / 5,
