@@ -65,12 +65,12 @@ added: v16.7.0
 * `name` {string}
 
 If `name` is not provided, removes all `PerformanceMeasure` objects from the
-Performance Timeline. If `name` is provided, removes only the named mark.
+Performance Timeline. If `name` is provided, removes only the named measure.
 
 ### `performance.clearResourceTimings([name])`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * `name` {string}
@@ -196,7 +196,7 @@ changes:
 * `options` {Object}
   * `detail` {any} Additional optional detail to include with the mark.
   * `startTime` {number} An optional timestamp to be used as the mark time.
-    **Defaults**: `performance.now()`.
+    **Default**: `performance.now()`.
 
 Creates a new `PerformanceMark` entry in the Performance Timeline. A
 `PerformanceMark` is a subclass of `PerformanceEntry` whose
@@ -210,12 +210,10 @@ and can be queried with `performance.getEntries`,
 observation is performed, the entries should be cleared from the global
 Performance Timeline manually with `performance.clearMarks`.
 
-### \`performance.markResourceTiming(timingInfo, requestedUrl, initiatorType,
-
-global, cacheMode)\`
+### `performance.markResourceTiming(timingInfo, requestedUrl, initiatorType, global, cacheMode)`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * `timingInfo` {Object} [Fetch Timing Info][]
@@ -695,7 +693,7 @@ initialized.
 ## Class: `PerformanceResourceTiming`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * Extends: {PerformanceEntry}
@@ -708,7 +706,7 @@ The constructor of this class is not exposed to users directly.
 ### `performanceResourceTiming.workerStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -720,7 +718,7 @@ will always return 0.
 ### `performanceResourceTiming.redirectStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -731,7 +729,7 @@ of the fetch which initiates the redirect.
 ### `performanceResourceTiming.redirectEnd`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -742,7 +740,7 @@ receiving the last byte of the response of the last redirect.
 ### `performanceResourceTiming.fetchStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -753,7 +751,7 @@ to fetch the resource.
 ### `performanceResourceTiming.domainLookupStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -764,7 +762,7 @@ the domain name lookup for the resource.
 ### `performanceResourceTiming.domainLookupEnd`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -775,7 +773,7 @@ after the Node.js finished the domain name lookup for the resource.
 ### `performanceResourceTiming.connectStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -787,7 +785,7 @@ the resource.
 ### `performanceResourceTiming.connectEnd`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -799,7 +797,7 @@ the resource.
 ### `performanceResourceTiming.secureConnectionStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -810,7 +808,7 @@ before Node.js starts the handshake process to secure the current connection.
 ### `performanceResourceTiming.requestStart`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -821,7 +819,7 @@ before Node.js receives the first byte of the response from the server.
 ### `performanceResourceTiming.responseEnd`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -833,7 +831,7 @@ the transport connection is closed, whichever comes first.
 ### `performanceResourceTiming.transferSize`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -844,7 +842,7 @@ includes the response header fields plus the response payload body.
 ### `performanceResourceTiming.encodedBodySize`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -856,7 +854,7 @@ content-codings.
 ### `performanceResourceTiming.decodedBodySize`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 * {number}
@@ -868,7 +866,7 @@ content-codings.
 ### `performanceResourceTiming.toJSON()`
 
 <!-- YAML
-added: REPLACEME
+added: v18.2.0
 -->
 
 Returns a `object` that is the JSON representation of the
