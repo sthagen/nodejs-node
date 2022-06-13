@@ -132,12 +132,10 @@ The tools are currently assigned to Tiers as follows:
 | AsyncFlow | Async Hooks (API)         | ?                             | Yes                     | 1           |
 | Debugger  | V8 Debug protocol (API)   | No                            | Yes                     | 1           |
 | Debugger  | Command line Debug Client | ?                             | Yes                     | 1           |
-| Debugger  | llnode                    | ?                             | No                      | 2           |
 | Tracing   | trace\_events (API)       | No                            | Yes                     | 1           |
 | Tracing   | trace\_gc                 | No                            | Yes                     | 1           |
 | Tracing   | DTrace                    | No                            | Partial                 | 3           |
 | Tracing   | LTTng                     | No                            | Removed?                | N/A         |
-| Tracing   | ETW                       | No                            | Partial                 | 3           |
 | Tracing   | Systemtap                 | No                            | Partial                 | ?           |
 | Profiling | DTrace                    | No                            | Partial                 | 3           |
 | Profiling | Windows Xperf             | No                            | ?                       | ?           |
