@@ -259,6 +259,40 @@ async function testImportJwk({ name, publicUsages, privateUsages }, extractable)
         message: /key is not extractable/
       });
   }
+
+  for (const crv of [undefined, name === 'Ed25519' ? 'Ed448' : 'Ed25519']) {
+    await assert.rejects(
+      subtle.importKey(
+        'jwk',
+        { kty: jwk.kty, x: jwk.x, y: jwk.y, crv },
+        { name },
+        extractable,
+        publicUsages),
+      { message: /Subtype mismatch/ });
+
+    await assert.rejects(
+      subtle.importKey(
+        'jwk',
+        { kty: jwk.kty, d: jwk.d, x: jwk.x, y: jwk.y, crv },
+        { name },
+        extractable,
+        publicUsages),
+      { message: /Subtype mismatch/ });
+  }
+}
+
+async function testImportRaw({ name, publicUsages }) {
+  const jwk = keyData[name].jwk;
+
+  const publicKey = await subtle.importKey(
+    'raw',
+    Buffer.from(jwk.x, 'base64url'),
+    { name },
+    true, publicUsages);
+
+  assert.strictEqual(publicKey.type, 'public');
+  assert.deepStrictEqual(publicKey.usages, publicUsages);
+  assert.strictEqual(publicKey.algorithm.name, name);
 }
 
 (async function() {
@@ -269,6 +303,7 @@ async function testImportJwk({ name, publicUsages, privateUsages }, extractable)
       tests.push(testImportPkcs8(vector, extractable));
       tests.push(testImportJwk(vector, extractable));
     });
+    tests.push(testImportRaw(vector));
   });
 
   await Promise.all(tests);

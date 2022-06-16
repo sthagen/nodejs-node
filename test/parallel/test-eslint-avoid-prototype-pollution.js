@@ -45,6 +45,10 @@ new RuleTester({
       'ReflectDefineProperty({}, "key", { "__proto__": null })',
       'ObjectDefineProperty({}, "key", { \'__proto__\': null })',
       'ReflectDefineProperty({}, "key", { \'__proto__\': null })',
+      'new Proxy({}, otherObject)',
+      'new Proxy({}, someFactory())',
+      'new Proxy({}, { __proto__: null })',
+      'new Proxy({}, { __proto__: null, ...{} })',
     ],
     invalid: [
       {
@@ -142,6 +146,62 @@ new RuleTester({
       {
         code: 'ReflectDefineProperty({}, "key", { enumerable: true })',
         errors: [{ message: /null-prototype/ }],
+      },
+      {
+        code: 'RegExpPrototypeTest(/some regex/, "some string")',
+        errors: [{ message: /looks up the "exec" property/ }],
+      },
+      {
+        code: 'RegExpPrototypeSymbolMatch(/some regex/, "some string")',
+        errors: [{ message: /looks up the "exec" property/ }],
+      },
+      {
+        code: 'RegExpPrototypeSymbolMatchAll(/some regex/, "some string")',
+        errors: [{ message: /looks up the "exec" property/ }],
+      },
+      {
+        code: 'RegExpPrototypeSymbolSearch(/some regex/, "some string")',
+        errors: [{ message: /looks up the "exec" property/ }],
+      },
+      {
+        code: 'StringPrototypeMatch("some string", /some regex/)',
+        errors: [{ message: /looks up the Symbol\.match property/ }],
+      },
+      {
+        code: 'StringPrototypeMatchAll("some string", /some regex/)',
+        errors: [{ message: /looks up the Symbol\.matchAll property/ }],
+      },
+      {
+        code: 'StringPrototypeReplace("some string", /some regex/, "some replacement")',
+        errors: [{ message: /looks up the Symbol\.replace property/ }],
+      },
+      {
+        code: 'StringPrototypeReplaceAll("some string", /some regex/, "some replacement")',
+        errors: [{ message: /looks up the Symbol\.replace property/ }],
+      },
+      {
+        code: 'StringPrototypeSearch("some string", /some regex/)',
+        errors: [{ message: /looks up the Symbol\.search property/ }],
+      },
+      {
+        code: 'StringPrototypeSplit("some string", /some regex/)',
+        errors: [{ message: /looks up the Symbol\.split property/ }],
+      },
+      {
+        code: 'new Proxy({}, {})',
+        errors: [{ message: /null-prototype/ }]
+      },
+      {
+        code: 'new Proxy({}, { [`__proto__`]: null })',
+        errors: [{ message: /null-prototype/ }]
+      },
+      {
+        code: 'new Proxy({}, { __proto__: Object.prototype })',
+        errors: [{ message: /null-prototype/ }]
+      },
+      {
+        code: 'new Proxy({}, { ...{ __proto__: null } })',
+        errors: [{ message: /null-prototype/ }]
       },
     ]
   });

@@ -63,6 +63,17 @@ function checkPropertyDescriptor(context, node) {
   });
 }
 
+function createUnsafeStringMethodReport(context, name, lookedUpProperty) {
+  return {
+    [`${CallExpression}[expression.callee.name=${JSON.stringify(name)}]`](node) {
+      context.report({
+        node,
+        message: `${name} looks up the ${lookedUpProperty} property on the first argument`,
+      });
+    }
+  };
+}
+
 const CallExpression = 'ExpressionStatement[expression.type="CallExpression"]';
 module.exports = {
   meta: { hasSuggestions: true },
@@ -87,6 +98,53 @@ module.exports = {
       [`${CallExpression}[expression.callee.name="ObjectCreate"][expression.arguments.length=2]`](node) {
         checkProperties(context, node.expression.arguments[1]);
       },
+      [`${CallExpression}[expression.callee.name="RegExpPrototypeTest"]`](node) {
+        context.report({
+          node,
+          message: '%RegExp.prototype.test% looks up the "exec" property of `this` value',
+          suggest: [{
+            desc: 'Use RegexpPrototypeExec instead',
+            fix(fixer) {
+              const testRange = { ...node.range };
+              testRange.start = testRange.start + 'RegexpPrototype'.length;
+              testRange.end = testRange.start + 'Test'.length;
+              return [
+                fixer.replaceTextRange(node.range, 'Exec'),
+                fixer.insertTextAfter(node, ' !== null'),
+              ];
+            }
+          }]
+        });
+      },
+      [`${CallExpression}[expression.callee.name=${/^RegExpPrototypeSymbol(Match|MatchAll|Search)$/}]`](node) {
+        context.report({
+          node,
+          message: node.expression.callee.name + ' looks up the "exec" property of `this` value',
+        });
+      },
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeMatch', 'Symbol.match'),
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeMatchAll', 'Symbol.matchAll'),
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeReplace', 'Symbol.replace'),
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeReplaceAll', 'Symbol.replace'),
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeSearch', 'Symbol.search'),
+      ...createUnsafeStringMethodReport(context, 'StringPrototypeSplit', 'Symbol.split'),
+
+      'NewExpression[callee.name="Proxy"][arguments.1.type="ObjectExpression"]'(node) {
+        for (const { key, value } of node.arguments[1].properties) {
+          if (
+            key != null && value != null &&
+            ((key.type === 'Identifier' && key.name === '__proto__') ||
+              (key.type === 'Literal' && key.value === '__proto__')) &&
+            value.type === 'Literal' && value.value === null
+          ) {
+            return;
+          }
+        }
+        context.report({
+          node,
+          message: 'Proxy handler must be a null-prototype object'
+        });
+      }
     };
   },
 };
