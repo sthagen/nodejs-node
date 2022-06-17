@@ -1,3 +1,4 @@
+// Flags: --expose-internals
 'use strict';
 
 const common = require('../common');
@@ -10,7 +11,10 @@ const { types: { isCryptoKey } } = require('util');
 const {
   webcrypto: { subtle, CryptoKey },
   createSecretKey,
+  KeyObject,
 } = require('crypto');
+
+const { bigIntArrayToUnsignedBigInt } = require('internal/crypto/util');
 
 const allUsages = [
   'encrypt',
@@ -206,19 +210,30 @@ const vectors = {
 // Test bad usages
 {
   async function test(name) {
-    const invalidUsages = [];
-    allUsages.forEach((usage) => {
-      if (!vectors[name].usages.includes(usage))
-        invalidUsages.push(usage);
-    });
-    return assert.rejects(
+    await assert.rejects(
       subtle.generateKey(
         {
           name, ...vectors[name].algorithm
         },
         true,
-        invalidUsages),
-      { message: /Unsupported key usage/ });
+        []),
+      { message: /Usages cannot be empty/ });
+
+    const invalidUsages = [];
+    allUsages.forEach((usage) => {
+      if (!vectors[name].usages.includes(usage))
+        invalidUsages.push(usage);
+    });
+    for (const invalidUsage of invalidUsages) {
+      await assert.rejects(
+        subtle.generateKey(
+          {
+            name, ...vectors[name].algorithm
+          },
+          true,
+          [...vectors[name].usages, invalidUsage]),
+        { message: /Unsupported key usage/ });
+    }
   }
 
   const tests = Object.keys(vectors).map(test);
@@ -262,10 +277,16 @@ const vectors = {
     assert.strictEqual(publicKey.algorithm.name, name);
     assert.strictEqual(publicKey.algorithm.modulusLength, modulusLength);
     assert.deepStrictEqual(publicKey.algorithm.publicExponent, publicExponent);
+    assert.strictEqual(
+      KeyObject.from(publicKey).asymmetricKeyDetails.publicExponent,
+      bigIntArrayToUnsignedBigInt(publicExponent));
     assert.strictEqual(publicKey.algorithm.hash.name, hash);
     assert.strictEqual(privateKey.algorithm.name, name);
     assert.strictEqual(privateKey.algorithm.modulusLength, modulusLength);
     assert.deepStrictEqual(privateKey.algorithm.publicExponent, publicExponent);
+    assert.strictEqual(
+      KeyObject.from(privateKey).asymmetricKeyDetails.publicExponent,
+      bigIntArrayToUnsignedBigInt(publicExponent));
     assert.strictEqual(privateKey.algorithm.hash.name, hash);
 
     // Missing parameters
@@ -340,6 +361,17 @@ const vectors = {
         hash
       }, true, usages), {
         code: 'ERR_INVALID_ARG_TYPE'
+      });
+    }));
+
+    await Promise.all([[1], [1, 0, 0]].map((publicExponent) => {
+      return assert.rejects(subtle.generateKey({
+        name,
+        modulusLength,
+        publicExponent: new Uint8Array(publicExponent),
+        hash
+      }, true, usages), {
+        name: 'OperationError',
       });
     }));
   }
