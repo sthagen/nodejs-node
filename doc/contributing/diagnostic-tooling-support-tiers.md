@@ -118,9 +118,9 @@ The tools are currently assigned to Tiers as follows:
 
 ## Tier 4
 
-| Tool Type | Tool/API Name | Regular Testing in Node.js CI | Integrated with Node.js | Target Tier |
-| --------- | ------------- | ----------------------------- | ----------------------- | ----------- |
-|           |               |                               |                         |             |
+| Tool Type | Tool/API Name                                 | Regular Testing in Node.js CI | Integrated with Node.js | Target Tier |
+| --------- | --------------------------------------------- | ----------------------------- | ----------------------- | ----------- |
+| Profiling | [0x](https://github.com/davidmarkclements/0x) | No                            | No                      | 3           |
 
 ## Not yet classified
 
@@ -134,11 +134,8 @@ The tools are currently assigned to Tiers as follows:
 | Debugger  | Command line Debug Client | ?                             | Yes                     | 1           |
 | Tracing   | trace\_events (API)       | No                            | Yes                     | 1           |
 | Tracing   | trace\_gc                 | No                            | Yes                     | 1           |
-| Tracing   | DTrace                    | No                            | Partial                 | 3           |
 | Tracing   | LTTng                     | No                            | Removed?                | N/A         |
 | Tracing   | Systemtap                 | No                            | Partial                 | ?           |
-| Profiling | DTrace                    | No                            | Partial                 | 3           |
 | Profiling | Windows Xperf             | No                            | ?                       | ?           |
-| Profiling | 0x                        | No                            | No                      | 4           |
 | F/P/T     | appmetrics                | No                            | No                      | ?           |
 | M/T       | eBPF tracing tool         | No                            | No                      | ?           |
