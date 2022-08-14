@@ -1198,6 +1198,15 @@ in the current working directory.
 When used without `--build-snapshot`, `--snapshot-blob` specifies the
 path to the blob that will be used to restore the application state.
 
+When loading a snapshot, Node.js checks that:
+
+1. The version, architecture and platform of the running Node.js binary
+   are exactly the same as that of the binary that generates the snapshot.
+2. The V8 flags and CPU features are compatible with that of the binary
+   that generates the snapshot.
+
+If they don't match, Node.js would refuse to load the snapshot and exit with 1.
+
 ### `--test`
 
 <!-- YAML
@@ -1478,6 +1487,14 @@ occurs. One of the following modes can be chosen:
 
 If a rejection happens during the command line entry point's ES module static
 loading phase, it will always raise it as an uncaught exception.
+
+### `--update-assert-snapshot`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Force updating snapshot files for [`assert.snapshot()`][]
 
 ### `--use-bundled-ca`, `--use-openssl-ca`
 
@@ -1840,6 +1857,7 @@ Node.js options that are allowed are:
 * `--trace-warnings`
 * `--track-heap-objects`
 * `--unhandled-rejections`
+* `--update-assert-snapshot`
 * `--use-bundled-ca`
 * `--use-largepages`
 * `--use-openssl-ca`
@@ -2215,6 +2233,7 @@ done
 [`NO_COLOR`]: https://no-color.org
 [`SlowBuffer`]: buffer.md#class-slowbuffer
 [`YoungGenerationSizeFromSemiSpaceSize`]: https://chromium.googlesource.com/v8/v8.git/+/refs/tags/10.3.129/src/heap/heap.cc#328
+[`assert.snapshot()`]: assert.md#assertsnapshotvalue-name
 [`dns.lookup()`]: dns.md#dnslookuphostname-options-callback
 [`dns.setDefaultResultOrder()`]: dns.md#dnssetdefaultresultorderorder
 [`dnsPromises.lookup()`]: dns.md#dnspromiseslookuphostname-options

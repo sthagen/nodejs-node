@@ -956,19 +956,19 @@ class CleanupHookCallback {
 typedef void (*DeserializeRequestCallback)(v8::Local<v8::Context> context,
                                            v8::Local<v8::Object> holder,
                                            int index,
-                                           InternalFieldInfo* info);
+                                           InternalFieldInfoBase* info);
 struct DeserializeRequest {
   DeserializeRequestCallback cb;
   v8::Global<v8::Object> holder;
   int index;
-  InternalFieldInfo* info = nullptr;  // Owned by the request
+  InternalFieldInfoBase* info = nullptr;  // Owned by the request
 
   // Move constructor
   DeserializeRequest(DeserializeRequest&& other) = default;
 };
 
 struct EnvSerializeInfo {
-  std::vector<PropInfo> bindings;
+  std::vector<PropInfo> native_objects;
   std::vector<std::string> builtins;
   AsyncHooks::SerializeInfo async_hooks;
   TickInfo::SerializeInfo tick_info;
@@ -984,6 +984,19 @@ struct EnvSerializeInfo {
   friend std::ostream& operator<<(std::ostream& o, const EnvSerializeInfo& i);
 };
 
+struct SnapshotMetadata {
+  // For now kFullyCustomized is only built with the --build-snapshot CLI flag.
+  // We might want to add more types of snapshots in the future.
+  enum class Type : uint8_t { kDefault, kFullyCustomized };
+
+  Type type;
+  std::string node_version;
+  std::string node_arch;
+  std::string node_platform;
+  // Result of v8::ScriptCompiler::CachedDataVersionTag().
+  uint32_t v8_cache_version_tag;
+};
+
 struct SnapshotData {
   enum class DataOwnership { kOwned, kNotOwned };
 
@@ -992,6 +1005,8 @@ struct SnapshotData {
   static const SnapshotIndex kNodeMainContextIndex = kNodeBaseContextIndex + 1;
 
   DataOwnership data_ownership = DataOwnership::kOwned;
+
+  SnapshotMetadata metadata;
 
   // The result of v8::SnapshotCreator::CreateBlob() during the snapshot
   // building process.
@@ -1009,7 +1024,10 @@ struct SnapshotData {
   std::vector<builtins::CodeCacheInfo> code_cache;
 
   void ToBlob(FILE* out) const;
-  static void FromBlob(SnapshotData* out, FILE* in);
+  // If returns false, the metadata doesn't match the current Node.js binary,
+  // and the caller should not consume the snapshot data.
+  bool Check() const;
+  static bool FromBlob(SnapshotData* out, FILE* in);
 
   ~SnapshotData();
 
@@ -1044,7 +1062,7 @@ class Environment : public MemoryRetainer {
   void EnqueueDeserializeRequest(DeserializeRequestCallback cb,
                                  v8::Local<v8::Object> holder,
                                  int index,
-                                 InternalFieldInfo* info);
+                                 InternalFieldInfoBase* info);
   void RunDeserializeRequests();
   // Should be called before InitializeInspector()
   void InitializeDiagnostics();
@@ -1467,7 +1485,7 @@ class Environment : public MemoryRetainer {
   void RemoveUnmanagedFd(int fd);
 
   template <typename T>
-  void ForEachBindingData(T&& iterator);
+  void ForEachBaseObject(T&& iterator);
 
  private:
   inline void ThrowError(v8::Local<v8::Value> (*fun)(v8::Local<v8::String>),
@@ -1624,9 +1642,6 @@ class Environment : public MemoryRetainer {
 
   std::function<void(Environment*, int)> process_exit_handler_ {
       DefaultProcessExitHandler };
-
-  template <typename T>
-  void ForEachBaseObject(T&& iterator);
 
 #define V(PropertyName, TypeName) v8::Global<TypeName> PropertyName ## _;
   ENVIRONMENT_STRONG_PERSISTENT_VALUES(V)

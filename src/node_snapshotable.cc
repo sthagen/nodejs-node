@@ -638,7 +638,7 @@ template <>
 EnvSerializeInfo FileReader::Read() {
   per_process::Debug(DebugCategory::MKSNAPSHOT, "Read<EnvSerializeInfo>()\n");
   EnvSerializeInfo result;
-  result.bindings = ReadVector<PropInfo>();
+  result.native_objects = ReadVector<PropInfo>();
   result.builtins = ReadVector<std::string>();
   result.async_hooks = Read<AsyncHooks::SerializeInfo>();
   result.tick_info = Read<TickInfo::SerializeInfo>();
@@ -661,7 +661,7 @@ size_t FileWriter::Write(const EnvSerializeInfo& data) {
   }
 
   // Use += here to ensure order of evaluation.
-  size_t written_total = WriteVector<PropInfo>(data.bindings);
+  size_t written_total = WriteVector<PropInfo>(data.native_objects);
   written_total += WriteVector<std::string>(data.builtins);
   written_total += Write<AsyncHooks::SerializeInfo>(data.async_hooks);
   written_total += Write<TickInfo::SerializeInfo>(data.tick_info);
@@ -676,6 +676,57 @@ size_t FileWriter::Write(const EnvSerializeInfo& data) {
   written_total += Write<SnapshotIndex>(data.context);
 
   Debug("Write<EnvSerializeInfo>() wrote %d bytes\n", written_total);
+  return written_total;
+}
+
+// Layout of SnapshotMetadata
+// [  1 byte   ]  type of the snapshot
+// [ 4/8 bytes ]  length of the node version string
+// [    ...    ]  |length| bytes of node version
+// [ 4/8 bytes ]  length of the node arch string
+// [    ...    ]  |length| bytes of node arch
+// [ 4/8 bytes ]  length of the node platform string
+// [    ...    ]  |length| bytes of node platform
+// [  4 bytes  ]  v8 cache version tag
+template <>
+SnapshotMetadata FileReader::Read() {
+  per_process::Debug(DebugCategory::MKSNAPSHOT, "Read<SnapshotMetadata>()\n");
+
+  SnapshotMetadata result;
+  result.type = static_cast<SnapshotMetadata::Type>(Read<uint8_t>());
+  result.node_version = ReadString();
+  result.node_arch = ReadString();
+  result.node_platform = ReadString();
+  result.v8_cache_version_tag = Read<uint32_t>();
+
+  if (is_debug) {
+    std::string str = ToStr(result);
+    Debug("Read<SnapshotMetadata>() %s\n", str.c_str());
+  }
+  return result;
+}
+
+template <>
+size_t FileWriter::Write(const SnapshotMetadata& data) {
+  if (is_debug) {
+    std::string str = ToStr(data);
+    Debug("\nWrite<SnapshotMetadata>() %s\n", str.c_str());
+  }
+  size_t written_total = 0;
+  // We need the Node.js version, platform and arch to match because
+  // Node.js may perform synchronizations that are platform-specific and they
+  // can be changed in semver-patches.
+  Debug("Write snapshot type %" PRIu8 "\n", static_cast<uint8_t>(data.type));
+  written_total += Write<uint8_t>(static_cast<uint8_t>(data.type));
+  Debug("Write Node.js version %s\n", data.node_version.c_str());
+  written_total += WriteString(data.node_version);
+  Debug("Write Node.js arch %s\n", data.node_arch);
+  written_total += WriteString(data.node_arch);
+  Debug("Write Node.js platform %s\n", data.node_platform);
+  written_total += WriteString(data.node_platform);
+  Debug("Write V8 cached data version tag %" PRIx32 "\n",
+        data.v8_cache_version_tag);
+  written_total += Write<uint32_t>(data.v8_cache_version_tag);
   return written_total;
 }
 
@@ -695,13 +746,12 @@ void SnapshotData::ToBlob(FILE* out) const {
   w.Debug("SnapshotData::ToBlob()\n");
 
   size_t written_total = 0;
+
   // Metadata
   w.Debug("Write magic %" PRIx32 "\n", kMagic);
   written_total += w.Write<uint32_t>(kMagic);
-  w.Debug("Write version %s\n", NODE_VERSION);
-  written_total += w.WriteString(NODE_VERSION);
-  w.Debug("Write arch %s\n", NODE_ARCH);
-  written_total += w.WriteString(NODE_ARCH);
+  w.Debug("Write metadata\n");
+  written_total += w.Write<SnapshotMetadata>(metadata);
 
   written_total += w.Write<v8::StartupData>(v8_snapshot_blob_data);
   w.Debug("Write isolate_data_indices\n");
@@ -712,22 +762,22 @@ void SnapshotData::ToBlob(FILE* out) const {
   w.Debug("SnapshotData::ToBlob() Wrote %d bytes\n", written_total);
 }
 
-void SnapshotData::FromBlob(SnapshotData* out, FILE* in) {
+bool SnapshotData::FromBlob(SnapshotData* out, FILE* in) {
   FileReader r(in);
   r.Debug("SnapshotData::FromBlob()\n");
 
+  DCHECK_EQ(out->data_ownership, SnapshotData::DataOwnership::kOwned);
+
   // Metadata
   uint32_t magic = r.Read<uint32_t>();
-  r.Debug("Read magic %" PRIx64 "\n", magic);
+  r.Debug("Read magic %" PRIx32 "\n", magic);
   CHECK_EQ(magic, kMagic);
-  std::string version = r.ReadString();
-  r.Debug("Read version %s\n", version.c_str());
-  CHECK_EQ(version, NODE_VERSION);
-  std::string arch = r.ReadString();
-  r.Debug("Read arch %s\n", arch.c_str());
-  CHECK_EQ(arch, NODE_ARCH);
+  out->metadata = r.Read<SnapshotMetadata>();
+  r.Debug("Read metadata\n");
+  if (!out->Check()) {
+    return false;
+  }
 
-  DCHECK_EQ(out->data_ownership, SnapshotData::DataOwnership::kOwned);
   out->v8_snapshot_blob_data = r.Read<v8::StartupData>();
   r.Debug("Read isolate_data_info\n");
   out->isolate_data_info = r.Read<IsolateDataSerializeInfo>();
@@ -736,6 +786,54 @@ void SnapshotData::FromBlob(SnapshotData* out, FILE* in) {
   out->code_cache = r.ReadVector<builtins::CodeCacheInfo>();
 
   r.Debug("SnapshotData::FromBlob() read %d bytes\n", r.read_total);
+  return true;
+}
+
+bool SnapshotData::Check() const {
+  if (metadata.node_version != per_process::metadata.versions.node) {
+    fprintf(stderr,
+            "Failed to load the startup snapshot because it was built with"
+            "Node.js version %s and the current Node.js version is %s.\n",
+            metadata.node_version.c_str(),
+            NODE_VERSION);
+    return false;
+  }
+
+  if (metadata.node_arch != per_process::metadata.arch) {
+    fprintf(stderr,
+            "Failed to load the startup snapshot because it was built with"
+            "architecture %s and the architecture is %s.\n",
+            metadata.node_arch.c_str(),
+            NODE_ARCH);
+    return false;
+  }
+
+  if (metadata.node_platform != per_process::metadata.platform) {
+    fprintf(stderr,
+            "Failed to load the startup snapshot because it was built with"
+            "platform %s and the current platform is %s.\n",
+            metadata.node_platform.c_str(),
+            NODE_PLATFORM);
+    return false;
+  }
+
+  uint32_t current_cache_version = v8::ScriptCompiler::CachedDataVersionTag();
+  if (metadata.v8_cache_version_tag != current_cache_version &&
+      metadata.type == SnapshotMetadata::Type::kFullyCustomized) {
+    // For now we only do this check for the customized snapshots - we know
+    // that the flags we use in the default snapshot are limited and safe
+    // enough so we can relax the constraints for it.
+    fprintf(stderr,
+            "Failed to load the startup snapshot because it was built with "
+            "a different version of V8 or with different V8 configurations.\n"
+            "Expected tag %" PRIx32 ", read %" PRIx32 "\n",
+            current_cache_version,
+            metadata.v8_cache_version_tag);
+    return false;
+  }
+
+  // TODO(joyeecheung): check incompatible Node.js flags.
+  return true;
 }
 
 SnapshotData::~SnapshotData() {
@@ -822,6 +920,10 @@ static const int v8_snapshot_blob_size = )"
   // -- data_ownership begins --
   SnapshotData::DataOwnership::kNotOwned,
   // -- data_ownership ends --
+  // -- metadata begins --
+)" << data->metadata
+     << R"(,
+  // -- metadata ends --
   // -- v8_snapshot_blob_data begins --
   { v8_snapshot_blob_data, v8_snapshot_blob_size },
   // -- v8_snapshot_blob_data ends --
@@ -908,6 +1010,12 @@ int SnapshotBuilder::Generate(SnapshotData* out,
     per_process::v8_platform.Platform()->UnregisterIsolate(isolate);
   });
 
+  // It's only possible to be kDefault in node_mksnapshot.
+  SnapshotMetadata::Type snapshot_type =
+      per_process::cli_options->build_snapshot
+          ? SnapshotMetadata::Type::kFullyCustomized
+          : SnapshotMetadata::Type::kDefault;
+
   {
     HandleScope scope(isolate);
     TryCatch bootstrapCatch(isolate);
@@ -956,7 +1064,7 @@ int SnapshotBuilder::Generate(SnapshotData* out,
       // point (we currently only support this kind of entry point, but we
       // could also explore snapshotting other kinds of execution modes
       // in the future).
-      if (per_process::cli_options->build_snapshot) {
+      if (snapshot_type == SnapshotMetadata::Type::kFullyCustomized) {
 #if HAVE_INSPECTOR
         // TODO(joyeecheung): move this before RunBootstrapping().
         env->InitializeInspector({});
@@ -1020,6 +1128,12 @@ int SnapshotBuilder::Generate(SnapshotData* out,
     return SNAPSHOT_ERROR;
   }
 
+  out->metadata = SnapshotMetadata{snapshot_type,
+                                   per_process::metadata.versions.node,
+                                   per_process::metadata.arch,
+                                   per_process::metadata.platform,
+                                   v8::ScriptCompiler::CachedDataVersionTag()};
+
   // We cannot resurrect the handles from the snapshot, so make sure that
   // no handles are left open in the environment after the blob is created
   // (which should trigger a GC and close all handles that can be closed).
@@ -1065,17 +1179,6 @@ const char* SnapshotableObject::GetTypeNameChars() const {
   }
 }
 
-bool IsSnapshotableType(FastStringKey key) {
-#define V(PropertyName, NativeTypeName)                                        \
-  if (key == NativeTypeName::type_name) {                                      \
-    return true;                                                               \
-  }
-  SERIALIZABLE_OBJECT_TYPES(V)
-#undef V
-
-  return false;
-}
-
 void DeserializeNodeInternalFields(Local<Object> holder,
                                    int index,
                                    StartupData payload,
@@ -1098,10 +1201,10 @@ void DeserializeNodeInternalFields(Local<Object> holder,
   DCHECK_EQ(index, BaseObject::kEmbedderType);
 
   Environment* env_ptr = static_cast<Environment*>(env);
-  const InternalFieldInfo* info =
-      reinterpret_cast<const InternalFieldInfo*>(payload.data);
+  const InternalFieldInfoBase* info =
+      reinterpret_cast<const InternalFieldInfoBase*>(payload.data);
   // TODO(joyeecheung): we can add a constant kNodeEmbedderId to the
-  // beginning of every InternalFieldInfo to ensure that we don't
+  // beginning of every InternalFieldInfoBase to ensure that we don't
   // step on payloads that were not serialized by Node.js.
   switch (info->type) {
 #define V(PropertyName, NativeTypeName)                                        \
@@ -1111,12 +1214,25 @@ void DeserializeNodeInternalFields(Local<Object> holder,
                        (*holder),                                              \
                        NativeTypeName::type_name.c_str());                     \
     env_ptr->EnqueueDeserializeRequest(                                        \
-        NativeTypeName::Deserialize, holder, index, info->Copy());             \
+        NativeTypeName::Deserialize,                                           \
+        holder,                                                                \
+        index,                                                                 \
+        info->Copy<NativeTypeName::InternalFieldInfo>());                      \
     break;                                                                     \
   }
     SERIALIZABLE_OBJECT_TYPES(V)
 #undef V
-    default: { UNREACHABLE(); }
+    default: {
+      // This should only be reachable during development when trying to
+      // deserialize a snapshot blob built by a version of Node.js that
+      // has more recognizable EmbedderObjectTypes than the deserializing
+      // Node.js binary.
+      fprintf(stderr,
+              "Unknown embedder object type %" PRIu8 ", possibly caused by "
+              "mismatched Node.js versions\n",
+              static_cast<uint8_t>(info->type));
+      ABORT();
+    }
   }
 }
 
@@ -1149,17 +1265,17 @@ StartupData SerializeNodeContextInternalFields(Local<Object> holder,
                      static_cast<int>(index),
                      *holder);
 
-  void* binding_ptr =
+  void* native_ptr =
       holder->GetAlignedPointerFromInternalField(BaseObject::kSlot);
-  per_process::Debug(DebugCategory::MKSNAPSHOT, "binding = %p\n", binding_ptr);
-  DCHECK(static_cast<BaseObject*>(binding_ptr)->is_snapshotable());
-  SnapshotableObject* obj = static_cast<SnapshotableObject*>(binding_ptr);
+  per_process::Debug(DebugCategory::MKSNAPSHOT, "native = %p\n", native_ptr);
+  DCHECK(static_cast<BaseObject*>(native_ptr)->is_snapshotable());
+  SnapshotableObject* obj = static_cast<SnapshotableObject*>(native_ptr);
 
   per_process::Debug(DebugCategory::MKSNAPSHOT,
                      "Object %p is %s, ",
                      *holder,
                      obj->GetTypeNameChars());
-  InternalFieldInfo* info = obj->Serialize(index);
+  InternalFieldInfoBase* info = obj->Serialize(index);
 
   per_process::Debug(DebugCategory::MKSNAPSHOT,
                      "payload size=%d\n",
@@ -1168,31 +1284,35 @@ StartupData SerializeNodeContextInternalFields(Local<Object> holder,
                      static_cast<int>(info->length)};
 }
 
-void SerializeBindingData(Environment* env,
-                          SnapshotCreator* creator,
-                          EnvSerializeInfo* info) {
+void SerializeSnapshotableObjects(Environment* env,
+                                  SnapshotCreator* creator,
+                                  EnvSerializeInfo* info) {
   uint32_t i = 0;
-  env->ForEachBindingData([&](FastStringKey key,
-                              BaseObjectPtr<BaseObject> binding) {
-    per_process::Debug(DebugCategory::MKSNAPSHOT,
-                       "Serialize binding %i (%p), object=%p, type=%s\n",
-                       static_cast<int>(i),
-                       binding.get(),
-                       *(binding->object()),
-                       key.c_str());
+  env->ForEachBaseObject([&](BaseObject* obj) {
+    // If there are any BaseObjects that are not snapshotable left
+    // during context serialization, V8 would crash due to unregistered
+    // global handles and print detailed information about them.
+    if (!obj->is_snapshotable()) {
+      return;
+    }
+    SnapshotableObject* ptr = static_cast<SnapshotableObject*>(obj);
 
-    if (IsSnapshotableType(key)) {
-      SnapshotIndex index = creator->AddData(env->context(), binding->object());
+    const char* type_name = ptr->GetTypeNameChars();
+    per_process::Debug(DebugCategory::MKSNAPSHOT,
+                       "Serialize snapshotable object %i (%p), "
+                       "object=%p, type=%s\n",
+                       static_cast<int>(i),
+                       ptr,
+                       *(ptr->object()),
+                       type_name);
+
+    if (ptr->PrepareForSerialization(env->context(), creator)) {
+      SnapshotIndex index = creator->AddData(env->context(), obj->object());
       per_process::Debug(DebugCategory::MKSNAPSHOT,
                          "Serialized with index=%d\n",
                          static_cast<int>(index));
-      info->bindings.push_back({key.c_str(), i, index});
-      SnapshotableObject* ptr = static_cast<SnapshotableObject*>(binding.get());
-      ptr->PrepareForSerialization(env->context(), creator);
-    } else {
-      UNREACHABLE();
+      info->native_objects.push_back({type_name, i, index});
     }
-
     i++;
   });
 }
