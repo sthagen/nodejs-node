@@ -15,6 +15,7 @@
 #include "node_metadata.h"
 #include "node_process.h"
 #include "node_snapshot_builder.h"
+#include "node_util.h"
 #include "node_v8.h"
 #include "node_v8_platform-inl.h"
 
@@ -1335,13 +1336,13 @@ void CompileSerializeMain(const FunctionCallbackInfo<Value>& args) {
   };
   ScriptCompiler::Source script_source(source, origin);
   Local<Function> fn;
-  if (ScriptCompiler::CompileFunctionInContext(context,
-                                               &script_source,
-                                               parameters.size(),
-                                               parameters.data(),
-                                               0,
-                                               nullptr,
-                                               ScriptCompiler::kEagerCompile)
+  if (ScriptCompiler::CompileFunction(context,
+                                      &script_source,
+                                      parameters.size(),
+                                      parameters.data(),
+                                      0,
+                                      nullptr,
+                                      ScriptCompiler::kEagerCompile)
           .ToLocal(&fn)) {
     args.GetReturnValue().Set(fn);
   }
