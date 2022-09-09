@@ -54,8 +54,7 @@ EVPKeyCtxPointer NidKeyPairGenTraits::Setup(NidKeyPairGenConfig* params) {
 }
 
 void SecretKeyGenConfig::MemoryInfo(MemoryTracker* tracker) const {
-  if (out != nullptr)
-    tracker->TrackFieldWithSize("out", length);
+  if (out) tracker->TrackFieldWithSize("out", length);
 }
 
 Maybe<bool> SecretKeyGenTraits::AdditionalConfig(
@@ -65,8 +64,7 @@ Maybe<bool> SecretKeyGenTraits::AdditionalConfig(
     SecretKeyGenConfig* params) {
   Environment* env = Environment::GetCurrent(args);
   CHECK(args[*offset]->IsUint32());
-  params->length = static_cast<size_t>(
-      std::trunc(args[*offset].As<Uint32>()->Value() / CHAR_BIT));
+  params->length = args[*offset].As<Uint32>()->Value() / CHAR_BIT;
   if (params->length > INT_MAX) {
     THROW_ERR_OUT_OF_RANGE(env,
                            "length must be less than or equal to %u bits",
@@ -81,18 +79,17 @@ KeyGenJobStatus SecretKeyGenTraits::DoKeyGen(
     Environment* env,
     SecretKeyGenConfig* params) {
   CHECK_LE(params->length, INT_MAX);
-  params->out = MallocOpenSSL<char>(params->length);
-  EntropySource(reinterpret_cast<unsigned char*>(params->out), params->length);
+  ByteSource::Builder bytes(params->length);
+  EntropySource(bytes.data<unsigned char>(), params->length);
+  params->out = std::move(bytes).release();
   return KeyGenJobStatus::OK;
 }
 
-Maybe<bool> SecretKeyGenTraits::EncodeKey(
-    Environment* env,
-    SecretKeyGenConfig* params,
-    Local<Value>* result) {
-  ByteSource out = ByteSource::Allocated(params->out, params->length);
+Maybe<bool> SecretKeyGenTraits::EncodeKey(Environment* env,
+                                          SecretKeyGenConfig* params,
+                                          Local<Value>* result) {
   std::shared_ptr<KeyObjectData> data =
-      KeyObjectData::CreateSecret(std::move(out));
+      KeyObjectData::CreateSecret(std::move(params->out));
   return Just(KeyObjectHandle::Create(env, data).ToLocal(result));
 }
 

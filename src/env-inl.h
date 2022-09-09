@@ -31,6 +31,7 @@
 #include "node_context_data.h"
 #include "node_internals.h"
 #include "node_perf_common.h"
+#include "node_realm-inl.h"
 #include "util-inl.h"
 #include "uv.h"
 #include "v8.h"
@@ -614,15 +615,7 @@ inline void Environment::set_can_call_into_js(bool can_call_into_js) {
 }
 
 inline bool Environment::has_run_bootstrapping_code() const {
-  return has_run_bootstrapping_code_;
-}
-
-inline void Environment::DoneBootstrapping() {
-  has_run_bootstrapping_code_ = true;
-  // This adjusts the return value of base_object_created_after_bootstrap() so
-  // that tests that check the count do not have to account for internally
-  // created BaseObjects.
-  base_object_created_by_bootstrap_ = base_object_count_;
+  return principal_realm_->has_run_bootstrapping_code();
 }
 
 inline bool Environment::has_serialized_options() const {
@@ -655,7 +648,8 @@ inline bool Environment::owns_inspector() const {
 }
 
 inline bool Environment::should_create_inspector() const {
-  return (flags_ & EnvironmentFlags::kNoCreateInspector) == 0;
+  return (flags_ & EnvironmentFlags::kNoCreateInspector) == 0 &&
+         !options_->test_runner && !options_->watch_mode;
 }
 
 inline bool Environment::tracks_unmanaged_fds() const {
@@ -787,55 +781,33 @@ inline void Environment::ThrowUVException(int errorno,
       UVException(isolate(), errorno, syscall, message, path, dest));
 }
 
-void Environment::AddCleanupHook(CleanupCallback fn, void* arg) {
-  auto insertion_info = cleanup_hooks_.emplace(CleanupHookCallback {
-    fn, arg, cleanup_hook_counter_++
-  });
-  // Make sure there was no existing element with these values.
-  CHECK_EQ(insertion_info.second, true);
+void Environment::AddCleanupHook(CleanupQueue::Callback fn, void* arg) {
+  cleanup_queue_.Add(fn, arg);
 }
 
-void Environment::RemoveCleanupHook(CleanupCallback fn, void* arg) {
-  CleanupHookCallback search { fn, arg, 0 };
-  cleanup_hooks_.erase(search);
-}
-
-size_t CleanupHookCallback::Hash::operator()(
-    const CleanupHookCallback& cb) const {
-  return std::hash<void*>()(cb.arg_);
-}
-
-bool CleanupHookCallback::Equal::operator()(
-    const CleanupHookCallback& a, const CleanupHookCallback& b) const {
-  return a.fn_ == b.fn_ && a.arg_ == b.arg_;
-}
-
-BaseObject* CleanupHookCallback::GetBaseObject() const {
-  if (fn_ == BaseObject::DeleteMe)
-    return static_cast<BaseObject*>(arg_);
-  else
-    return nullptr;
+void Environment::RemoveCleanupHook(CleanupQueue::Callback fn, void* arg) {
+  cleanup_queue_.Remove(fn, arg);
 }
 
 template <typename T>
 void Environment::ForEachBaseObject(T&& iterator) {
-  for (const auto& hook : cleanup_hooks_) {
-    BaseObject* obj = hook.GetBaseObject();
-    if (obj != nullptr)
-      iterator(obj);
-  }
+  cleanup_queue_.ForEachBaseObject(std::forward<T>(iterator));
 }
 
 void Environment::modify_base_object_count(int64_t delta) {
   base_object_count_ += delta;
 }
 
-int64_t Environment::base_object_created_after_bootstrap() const {
-  return base_object_count_ - base_object_created_by_bootstrap_;
-}
-
 int64_t Environment::base_object_count() const {
   return base_object_count_;
+}
+
+inline void Environment::set_base_object_created_by_bootstrap(int64_t count) {
+  base_object_created_by_bootstrap_ = base_object_count_;
+}
+
+int64_t Environment::base_object_created_after_bootstrap() const {
+  return base_object_count_ - base_object_created_by_bootstrap_;
 }
 
 void Environment::set_main_utf16(std::unique_ptr<v8::String::Value> str) {
@@ -902,16 +874,40 @@ void Environment::set_process_exit_handler(
 
 #define V(PropertyName, TypeName)                                              \
   inline v8::Local<TypeName> Environment::PropertyName() const {               \
-    return PersistentToLocal::Strong(PropertyName##_);                         \
+    DCHECK_NOT_NULL(principal_realm_);                                         \
+    return principal_realm_->PropertyName();                                   \
   }                                                                            \
   inline void Environment::set_##PropertyName(v8::Local<TypeName> value) {     \
-    PropertyName##_.Reset(isolate(), value);                                   \
+    DCHECK_NOT_NULL(principal_realm_);                                         \
+    principal_realm_->set_##PropertyName(value);                               \
   }
-  ENVIRONMENT_STRONG_PERSISTENT_VALUES(V)
+  PER_REALM_STRONG_PERSISTENT_VALUES(V)
 #undef V
 
 v8::Local<v8::Context> Environment::context() const {
-  return PersistentToLocal::Strong(context_);
+  return principal_realm()->context();
+}
+
+Realm* Environment::principal_realm() const {
+  return principal_realm_.get();
+}
+
+inline void Environment::set_heap_snapshot_near_heap_limit(uint32_t limit) {
+  heap_snapshot_near_heap_limit_ = limit;
+}
+
+inline void Environment::AddHeapSnapshotNearHeapLimitCallback() {
+  DCHECK(!heapsnapshot_near_heap_limit_callback_added_);
+  heapsnapshot_near_heap_limit_callback_added_ = true;
+  isolate_->AddNearHeapLimitCallback(Environment::NearHeapLimitCallback, this);
+}
+
+inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
+    size_t heap_limit) {
+  DCHECK(heapsnapshot_near_heap_limit_callback_added_);
+  heapsnapshot_near_heap_limit_callback_added_ = false;
+  isolate_->RemoveNearHeapLimitCallback(Environment::NearHeapLimitCallback,
+                                        heap_limit);
 }
 
 }  // namespace node
