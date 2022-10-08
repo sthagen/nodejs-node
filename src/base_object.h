@@ -73,6 +73,9 @@ class BaseObject : public MemoryRetainer {
   // was also passed to the `BaseObject()` constructor initially.
   // This may return `nullptr` if the C++ object has not been constructed yet,
   // e.g. when the JS object used `MakeLazilyInitializedJSTemplate`.
+  static inline void SetInternalFields(v8::Local<v8::Object> object,
+                                       void* slot);
+  static inline void TagNodeObject(v8::Local<v8::Object> object);
   static void LazilyInitializedJSTemplateConstructor(
       const v8::FunctionCallbackInfo<v8::Value>& args);
   static inline BaseObject* FromJSObject(v8::Local<v8::Value> object);
@@ -93,10 +96,13 @@ class BaseObject : public MemoryRetainer {
   // to it anymore.
   inline bool IsWeakOrDetached() const;
 
+  inline v8::EmbedderGraph::Node::Detachedness GetDetachedness() const override;
+
   // Utility to create a FunctionTemplate with one internal field (used for
   // the `BaseObject*` pointer) and a constructor that initializes that field
   // to `nullptr`.
-  // TODO(legendecas): Disentangle template with env.
+  static v8::Local<v8::FunctionTemplate> MakeLazilyInitializedJSTemplate(
+      IsolateData* isolate);
   static v8::Local<v8::FunctionTemplate> MakeLazilyInitializedJSTemplate(
       Environment* env);
 
@@ -241,7 +247,9 @@ inline T* Unwrap(v8::Local<v8::Value> obj) {
 // circumstances such as the GC or Environment cleanup.
 // If weak, destruction behaviour is not affected, but the pointer will be
 // reset to nullptr once the BaseObject is destroyed.
-// The API matches std::shared_ptr closely.
+// The API matches std::shared_ptr closely. However, this class is not thread
+// safe, that is, we can't have different BaseObjectPtrImpl instances in
+// different threads refering to the same BaseObject instance.
 template <typename T, bool kIsWeak>
 class BaseObjectPtrImpl final {
  public:
