@@ -341,16 +341,6 @@ when `Error.stack` is accessed. If you access `Error.stack` frequently
 in your application, take into account the performance implications
 of `--enable-source-maps`.
 
-### `--experimental-global-customevent`
-
-<!-- YAML
-added:
-  - v18.7.0
-  - v16.17.0
--->
-
-Expose the [CustomEvent Web API][] on the global scope.
-
 ### `--experimental-import-meta-resolve`
 
 <!-- YAML
@@ -410,6 +400,14 @@ added: REPLACEME
 -->
 
 Disable exposition of [Web Crypto API][] on the global scope.
+
+### `--no-experimental-global-customevent`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Disable exposition of [CustomEvent Web API][] on the global scope.
 
 ### `--no-experimental-repl-await`
 
@@ -1123,7 +1121,9 @@ Default signal is `SIGUSR2`.
 <!-- YAML
 added: v11.8.0
 changes:
-  - version: v18.8.0
+  - version:
+      - v18.8.0
+      - v16.18.0
     pr-url: https://github.com/nodejs/node/pull/44208
     description: Report is not generated if the uncaught exception is handled.
   - version:
@@ -1217,7 +1217,7 @@ on [running tests from the command line][] for more details.
 ### `--test-name-pattern`
 
 <!-- YAML
-added: REPLACEME
+added: v18.11.0
 -->
 
 A regular expression that configures the test runner to only execute tests
@@ -1339,7 +1339,9 @@ for TLSv1.2, which is not as secure as TLSv1.3.
 
 <!-- YAML
 added: v14.3.0
-deprecated: v18.8.0
+deprecated:
+  - v18.8.0
+  - v16.18.0
 -->
 
 > Stability: 0 - Deprecated
@@ -1571,7 +1573,7 @@ will be chosen.
 ### `--watch`
 
 <!-- YAML
-added: REPLACEME
+added: v18.11.0
 -->
 
 > Stability: 1 - Experimental
@@ -1593,7 +1595,7 @@ $ node --watch index.js
 ### `--watch-path`
 
 <!-- YAML
-added: REPLACEME
+added: v18.11.0
 -->
 
 > Stability: 1 - Experimental
@@ -1829,7 +1831,6 @@ Node.js options that are allowed are:
 * `--enable-fips`
 * `--enable-source-maps`
 * `--experimental-abortcontroller`
-* `--experimental-global-customevent`
 * `--experimental-import-meta-resolve`
 * `--experimental-json-modules`
 * `--experimental-loader`
@@ -1862,6 +1863,7 @@ Node.js options that are allowed are:
 * `--no-addons`
 * `--no-deprecation`
 * `--no-experimental-fetch`
+* `--no-experimental-global-customevent`
 * `--no-experimental-global-webcrypto`
 * `--no-experimental-repl-await`
 * `--no-extra-info-on-fatal-exception`

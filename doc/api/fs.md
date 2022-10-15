@@ -517,6 +517,46 @@ If one or more `filehandle.read()` calls are made on a file handle and then a
 position till the end of the file. It doesn't always read from the beginning
 of the file.
 
+#### `filehandle.readLines([options])`
+
+<!-- YAML
+added: v18.11.0
+-->
+
+* `options` {Object}
+  * `encoding` {string} **Default:** `null`
+  * `autoClose` {boolean} **Default:** `true`
+  * `emitClose` {boolean} **Default:** `true`
+  * `start` {integer}
+  * `end` {integer} **Default:** `Infinity`
+  * `highWaterMark` {integer} **Default:** `64 * 1024`
+* Returns: {readline.InterfaceConstructor}
+
+Convenience method to create a `readline` interface and stream over the file.
+See [`filehandle.createReadStream()`][] for the options.
+
+```mjs
+import { open } from 'node:fs/promises';
+
+const file = await open('./some/file/to/read');
+
+for await (const line of file.readLines()) {
+  console.log(line);
+}
+```
+
+```cjs
+const { open } = require('node:fs/promises');
+
+(async () => {
+  const file = await open('./some/file/to/read');
+
+  for await (const line of file.readLines()) {
+    console.log(line);
+  }
+})();
+```
+
 #### `filehandle.readv(buffers[, position])`
 
 <!-- YAML
@@ -866,7 +906,7 @@ added: v10.0.0
 changes:
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/27044
-    description: Changed 'flags' argument to 'mode' and imposed
+    description: Changed `flags` argument to `mode` and imposed
                  stricter type validation.
 -->
 
@@ -1272,6 +1312,35 @@ When the `path` is a directory, the behavior of `fsPromises.readFile()` is
 platform-specific. On macOS, Linux, and Windows, the promise will be rejected
 with an error. On FreeBSD, a representation of the directory's contents will be
 returned.
+
+An example of reading a `package.json` file located in the same directory of the
+running code:
+
+```mjs
+import { readFile } from 'node:fs/promises';
+try {
+  const filePath = new URL('./package.json', import.meta.url);
+  const contents = await readFile(filePath, { encoding: 'utf8' });
+  console.log(contents);
+} catch (err) {
+  console.error(err.message);
+}
+```
+
+```cjs
+const { readFile } = require('node:fs/promises');
+const { resolve } = require('node:path');
+async function logFile() {
+  try {
+    const filePath = resolve('./package.json');
+    const contents = await readFile(filePath, { encoding: 'utf8' });
+    console.log(contents);
+  } catch (err) {
+    console.error(err.message);
+  }
+}
+logFile();
+```
 
 It is possible to abort an ongoing `readFile` using an {AbortSignal}. If a
 request is aborted the promise returned is rejected with an `AbortError`:
@@ -2134,7 +2203,7 @@ changes:
                  `ERR_INVALID_CALLBACK`.
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/27044
-    description: Changed 'flags' argument to 'mode' and imposed
+    description: Changed `flags` argument to `mode` and imposed
                  stricter type validation.
 -->
 
@@ -4972,7 +5041,7 @@ added: v8.5.0
 changes:
   - version: v14.0.0
     pr-url: https://github.com/nodejs/node/pull/27044
-    description: Changed 'flags' argument to 'mode' and imposed
+    description: Changed `flags` argument to `mode` and imposed
                  stricter type validation.
 -->
 
@@ -7672,6 +7741,7 @@ the file contents.
 [`ReadDirectoryChangesW`]: https://docs.microsoft.com/en-us/windows/desktop/api/winbase/nf-winbase-readdirectorychangesw
 [`UV_THREADPOOL_SIZE`]: cli.md#uv_threadpool_sizesize
 [`event ports`]: https://illumos.org/man/port_create
+[`filehandle.createReadStream()`]: #filehandlecreatereadstreamoptions
 [`filehandle.createWriteStream()`]: #filehandlecreatewritestreamoptions
 [`filehandle.writeFile()`]: #filehandlewritefiledata-options
 [`fs.access()`]: #fsaccesspath-mode-callback
