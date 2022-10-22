@@ -2288,7 +2288,7 @@ future release.
 
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v19.0.0
     pr-url: https://github.com/nodejs/node/pull/44919
     description: \`url.parse()` is deprecated again in DEP0169.
   - version:
@@ -3179,6 +3179,9 @@ thing instead.
 <!-- YAML
 changes:
   - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/43716
+    description: End-of-Life.
+  - version: v19.0.0
     pr-url: https://github.com/nodejs/node/pull/44711
     description: Runtime deprecation.
   - version:
@@ -3195,7 +3198,7 @@ changes:
                  coercion.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Values other than `undefined`, `null`, integer numbers, and integer strings
 (e.g., `'1'`) are deprecated as value for the `code` parameter in
@@ -3281,7 +3284,7 @@ Node-API callbacks.
 <!-- YAML
 changes:
   - version:
-      - REPLACEME
+      - v19.0.0
     pr-url: https://github.com/nodejs/node/pull/44919
     description: Documentation-only deprecation.
 -->

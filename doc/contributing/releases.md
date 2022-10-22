@@ -603,12 +603,13 @@ the build before moving forward. Use the following list as a baseline:
   must be in the expected updated version)
 * npm version (check it matches what we expect)
 * Run the test suite against the built binaries (optional)
+  * Remember to use the proposal branch
+  * Run `make build-addons` before running the tests
+  * Remove `config.gypi` file
 
 ```console
 ./tools/test.py --shell ~/Downloads/node-v18.5.0-linux-x64/bin/node
 ```
-
-<sup>There may be test issues if the branch used to test does not match the Node.js binary.</sup>
 
 ### 11. Tag and sign the release commit
 
@@ -902,6 +903,8 @@ This script will use the promoted builds and changelog to generate the post. Run
 * Select the tag version you pushed earlier.
 * For release title, copy the title from the changelog.
 * For the description, copy the rest of the changelog entry.
+* If you are not releasing the latest "Current", uncheck
+  "Set as the latest release".
 * Click on the "Publish release" button.
 
 ### 19. Cleanup

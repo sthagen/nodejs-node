@@ -312,8 +312,6 @@ For information about the governance of the Node.js project, see
   **David Carlier** <<devnexen@gmail.com>>
 * [devsnek](https://github.com/devsnek) -
   **Gus Caplan** <<me@gus.host>> (they/them)
-* [dmabupt](https://github.com/dmabupt) -
-  **Xu Meng** <<dmabupt@gmail.com>> (he/him)
 * [edsadr](https://github.com/edsadr) -
   **Adrian Estrada** <<edsadr@gmail.com>> (he/him)
 * [erickwendel](https://github.com/erickwendel) -
@@ -496,6 +494,8 @@ For information about the governance of the Node.js project, see
   **Jamie Davis** <<davisjam@vt.edu>> (he/him)
 * [digitalinfinity](https://github.com/digitalinfinity) -
   **Hitesh Kanwathirtha** <<digitalinfinity@gmail.com>> (he/him)
+* [dmabupt](https://github.com/dmabupt) -
+  **Xu Meng** <<dmabupt@gmail.com>> (he/him)
 * [dnlup](https://github.com/dnlup)
   **dnlup** <<dnlup.dev@gmail.com>>
 * [eljefedelrodeodeljefe](https://github.com/eljefedelrodeodeljefe) -
@@ -781,6 +781,12 @@ releases on a rotation basis as outlined in the
   * [vdeturckheim](https://github.com/vdeturckheim) -
     **Vladimir de Turckheim** <<vlad2t@hotmail.com>> (he/him)
 * NearForm
+  * [RafaelGSS](https://github.com/RafaelGSS) -
+    **Rafael Gonzaga** <<rafael.nunu@hotmail.com>> (he/him)
+* NodeSource
+  * [juanarbol](https://github.com/juanarbol) -
+    **Juan José Arboleda** <<soyjuanarbol@gmail.com>> (he/him)
+* Platformatic
   * [mcollina](https://github.com/mcollina) -
     **Matteo Collina** <<matteo.collina@gmail.com>> (he/him)
 * Red Hat and IBM
