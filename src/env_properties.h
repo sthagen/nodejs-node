@@ -20,7 +20,6 @@
 #define PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(V)                               \
   V(arrow_message_private_symbol, "node:arrowMessage")                         \
   V(contextify_context_private_symbol, "node:contextify:context")              \
-  V(contextify_global_private_symbol, "node:contextify:global")                \
   V(decorated_private_symbol, "node:decorated")                                \
   V(napi_type_tag, "node:napi:type_tag")                                       \
   V(napi_wrapper, "node:napi:wrapper")                                         \
@@ -275,6 +274,7 @@
   V(sni_context_err_string, "Invalid SNI context")                             \
   V(sni_context_string, "sni_context")                                         \
   V(source_string, "source")                                                   \
+  V(source_map_url_string, "sourceMapURL")                                     \
   V(stack_string, "stack")                                                     \
   V(standard_name_string, "standardName")                                      \
   V(start_time_string, "startTime")                                            \

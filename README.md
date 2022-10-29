@@ -370,6 +370,8 @@ For information about the governance of the Node.js project, see
   **LiviaMedeiros** <<livia@cirno.name>>
 * [lpinca](https://github.com/lpinca) -
   **Luigi Pinca** <<luigipinca@gmail.com>> (he/him)
+* [lukekarrys](https://github.com/lukekarrys) -
+  **Luke Karrys** <<luke@lukekarry.com>> (he/him)
 * [Lxxyx](https://github.com/Lxxyx) -
   **Zijian Liu** <<lxxyxzj@gmail.com>> (he/him)
 * [marsonya](https://github.com/marsonya) -
@@ -396,8 +398,6 @@ For information about the governance of the Node.js project, see
   **Ouyang Yadong** <<oyydoibh@gmail.com>> (he/him)
 * [panva](https://github.com/panva) -
   **Filip Skokan** <<panva.ip@gmail.com>>
-* [PoojaDurgad](https://github.com/PoojaDurgad) -
-  **Pooja D P** <<Pooja.D.P@ibm.com>> (she/her)
 * [puzpuzpuz](https://github.com/puzpuzpuz) -
   **Andrey Pechkurov** <<apechkurov@gmail.com>> (he/him)
 * [Qard](https://github.com/Qard) -
@@ -592,6 +592,8 @@ For information about the governance of the Node.js project, see
   **Bert Belder** <<bertbelder@gmail.com>>
 * [pmq20](https://github.com/pmq20) -
   **Minqi Pan** <<pmq2001@gmail.com>>
+* [PoojaDurgad](https://github.com/PoojaDurgad) -
+  **Pooja D P** <<Pooja.D.P@ibm.com>> (she/her)
 * [princejwesley](https://github.com/princejwesley) -
   **Prince John Wesley** <<princejohnwesley@gmail.com>>
 * [psmarshall](https://github.com/psmarshall) -
@@ -664,6 +666,8 @@ maintaining the Node.js project.
 
 * [Ayase-252](https://github.com/Ayase-252) -
   **Qingyu Deng** <<i@ayase-lab.com>>
+* [bmuenzenmeyer](https://github.com/bmuenzenmeyer) -
+  **Brian Muenzenmeyer** <<brian.muenzenmeyer@gmail.com>> (he/him)
 * [daeyeon](https://github.com/daeyeon) -
   **Daeyeon Jeong** <<daeyeon.dev@gmail.com>> (he/him)
 * [F3n67u](https://github.com/F3n67u) -
@@ -688,6 +692,9 @@ maintaining the Node.js project.
   **Darshan Sen** <<raisinten@gmail.com>>
 * [VoltrexMaster](https://github.com/VoltrexMaster) -
   **Mohammed Keyvanzadeh** <<mohammadkeyvanzade94@gmail.com>> (he/him)
+
+Triagers follow the [Triage Guide](./doc/contributing/issues.md#triaging-a-bug-report) when
+responding to new issues.
 
 ### Release keys
 

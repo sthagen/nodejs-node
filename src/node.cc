@@ -453,11 +453,32 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
     for (auto& s : stdio) {
       const int fd = &s - stdio;
       if (fstat(fd, &s.stat) == 0) continue;
+
       // Anything but EBADF means something is seriously wrong.  We don't
       // have to special-case EINTR, fstat() is not interruptible.
       if (errno != EBADF) ABORT();
-      if (fd != open("/dev/null", O_RDWR)) ABORT();
-      if (fstat(fd, &s.stat) != 0) ABORT();
+
+      // If EBADF (file descriptor doesn't exist), open /dev/null and duplicate
+      // its file descriptor to the invalid file descriptor.  Make sure *that*
+      // file descriptor is valid.  POSIX doesn't guarantee the next file
+      // descriptor open(2) gives us is the lowest available number anymore in
+      // POSIX.1-2017, which is why dup2(2) is needed.
+      int null_fd;
+
+      do {
+        null_fd = open("/dev/null", O_RDWR);
+      } while (null_fd < 0 && errno == EINTR);
+
+      if (null_fd != fd) {
+        int err;
+
+        do {
+          err = dup2(null_fd, fd);
+        } while (err < 0 && errno == EINTR);
+        CHECK_EQ(err, 0);
+      }
+
+      if (fstat(fd, &s.stat) < 0) ABORT();
     }
   }
 
@@ -769,15 +790,15 @@ static ExitCode InitializeNodeWithArgsInternal(
       env_argv.insert(env_argv.begin(), argv->at(0));
 
       const ExitCode exit_code = ProcessGlobalArgsInternal(
-          &env_argv, nullptr, errors, kAllowedInEnvironment);
+          &env_argv, nullptr, errors, kAllowedInEnvvar);
       if (exit_code != ExitCode::kNoFailure) return exit_code;
     }
   }
 #endif
 
   if (!(flags & ProcessInitializationFlags::kDisableCLIOptions)) {
-    const ExitCode exit_code = ProcessGlobalArgsInternal(
-        argv, exec_argv, errors, kDisallowedInEnvironment);
+    const ExitCode exit_code =
+        ProcessGlobalArgsInternal(argv, exec_argv, errors, kDisallowedInEnvvar);
     if (exit_code != ExitCode::kNoFailure) return exit_code;
   }
 
