@@ -2,7 +2,16 @@
 
 <!--introduced_in=v8.1.0-->
 
-> Stability: 1 - Experimental
+> Stability: 1 - Experimental. Please migrate away from this API, if you can.
+> We do not recommend using the [`createHook`][], [`AsyncHook`][], and
+> [`executionAsyncResource`][] APIs as they have usability issues, safety risks,
+> and performance implications. Async context tracking use cases are better
+> served by the stable [`AsyncLocalStorage`][] API. If you have a use case for
+> `createHook`, `AsyncHook`, or `executionAsyncResource` beyond the context
+> tracking need solved by [`AsyncLocalStorage`][] or diagnostics data currently
+> provided by [Diagnostics Channel][], please open an issue at
+> <https://github.com/nodejs/node/issues> describing your use case so we can
+> create a more purpose-focused API.
 
 <!-- source_link=lib/async_hooks.js -->
 
@@ -165,7 +174,7 @@ import { createHook } from 'node:async_hooks';
 
 const asyncHook = createHook({
   init(asyncId, type, triggerAsyncId, resource) { },
-  destroy(asyncId) { }
+  destroy(asyncId) { },
 });
 ```
 
@@ -174,7 +183,7 @@ const async_hooks = require('node:async_hooks');
 
 const asyncHook = async_hooks.createHook({
   init(asyncId, type, triggerAsyncId, resource) { },
-  destroy(asyncId) { }
+  destroy(asyncId) { },
 });
 ```
 
@@ -373,7 +382,7 @@ createHook({
     fs.writeSync(
       stdout.fd,
       `${type}(${asyncId}): trigger: ${triggerAsyncId} execution: ${eid}\n`);
-  }
+  },
 }).enable();
 
 net.createServer((conn) => {}).listen(8080);
@@ -390,7 +399,7 @@ createHook({
     fs.writeSync(
       stdout.fd,
       `${type}(${asyncId}): trigger: ${triggerAsyncId} execution: ${eid}\n`);
-  }
+  },
 }).enable();
 
 net.createServer((conn) => {}).listen(8080);
@@ -651,7 +660,7 @@ import { createServer } from 'node:http';
 import {
   executionAsyncId,
   executionAsyncResource,
-  createHook
+  createHook,
 } from 'async_hooks';
 const sym = Symbol('state'); // Private symbol to avoid pollution
 
@@ -661,7 +670,7 @@ createHook({
     if (cr) {
       resource[sym] = cr[sym];
     }
-  }
+  },
 }).enable();
 
 const server = createServer((req, res) => {
@@ -677,7 +686,7 @@ const { createServer } = require('node:http');
 const {
   executionAsyncId,
   executionAsyncResource,
-  createHook
+  createHook,
 } = require('node:async_hooks');
 const sym = Symbol('state'); // Private symbol to avoid pollution
 
@@ -687,7 +696,7 @@ createHook({
     if (cr) {
       resource[sym] = cr[sym];
     }
-  }
+  },
 }).enable();
 
 const server = createServer((req, res) => {
@@ -869,14 +878,18 @@ The documentation for this class has moved [`AsyncResource`][].
 The documentation for this class has moved [`AsyncLocalStorage`][].
 
 [DEP0111]: deprecations.md#dep0111-processbinding
+[Diagnostics Channel]: diagnostics_channel.md
 [Hook Callbacks]: #hook-callbacks
 [PromiseHooks]: https://docs.google.com/document/d/1rda3yKGHimKIhg5YeoAmCOtyURgsbTH_qaYR79FELlk/edit
+[`AsyncHook`]: #class-asynchook
 [`AsyncLocalStorage`]: async_context.md#class-asynclocalstorage
 [`AsyncResource`]: async_context.md#class-asyncresource
 [`Worker`]: worker_threads.md#class-worker
 [`after` callback]: #afterasyncid
 [`before` callback]: #beforeasyncid
+[`createHook`]: #async_hookscreatehookcallbacks
 [`destroy` callback]: #destroyasyncid
+[`executionAsyncResource`]: #async_hooksexecutionasyncresource
 [`init` callback]: #initasyncid-type-triggerasyncid-resource
 [`process.getActiveResourcesInfo()`]: process.md#processgetactiveresourcesinfo
 [`promiseResolve` callback]: #promiseresolveasyncid

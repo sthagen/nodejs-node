@@ -94,55 +94,10 @@ class Worker;
 
 namespace loader {
 class ModuleWrap;
-
-struct PackageConfig {
-  enum class Exists { Yes, No };
-  enum class IsValid { Yes, No };
-  enum class HasMain { Yes, No };
-  enum class HasName { Yes, No };
-  enum PackageType : uint32_t { None = 0, CommonJS, Module };
-
-  const Exists exists;
-  const IsValid is_valid;
-  const HasMain has_main;
-  const std::string main;
-  const HasName has_name;
-  const std::string name;
-  const PackageType type;
-
-  v8::Global<v8::Value> exports;
-};
 }  // namespace loader
 
 class Environment;
 class Realm;
-
-enum class FsStatsOffset {
-  kDev = 0,
-  kMode,
-  kNlink,
-  kUid,
-  kGid,
-  kRdev,
-  kBlkSize,
-  kIno,
-  kSize,
-  kBlocks,
-  kATimeSec,
-  kATimeNsec,
-  kMTimeSec,
-  kMTimeNsec,
-  kCTimeSec,
-  kCTimeNsec,
-  kBirthTimeSec,
-  kBirthTimeNsec,
-  kFsStatsFieldsNumber
-};
-
-// Stat fields buffers contain twice the number of entries in an uv_stat_t
-// because `fs.StatWatcher` needs room to store 2 `fs.Stats` instances.
-constexpr size_t kFsStatsBufferLength =
-    static_cast<size_t>(FsStatsOffset::kFsStatsFieldsNumber) * 2;
 
 // Disables zero-filling for ArrayBuffer allocations in this scope. This is
 // similar to how we implement Buffer.allocUnsafe() in JS land.
@@ -499,9 +454,6 @@ struct DeserializeRequest {
   v8::Global<v8::Object> holder;
   int index;
   InternalFieldInfoBase* info = nullptr;  // Owned by the request
-
-  // Move constructor
-  DeserializeRequest(DeserializeRequest&& other) = default;
 };
 
 struct EnvSerializeInfo {
@@ -565,13 +517,6 @@ struct SnapshotData {
   static bool FromBlob(SnapshotData* out, FILE* in);
 
   ~SnapshotData();
-
-  SnapshotData(const SnapshotData&) = delete;
-  SnapshotData& operator=(const SnapshotData&) = delete;
-  SnapshotData(SnapshotData&&) = delete;
-  SnapshotData& operator=(SnapshotData&&) = delete;
-
-  SnapshotData() = default;
 };
 
 void DefaultProcessExitHandlerInternal(Environment* env, ExitCode exit_code);

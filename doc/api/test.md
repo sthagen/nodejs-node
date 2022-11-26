@@ -291,6 +291,25 @@ test('a test that creates asynchronous activity', (t) => {
 });
 ```
 
+## Watch mode
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1 - Experimental
+
+The Node.js test runner supports running in watch mode by passing the `--watch` flag:
+
+```bash
+node --test --watch
+```
+
+In watch mode, the test runner will watch for changes to test files and
+their dependencies. When a change is detected, the test runner will
+rerun the tests affected by the change.
+The test runner will continue to run until the process is terminated.
+
 ## Running tests from the command line
 
 The Node.js test runner can be invoked from the command line by passing the
@@ -730,7 +749,7 @@ describe('tests', async () => {
 ## Class: `MockFunctionContext`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 The `MockFunctionContext` class is used to inspect or manipulate the behavior of
@@ -739,7 +758,7 @@ mocks created via the [`MockTracker`][] APIs.
 ### `ctx.calls`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * {Array}
@@ -761,7 +780,7 @@ mock. Each entry in the array is an object with the following properties.
 ### `ctx.callCount()`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * Returns: {integer} The number of times that this mock has been invoked.
@@ -773,7 +792,7 @@ is a getter that creates a copy of the internal call tracking array.
 ### `ctx.mockImplementation(implementation)`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * `implementation` {Function|AsyncFunction} The function to be used as the
@@ -810,7 +829,7 @@ test('changes a mock behavior', (t) => {
 ### `ctx.mockImplementationOnce(implementation[, onCall])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * `implementation` {Function|AsyncFunction} The function to be used as the
@@ -854,7 +873,7 @@ test('changes a mock behavior once', (t) => {
 ### `ctx.restore()`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 Resets the implementation of the mock function to its original behavior. The
@@ -863,7 +882,7 @@ mock can still be used after calling this function.
 ## Class: `MockTracker`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 The `MockTracker` class is used to manage mocking functionality. The test runner
@@ -874,7 +893,7 @@ Each test also provides its own `MockTracker` instance via the test context's
 ### `mock.fn([original[, implementation]][, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * `original` {Function|AsyncFunction} An optional function to create a mock on.
@@ -925,7 +944,7 @@ test('mocks a counting function', (t) => {
 ### `mock.method(object, methodName[, implementation][, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 * `object` {Object} The object whose method is being mocked.
@@ -979,7 +998,7 @@ test('spies on an object method', (t) => {
 ### `mock.reset()`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 This function restores the default behavior of all mocks that were previously
@@ -995,7 +1014,7 @@ function manually is recommended.
 ### `mock.restoreAll()`
 
 <!-- YAML
-added: REPLACEME
+added: v19.1.0
 -->
 
 This function restores the default behavior of all mocks that were previously
@@ -1023,8 +1042,7 @@ Emitted when [`context.diagnostic`][] is called.
 ### Event: `'test:fail'`
 
 * `data` {Object}
-  * `duration` {number} The test duration.
-  * `error` {Error} The failure casing test to fail.
+  * `details` {Object} Additional execution metadata.
   * `name` {string} The test name.
   * `testNumber` {number} The ordinal number of the test.
   * `todo` {string|undefined} Present if [`context.todo`][] is called
@@ -1035,7 +1053,7 @@ Emitted when a test fails.
 ### Event: `'test:pass'`
 
 * `data` {Object}
-  * `duration` {number} The test duration.
+  * `details` {Object} Additional execution metadata.
   * `name` {string} The test name.
   * `testNumber` {number} The ordinal number of the test.
   * `todo` {string|undefined} Present if [`context.todo`][] is called
@@ -1084,7 +1102,7 @@ test('top level test', async (t) => {
     'This is a subtest',
     (t) => {
       assert.ok('some relevant assertion here');
-    }
+    },
   );
 });
 ```
@@ -1118,7 +1136,7 @@ test('top level test', async (t) => {
     'This is a subtest',
     (t) => {
       assert.ok('some relevant assertion here');
-    }
+    },
   );
 });
 ```
@@ -1295,7 +1313,7 @@ test('top level test', async (t) => {
     { only: false, skip: false, concurrency: 1, todo: false },
     (t) => {
       assert.ok('some relevant assertion here');
-    }
+    },
   );
 });
 ```

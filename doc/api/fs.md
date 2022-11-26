@@ -1734,6 +1734,12 @@ system requests but rather the internal buffering `fs.writeFile` performs.
 
 ### `fsPromises.constants`
 
+<!-- YAML
+added:
+  - v18.4.0
+  - v16.17.0
+-->
+
 * {Object}
 
 Returns an object containing commonly used constants for file system
@@ -4320,7 +4326,7 @@ The `atime` and `mtime` arguments follow these rules:
 <!-- YAML
 added: v0.5.10
 changes:
-  - version: REPLACEME
+  - version: v19.1.0
     pr-url: https://github.com/nodejs/node/pull/45098
     description: Added recursive support for Linux, AIX and IBMi.
   - version:
@@ -7039,7 +7045,7 @@ import { open, constants } from 'node:fs';
 const {
   O_RDWR,
   O_CREAT,
-  O_EXCL
+  O_EXCL,
 } = constants;
 
 open('/path/to/my/file', O_RDWR | O_CREAT | O_EXCL, (err, fd) => {

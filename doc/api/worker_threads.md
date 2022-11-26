@@ -23,14 +23,14 @@ instances.
 
 ```js
 const {
-  Worker, isMainThread, parentPort, workerData
+  Worker, isMainThread, parentPort, workerData,
 } = require('node:worker_threads');
 
 if (isMainThread) {
   module.exports = function parseJSAsync(script) {
     return new Promise((resolve, reject) => {
       const worker = new Worker(__filename, {
-        workerData: script
+        workerData: script,
       });
       worker.on('message', resolve);
       worker.on('error', reject);
@@ -370,7 +370,7 @@ with all other `BroadcastChannel` instances bound to the same channel name.
 const {
   isMainThread,
   BroadcastChannel,
-  Worker
+  Worker,
 } = require('node:worker_threads');
 
 const bc = new BroadcastChannel('hello');
@@ -883,7 +883,7 @@ the thread barrier.
 ```js
 const assert = require('node:assert');
 const {
-  Worker, MessageChannel, MessagePort, isMainThread, parentPort
+  Worker, MessageChannel, MessagePort, isMainThread, parentPort,
 } = require('node:worker_threads');
 if (isMainThread) {
   const worker = new Worker(__filename);
@@ -1074,7 +1074,7 @@ added:
  - v13.9.0
  - v12.17.0
 changes:
-  - version: REPLACEME
+  - version: v19.1.0
     pr-url: https://github.com/nodejs/node/pull/44989
     description: Support options to configure the heap snapshot.
 -->
