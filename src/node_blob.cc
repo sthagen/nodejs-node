@@ -107,7 +107,9 @@ void Blob::New(const FunctionCallbackInfo<Value>& args) {
       CHECK_EQ(view->ByteOffset(), 0);
       std::shared_ptr<BackingStore> store = view->Buffer()->GetBackingStore();
       size_t byte_length = view->ByteLength();
-      view->Buffer()->Detach();  // The Blob will own the backing store now.
+      view->Buffer()
+          ->Detach(Local<Value>())
+          .Check();  // The Blob will own the backing store now.
       entries.emplace_back(BlobEntry{std::move(store), byte_length, 0});
       len += byte_length;
     } else {
@@ -499,5 +501,5 @@ void Blob::RegisterExternalReferences(ExternalReferenceRegistry* registry) {
 
 }  // namespace node
 
-NODE_MODULE_CONTEXT_AWARE_INTERNAL(blob, node::Blob::Initialize)
-NODE_MODULE_EXTERNAL_REFERENCE(blob, node::Blob::RegisterExternalReferences)
+NODE_BINDING_CONTEXT_AWARE_INTERNAL(blob, node::Blob::Initialize)
+NODE_BINDING_EXTERNAL_REFERENCE(blob, node::Blob::RegisterExternalReferences)

@@ -2973,12 +2973,15 @@ option, or a non-nullish non-boolean value for `verbatim` option in
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/45653
+    description: Runtime deprecation.
   - version: v16.10.0
     pr-url: https://github.com/nodejs/node/pull/39927
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only (supports [`--pending-deprecation`][])
+Type: Runtime
 
 The `'hash'` and `'mgf1Hash'` options are replaced with `'hashAlgorithm'`
 and `'mgf1HashAlgorithm'`.
@@ -3301,15 +3304,35 @@ issued for `url.parse()` vulnerabilities.
 changes:
   - version:
     - REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/45526
+    description: Runtime deprecation.
+  - version:
+    - v19.2.0
     pr-url: https://github.com/nodejs/node/pull/45576
+    description: Documentation-only deprecation.
+-->
+
+Type: Runtime
+
+[`url.parse()`][] accepts URLs with ports that are not numbers. This behavior
+might result in host name spoofing with unexpected input. These URLs will throw
+an error in future versions of Node.js, as the [WHATWG URL API][] does already.
+
+### DEP0171: Setters for `http.IncomingMessage` headers and trailers
+
+<!-- YAML
+changes:
+  - version:
+      - REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/45697
     description: Documentation-only deprecation.
 -->
 
 Type: Documentation-only
 
-[`url.parse()`][] accepts URLs with ports that are not numbers. This behavior
-might result in host name spoofing with unexpected input. These URLs will throw
-an error in future versions of Node.js, as the [WHATWG URL API][] does already.
+In a future version of Node.js, [`message.headers`][],
+[`message.headersDistinct`][], [`message.trailers`][], and
+[`message.trailersDistinct`][] will be read-only.
 
 [NIST SP 800-38D]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf
 [RFC 6066]: https://tools.ietf.org/html/rfc6066#section-3
@@ -3387,7 +3410,11 @@ an error in future versions of Node.js, as the [WHATWG URL API][] does already.
 [`https.get()`]: https.md#httpsgetoptions-callback
 [`https.request()`]: https.md#httpsrequestoptions-callback
 [`message.connection`]: http.md#messageconnection
+[`message.headersDistinct`]: http.md#messageheadersdistinct
+[`message.headers`]: http.md#messageheaders
 [`message.socket`]: http.md#messagesocket
+[`message.trailersDistinct`]: http.md#messagetrailersdistinct
+[`message.trailers`]: http.md#messagetrailers
 [`module.createRequire()`]: module.md#modulecreaterequirefilename
 [`os.networkInterfaces()`]: os.md#osnetworkinterfaces
 [`os.tmpdir()`]: os.md#ostmpdir

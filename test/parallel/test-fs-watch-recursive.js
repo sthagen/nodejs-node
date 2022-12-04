@@ -23,6 +23,37 @@ const testDir = tmpdir.path;
 tmpdir.refresh();
 
 (async () => {
+  // Watch a folder and update an already existing file in it.
+
+  const rootDirectory = fs.mkdtempSync(testDir + path.sep);
+  const testDirectory = path.join(rootDirectory, 'test-0');
+  fs.mkdirSync(testDirectory);
+
+  const testFile = path.join(testDirectory, 'file-1.txt');
+  fs.writeFileSync(testFile, 'hello');
+
+  const watcher = fs.watch(testDirectory, { recursive: true });
+  let watcherClosed = false;
+  watcher.on('change', common.mustCallAtLeast(function(event, filename) {
+    // Libuv inconsistenly emits a rename event for the file we are watching
+    assert.ok(event === 'change' || event === 'rename');
+
+    if (filename === path.basename(testFile)) {
+      watcher.close();
+      watcherClosed = true;
+    }
+  }));
+
+  await setTimeout(common.platformTimeout(100));
+  fs.writeFileSync(testFile, 'hello');
+
+  process.once('exit', function() {
+    assert(watcherClosed, 'watcher Object was not closed');
+  });
+})().then(common.mustCall());
+
+
+(async () => {
   // Add a file to already watching folder
 
   const rootDirectory = fs.mkdtempSync(testDir + path.sep);
@@ -211,6 +242,33 @@ tmpdir.refresh();
     assert(watcherClosed, 'watcher Object was not closed');
     assert.ok(interval === null, 'interval should have been null');
   });
+})().then(common.mustCall());
+
+
+(async () => {
+  // Assert recursive watch does not leak handles
+  const rootDirectory = fs.mkdtempSync(testDir + path.sep);
+  const testDirectory = path.join(rootDirectory, 'test-7');
+  const filePath = path.join(testDirectory, 'only-file.txt');
+  fs.mkdirSync(testDirectory);
+
+  let watcherClosed = false;
+  const watcher = fs.watch(testDirectory, { recursive: true });
+  watcher.on('change', common.mustCallAtLeast(async (event, filename) => {
+    await setTimeout(common.platformTimeout(100));
+    if (filename === path.basename(filePath)) {
+      watcher.close();
+      watcherClosed = true;
+    }
+    await setTimeout(common.platformTimeout(100));
+    assert(!process._getActiveHandles().some((handle) => handle.constructor.name === 'StatWatcher'));
+  }));
+
+  process.on('exit', function() {
+    assert(watcherClosed, 'watcher Object was not closed');
+  });
+  await setTimeout(common.platformTimeout(100));
+  fs.writeFileSync(filePath, 'content');
 })().then(common.mustCall());
 
 (async () => {

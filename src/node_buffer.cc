@@ -125,7 +125,7 @@ Local<ArrayBuffer> CallbackInfo::CreateTrackedArrayBuffer(
   // V8 simply ignores the BackingStore deleter callback if data == nullptr,
   // but our API contract requires it being called.
   if (data == nullptr) {
-    ab->Detach();
+    ab->Detach(Local<Value>()).Check();
     self->OnBackingStoreFree();  // This calls `callback` asynchronously.
   } else {
     // Store the ArrayBuffer so that we can detach it later.
@@ -156,7 +156,7 @@ void CallbackInfo::CleanupHook(void* data) {
     HandleScope handle_scope(self->env_->isolate());
     Local<ArrayBuffer> ab = self->persistent_.Get(self->env_->isolate());
     if (!ab.IsEmpty() && ab->IsDetachable()) {
-      ab->Detach();
+      ab->Detach(Local<Value>()).Check();
       self->persistent_.Reset();
     }
   }
@@ -570,6 +570,8 @@ void StringSlice(const FunctionCallbackInfo<Value>& args) {
 void DecodeUTF8(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);  // list, flags
 
+  CHECK_GE(args.Length(), 1);
+
   if (!(args[0]->IsArrayBuffer() || args[0]->IsSharedArrayBuffer() ||
         args[0]->IsArrayBufferView())) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
@@ -580,7 +582,6 @@ void DecodeUTF8(const FunctionCallbackInfo<Value>& args) {
 
   ArrayBufferViewContents<char> buffer(args[0]);
 
-  CHECK(args[1]->IsBoolean());
   bool ignore_bom = args[1]->IsTrue();
 
   const char* data = buffer.data();
@@ -1255,7 +1256,7 @@ void DetachArrayBuffer(const FunctionCallbackInfo<Value>& args) {
     Local<ArrayBuffer> buf = args[0].As<ArrayBuffer>();
     if (buf->IsDetachable()) {
       std::shared_ptr<BackingStore> store = buf->GetBackingStore();
-      buf->Detach();
+      buf->Detach(Local<Value>()).Check();
       args.GetReturnValue().Set(ArrayBuffer::New(env->isolate(), store));
     }
   }
@@ -1425,5 +1426,6 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
 }  // namespace Buffer
 }  // namespace node
 
-NODE_MODULE_CONTEXT_AWARE_INTERNAL(buffer, node::Buffer::Initialize)
-NODE_MODULE_EXTERNAL_REFERENCE(buffer, node::Buffer::RegisterExternalReferences)
+NODE_BINDING_CONTEXT_AWARE_INTERNAL(buffer, node::Buffer::Initialize)
+NODE_BINDING_EXTERNAL_REFERENCE(buffer,
+                                node::Buffer::RegisterExternalReferences)
