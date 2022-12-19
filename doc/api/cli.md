@@ -1580,7 +1580,9 @@ amount of CPUs, but it may diverge in environments such as VMs or containers.
 ### `--watch`
 
 <!-- YAML
-added: v18.11.0
+added:
+  - v18.11.0
+  - v16.19.0
 changes:
   - version: v19.2.0
     pr-url: https://github.com/nodejs/node/pull/45214
@@ -1606,7 +1608,9 @@ $ node --watch index.js
 ### `--watch-path`
 
 <!-- YAML
-added: v18.11.0
+added:
+  - v18.11.0
+  - v16.19.0
 -->
 
 > Stability: 1 - Experimental
@@ -1627,6 +1631,14 @@ $ node --watch-path=./src --watch-path=./tests index.js
 This option is only supported on macOS and Windows.
 An `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` exception will be thrown
 when the option is used on a platform that does not support it.
+
+### `--watch-preserve-output`
+
+Disable the clearing of the console when watch mode restarts the process.
+
+```console
+$ node --watch --watch-preserve-output test.js
+```
 
 ### `--zero-fill-buffers`
 
@@ -1932,6 +1944,7 @@ Node.js options that are allowed are:
 * `--use-openssl-ca`
 * `--v8-pool-size`
 * `--watch-path`
+* `--watch-preserve-output`
 * `--watch`
 * `--zero-fill-buffers`
 

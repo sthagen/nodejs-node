@@ -486,9 +486,9 @@ These CommonJS variables are not available in ES modules.
 `__filename` and `__dirname` use cases can be replicated via
 [`import.meta.url`][].
 
-#### No Native Module Loading
+#### No Addon Loading
 
-Native modules are not currently supported with ES module imports.
+[Addons][] are not currently supported with ES module imports.
 
 They can instead be loaded with [`module.createRequire()`][] or
 [`process.dlopen`][].
@@ -701,8 +701,9 @@ changes:
 To customize the default module resolution, loader hooks can optionally be
 provided via a `--experimental-loader ./loader-name.mjs` argument to Node.js.
 
-When hooks are used they apply to the entry point and all `import` calls. They
-won't apply to `require` calls; those still follow [CommonJS][] rules.
+When hooks are used they apply to each subsequent loader, the entry point, and
+all `import` calls. They won't apply to `require` calls; those still follow
+[CommonJS][] rules.
 
 Loaders follow the pattern of `--require`:
 
@@ -1525,6 +1526,7 @@ for ESM specifiers is [commonjs-extension-resolution-loader][].
 <!-- Note: The cjs-module-lexer link should be kept in-sync with the deps version -->
 
 [6.1.7 Array Index]: https://tc39.es/ecma262/#integer-index
+[Addons]: addons.md
 [CommonJS]: modules.md
 [Conditional exports]: packages.md#conditional-exports
 [Core modules]: modules.md#core-modules

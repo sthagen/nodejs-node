@@ -457,7 +457,9 @@ test('spies on an object method', (t) => {
 ## `run([options])`
 
 <!-- YAML
-added: v18.9.0
+added:
+  - v18.9.0
+  - v16.19.0
 -->
 
 * `options` {Object} Configuration options for running tests. The following
@@ -870,6 +872,14 @@ test('changes a mock behavior once', (t) => {
 });
 ```
 
+### `ctx.resetCalls()`
+
+<!-- YAML
+added: v19.3.0
+-->
+
+Resets the call history of the mock function.
+
 ### `ctx.restore()`
 
 <!-- YAML
@@ -944,7 +954,7 @@ test('mocks a counting function', (t) => {
 ### `mock.getter(object, methodName[, implementation][, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.3.0
 -->
 
 This function is syntax sugar for [`MockTracker.method`][] with `options.getter`
@@ -1033,7 +1043,7 @@ not disassociate the mocks from the `MockTracker` instance.
 ### `mock.setter(object, methodName[, implementation][, options])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.3.0
 -->
 
 This function is syntax sugar for [`MockTracker.method`][] with `options.setter`
@@ -1042,7 +1052,9 @@ set to `true`.
 ## Class: `TapStream`
 
 <!-- YAML
-added: v18.9.0
+added:
+  - v18.9.0
+  - v16.19.0
 -->
 
 * Extends {ReadableStream}
@@ -1122,6 +1134,33 @@ test('top level test', async (t) => {
       assert.ok('some relevant assertion here');
     },
   );
+});
+```
+
+### `context.after([fn][, options])`
+
+<!-- YAML
+added: v19.3.0
+-->
+
+* `fn` {Function|AsyncFunction} The hook function. The first argument
+  to this function is a [`TestContext`][] object. If the hook uses callbacks,
+  the callback function is passed as the second argument. **Default:** A no-op
+  function.
+* `options` {Object} Configuration options for the hook. The following
+  properties are supported:
+  * `signal` {AbortSignal} Allows aborting an in-progress hook.
+  * `timeout` {number} A number of milliseconds the hook will fail after.
+    If unspecified, subtests inherit this value from their parent.
+    **Default:** `Infinity`.
+
+This function is used to create a hook that runs after the current test
+finishes.
+
+```js
+test('top level test', async (t) => {
+  t.after((t) => t.diagnostic(`finished running ${t.name}`));
+  assert.ok('some relevant assertion here');
 });
 ```
 

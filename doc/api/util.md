@@ -1107,7 +1107,7 @@ myMIME.type = 'application';
 console.log(myMIME.type);
 // Prints: application
 console.log(String(myMIME));
-// Prints: application/javascript/javascript
+// Prints: application/javascript
 ```
 
 #### `mime.subtype`
@@ -1380,7 +1380,9 @@ added:
   - v18.3.0
   - v16.17.0
 changes:
-  - version: v18.11.0
+  - version:
+    - v18.11.0
+    - v16.19.0
     pr-url: https://github.com/nodejs/node/pull/44631
     description: Add support for default values in input `config`.
   - version:

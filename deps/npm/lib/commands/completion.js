@@ -29,7 +29,7 @@
 // as an array.
 //
 
-const fs = require('@npmcli/fs')
+const fs = require('fs/promises')
 const nopt = require('nopt')
 
 const { definitions, shorthands } = require('../utils/config/index.js')
@@ -54,7 +54,7 @@ const BaseCommand = require('../base-command.js')
 class Completion extends BaseCommand {
   static description = 'Tab Completion for npm'
   static name = 'completion'
-  static ignoreImplicitWorkspace = false
+  static ignoreImplicitWorkspace = true
 
   // completion for the completion command
   async completion (opts) {
