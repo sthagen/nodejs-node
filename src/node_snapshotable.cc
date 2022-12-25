@@ -1151,16 +1151,21 @@ ExitCode SnapshotBuilder::Generate(SnapshotData* out,
       Context::Scope context_scope(main_context);
 
       // Create the environment.
-      env = new Environment(main_instance->isolate_data(),
-                            main_context,
-                            args,
-                            exec_args,
-                            nullptr,
-                            node::EnvironmentFlags::kDefaultFlags,
-                            {});
+      // It's not guaranteed that a context that goes through
+      // v8_inspector::V8Inspector::contextCreated() is runtime-independent,
+      // so do not start the inspector on the main context when building
+      // the default snapshot.
+      uint64_t env_flags = EnvironmentFlags::kDefaultFlags |
+                           EnvironmentFlags::kNoCreateInspector;
 
-      // Run scripts in lib/internal/bootstrap/
-      if (env->principal_realm()->RunBootstrapping().IsEmpty()) {
+      env = CreateEnvironment(main_instance->isolate_data(),
+                              main_context,
+                              args,
+                              exec_args,
+                              static_cast<EnvironmentFlags::Flags>(env_flags));
+
+      // This already ran scripts in lib/internal/bootstrap/, if it fails return
+      if (env == nullptr) {
         return ExitCode::kBootstrapFailure;
       }
       // If --build-snapshot is true, lib/internal/main/mksnapshot.js would be
@@ -1275,11 +1280,11 @@ SnapshotableObject::SnapshotableObject(Environment* env,
     : BaseObject(env, wrap), type_(type) {
 }
 
-const char* SnapshotableObject::GetTypeNameChars() const {
+std::string_view SnapshotableObject::GetTypeName() const {
   switch (type_) {
 #define V(PropertyName, NativeTypeName)                                        \
   case EmbedderObjectType::k_##PropertyName: {                                 \
-    return NativeTypeName::type_name.c_str();                                  \
+    return NativeTypeName::type_name.as_string_view();                         \
   }
     SERIALIZABLE_OBJECT_TYPES(V)
 #undef V
@@ -1320,7 +1325,7 @@ void DeserializeNodeInternalFields(Local<Object> holder,
     per_process::Debug(DebugCategory::MKSNAPSHOT,                              \
                        "Object %p is %s\n",                                    \
                        (*holder),                                              \
-                       NativeTypeName::type_name.c_str());                     \
+                       NativeTypeName::type_name.as_string_view());            \
     env_ptr->EnqueueDeserializeRequest(                                        \
         NativeTypeName::Deserialize,                                           \
         holder,                                                                \
@@ -1382,7 +1387,7 @@ StartupData SerializeNodeContextInternalFields(Local<Object> holder,
   per_process::Debug(DebugCategory::MKSNAPSHOT,
                      "Object %p is %s, ",
                      *holder,
-                     obj->GetTypeNameChars());
+                     obj->GetTypeName());
   InternalFieldInfoBase* info = obj->Serialize(index);
 
   per_process::Debug(DebugCategory::MKSNAPSHOT,
@@ -1407,7 +1412,7 @@ void SerializeSnapshotableObjects(Realm* realm,
     }
     SnapshotableObject* ptr = static_cast<SnapshotableObject*>(obj);
 
-    const char* type_name = ptr->GetTypeNameChars();
+    std::string type_name{ptr->GetTypeName()};
     per_process::Debug(DebugCategory::MKSNAPSHOT,
                        "Serialize snapshotable object %i (%p), "
                        "object=%p, type=%s\n",

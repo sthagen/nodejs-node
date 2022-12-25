@@ -127,6 +127,7 @@ class EnvironmentOptions : public Options {
   bool frozen_intrinsics = false;
   int64_t heap_snapshot_near_heap_limit = 0;
   std::string heap_snapshot_signal;
+  bool enable_network_family_autoselection = false;
   uint64_t max_http_header_size = 16 * 1024;
   bool deprecation = true;
   bool force_async_hooks_checks = true;
@@ -155,6 +156,8 @@ class EnvironmentOptions : public Options {
   std::string diagnostic_dir;
   bool test_runner = false;
   std::vector<std::string> test_name_pattern;
+  std::vector<std::string> test_reporter;
+  std::vector<std::string> test_reporter_destination;
   bool test_only = false;
   bool test_udp_no_try_send = false;
   bool throw_deprecation = false;

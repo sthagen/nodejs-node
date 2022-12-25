@@ -1515,9 +1515,13 @@ or waiting for a response.
 added:
  - v11.3.0
  - v10.14.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/45778
+    description: The default is now set to the minimum between 60000 (60 seconds) or `requestTimeout`.
 -->
 
-* {number} **Default:** `60000`
+* {number} **Default:** The minimum between [`server.requestTimeout`][] or `60000`.
 
 Limit the amount of time the parser will wait to receive the complete HTTP
 headers.
@@ -3664,9 +3668,9 @@ const { validateHeaderName } = require('node:http');
 try {
   validateHeaderName('');
 } catch (err) {
-  err instanceof TypeError; // --> true
-  err.code; // --> 'ERR_INVALID_HTTP_TOKEN'
-  err.message; // --> 'Header name must be a valid HTTP token [""]'
+  console.error(err instanceof TypeError); // --> true
+  console.error(err.code); // --> 'ERR_INVALID_HTTP_TOKEN'
+  console.error(err.message); // --> 'Header name must be a valid HTTP token [""]'
 }
 ```
 
@@ -3698,17 +3702,17 @@ const { validateHeaderValue } = require('node:http');
 try {
   validateHeaderValue('x-my-header', undefined);
 } catch (err) {
-  err instanceof TypeError; // --> true
-  err.code === 'ERR_HTTP_INVALID_HEADER_VALUE'; // --> true
-  err.message; // --> 'Invalid value "undefined" for header "x-my-header"'
+  console.error(err instanceof TypeError); // --> true
+  console.error(err.code === 'ERR_HTTP_INVALID_HEADER_VALUE'); // --> true
+  console.error(err.message); // --> 'Invalid value "undefined" for header "x-my-header"'
 }
 
 try {
   validateHeaderValue('x-my-header', 'oʊmɪɡə');
 } catch (err) {
-  err instanceof TypeError; // --> true
-  err.code === 'ERR_INVALID_CHAR'; // --> true
-  err.message; // --> 'Invalid character in header content ["x-my-header"]'
+  console.error(err instanceof TypeError); // --> true
+  console.error(err.code === 'ERR_INVALID_CHAR'); // --> true
+  console.error(err.message); // --> 'Invalid character in header content ["x-my-header"]'
 }
 ```
 

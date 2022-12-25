@@ -346,6 +346,10 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "returned)",
             &EnvironmentOptions::dns_result_order,
             kAllowedInEnvvar);
+  AddOption("--enable-network-family-autoselection",
+            "Enable network address family autodetection algorithm",
+            &EnvironmentOptions::enable_network_family_autoselection,
+            kAllowedInEnvvar);
   AddOption("--enable-source-maps",
             "Source Map V3 support for stack traces",
             &EnvironmentOptions::enable_source_maps,
@@ -548,6 +552,12 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
   AddOption("--test-name-pattern",
             "run tests whose name matches this regular expression",
             &EnvironmentOptions::test_name_pattern);
+  AddOption("--test-reporter",
+            "report test output using the given reporter",
+            &EnvironmentOptions::test_reporter);
+  AddOption("--test-reporter-destination",
+            "report given reporter to the given destination",
+            &EnvironmentOptions::test_reporter_destination);
   AddOption("--test-only",
             "run tests with 'only' option set",
             &EnvironmentOptions::test_only,
