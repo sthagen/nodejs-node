@@ -783,7 +783,7 @@ socket as reported by the operating system:
 ### `socket.autoSelectFamilyAttemptedAddresses`
 
 <!-- YAML
-added: REPLACEME
+added: v19.4.0
 -->
 
 * {string\[]}
@@ -870,12 +870,14 @@ behavior.
 <!-- YAML
 added: v0.1.90
 changes:
-  - version: REPLACEME
+  - version: v19.4.0
     pr-url: https://github.com/nodejs/node/pull/45777
     description: The default value for autoSelectFamily option can be changed
                  at runtime using `setDefaultAutoSelectFamily` or via the
                  command line option `--enable-network-family-autoselection`.
-  - version: v19.3.0
+  - version:
+      - v19.3.0
+      - v18.13.0
     pr-url: https://github.com/nodejs/node/pull/44731
     description: Added the `autoSelectFamily` option.
   - version:
@@ -1519,7 +1521,7 @@ then returns the `net.Socket` that starts the connection.
 ## `net.setDefaultAutoSelectFamily(value)`
 
 <!-- YAML
-added: REPLACEME
+added: v19.4.0
 -->
 
 Sets the default value of the `autoSelectFamily` option of [`socket.connect(options)`][].
@@ -1529,7 +1531,7 @@ Sets the default value of the `autoSelectFamily` option of [`socket.connect(opt
 ## `net.getDefaultAutoSelectFamily()`
 
 <!-- YAML
-added: REPLACEME
+added: v19.4.0
 -->
 
 Gets the current default value of the `autoSelectFamily` option of [`socket.connect(options)`][].

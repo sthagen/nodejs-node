@@ -317,7 +317,7 @@ against FIPS-compatible OpenSSL.)
 ### `--enable-network-family-autoselection`
 
 <!-- YAML
-added: REPLACEME
+added: v19.4.0
 -->
 
 Enables the family autoselection algorithm unless connection options explicitly
@@ -429,7 +429,9 @@ Use this flag to disable top-level await in REPL.
 ### `--experimental-shadow-realm`
 
 <!-- YAML
-added: v19.0.0
+added:
+  - v19.0.0
+  - v18.13.0
 -->
 
 Use this flag to enable [ShadowRealm][] support.
@@ -1219,7 +1221,9 @@ added:
   - v18.1.0
   - v16.17.0
 changes:
-  - version: v19.2.0
+  - version:
+      - v19.2.0
+      - v18.13.0
     pr-url: https://github.com/nodejs/node/pull/45214
     description: Test runner now supports running in watch mode.
 -->
@@ -1532,14 +1536,6 @@ occurs. One of the following modes can be chosen:
 If a rejection happens during the command line entry point's ES module static
 loading phase, it will always raise it as an uncaught exception.
 
-### `--update-assert-snapshot`
-
-<!-- YAML
-added: v18.8.0
--->
-
-Updates snapshot files used by [`assert.snapshot()`][].
-
 ### `--use-bundled-ca`, `--use-openssl-ca`
 
 <!-- YAML
@@ -1611,7 +1607,9 @@ added:
   - v18.11.0
   - v16.19.0
 changes:
-  - version: v19.2.0
+  - version:
+      - v19.2.0
+      - v18.13.0
     pr-url: https://github.com/nodejs/node/pull/45214
     description: Test runner now supports running in watch mode.
 -->
@@ -1966,7 +1964,6 @@ Node.js options that are allowed are:
 * `--trace-warnings`
 * `--track-heap-objects`
 * `--unhandled-rejections`
-* `--update-assert-snapshot`
 * `--use-bundled-ca`
 * `--use-largepages`
 * `--use-openssl-ca`
@@ -2347,7 +2344,6 @@ done
 [`NO_COLOR`]: https://no-color.org
 [`SlowBuffer`]: buffer.md#class-slowbuffer
 [`YoungGenerationSizeFromSemiSpaceSize`]: https://chromium.googlesource.com/v8/v8.git/+/refs/tags/10.3.129/src/heap/heap.cc#328
-[`assert.snapshot()`]: assert.md#assertsnapshotvalue-name
 [`dns.lookup()`]: dns.md#dnslookuphostname-options-callback
 [`dns.setDefaultResultOrder()`]: dns.md#dnssetdefaultresultorderorder
 [`dnsPromises.lookup()`]: dns.md#dnspromiseslookuphostname-options
