@@ -436,6 +436,17 @@ added:
 
 Use this flag to enable [ShadowRealm][] support.
 
+### `--experimental-test-coverage`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+When used in conjunction with the `node:test` module, a code coverage report is
+generated as part of the test runner output. If no tests are run, a coverage
+report is not generated. See the documentation on
+[collecting code coverage from tests][] for more details.
+
 ### `--experimental-vm-modules`
 
 <!-- YAML
@@ -2354,6 +2365,7 @@ done
 [`unhandledRejection`]: process.md#event-unhandledrejection
 [`v8.startupSnapshot` API]: v8.md#startup-snapshot-api
 [`worker_threads.threadId`]: worker_threads.md#workerthreadid
+[collecting code coverage from tests]: test.md#collecting-code-coverage
 [conditional exports]: packages.md#conditional-exports
 [context-aware]: addons.md#context-aware-addons
 [debugger]: debugger.md
