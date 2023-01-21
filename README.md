@@ -7,6 +7,12 @@ For information on using Node.js, see the [Node.js website][].
 The Node.js project uses an [open governance model](./GOVERNANCE.md). The
 [OpenJS Foundation][] provides support for the project.
 
+Contributors are expected to act in a collaborative manner to move
+the project forward. We encourage the constructive exchange of contrary
+opinions and compromise. The [TSC](./GOVERNANCE.md#technical-steering-committee)
+reserves the right to limit or block contributors who repeatedly act in ways
+that discourage, exhaust, or otherwise negatively affect other participants.
+
 **This project has a [Code of Conduct][].**
 
 ## Table of contents
@@ -318,8 +324,6 @@ For information about the governance of the Node.js project, see
   **Adrian Estrada** <<edsadr@gmail.com>> (he/him)
 * [erickwendel](https://github.com/erickwendel) -
   **Erick Wendel** <<erick.workspace@gmail.com>> (he/him)
-* [evanlucas](https://github.com/evanlucas) -
-  **Evan Lucas** <<evanlucas@me.com>> (he/him)
 * [fhinkel](https://github.com/fhinkel) -
   **Franziska Hinkelmann** <<franziska.hinkelmann@gmail.com>> (she/her)
 * [F3n67u](https://github.com/F3n67u) -
@@ -506,6 +510,8 @@ For information about the governance of the Node.js project, see
   **Alexander Makarenko** <<estliberitas@gmail.com>>
 * [eugeneo](https://github.com/eugeneo) -
   **Eugene Ostroukhov** <<eostroukhov@google.com>>
+* [evanlucas](https://github.com/evanlucas) -
+  **Evan Lucas** <<evanlucas@me.com>> (he/him)
 * [firedfox](https://github.com/firedfox) -
   **Daniel Wang** <<wangyang0123@gmail.com>>
 * [Fishrock123](https://github.com/Fishrock123) -

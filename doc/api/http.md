@@ -3703,13 +3703,18 @@ Passing an `AbortSignal` and then calling `abort` on the corresponding
 `AbortController` will behave the same way as calling `.destroy()` on the
 request itself.
 
-## `http.validateHeaderName(name)`
+## `http.validateHeaderName(name[, label])`
 
 <!-- YAML
 added: v14.3.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/46143
+    description: The `label` parameter is added.
 -->
 
 * `name` {string}
+* `label` {string} Label for error message. **Default:** `'Header name'`.
 
 Performs the low-level validations on the provided `name` that are done when
 `res.setHeader(name, value)` is called.
@@ -3777,7 +3782,7 @@ try {
 }
 ```
 
-## `http.setMaxIdleHTTPParsers`
+## `http.setMaxIdleHTTPParsers(max)`
 
 <!-- YAML
 added:
@@ -3785,9 +3790,9 @@ added:
   - v16.18.0
 -->
 
-* {number}
+* `max` {number} **Default:** `1000`.
 
-Set the maximum number of idle HTTP parsers. **Default:** `1000`.
+Set the maximum number of idle HTTP parsers.
 
 [RFC 8187]: https://www.rfc-editor.org/rfc/rfc8187.txt
 [`'ERR_HTTP_CONTENT_LENGTH_MISMATCH'`]: errors.md#err_http_content_length_mismatch

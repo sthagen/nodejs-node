@@ -675,6 +675,15 @@ Environment::Environment(IsolateData* isolate_data,
       thread_id_(thread_id.id == static_cast<uint64_t>(-1)
                      ? AllocateEnvironmentThreadId().id
                      : thread_id.id) {
+#ifdef NODE_V8_SHARED_RO_HEAP
+  if (!is_main_thread()) {
+    CHECK_NOT_NULL(isolate_data->worker_context());
+    // TODO(addaleax): Adjust for the embedder API snapshot support changes
+    builtin_loader()->CopySourceAndCodeCacheReferenceFrom(
+        isolate_data->worker_context()->env()->builtin_loader());
+  }
+#endif
+
   // We'll be creating new objects so make sure we've entered the context.
   HandleScope handle_scope(isolate);
 
@@ -910,10 +919,13 @@ void Environment::InitializeLibuv() {
 }
 
 void Environment::ExitEnv() {
-  set_can_call_into_js(false);
+  // Should not access non-thread-safe methods here.
   set_stopping(true);
   isolate_->TerminateExecution();
-  SetImmediateThreadsafe([](Environment* env) { uv_stop(env->event_loop()); });
+  SetImmediateThreadsafe([](Environment* env) {
+    env->set_can_call_into_js(false);
+    uv_stop(env->event_loop());
+  });
 }
 
 void Environment::RegisterHandleCleanups() {
