@@ -9,6 +9,7 @@
 #include "node_platform.h"
 #include "node_realm-inl.h"
 #include "node_shadow_realm.h"
+#include "node_snapshot_builder.h"
 #include "node_v8_platform-inl.h"
 #include "node_wasm_web_api.h"
 #include "uv.h"
@@ -265,8 +266,16 @@ void SetIsolateMiscHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
   auto* allow_wasm_codegen_cb = s.allow_wasm_code_generation_callback ?
     s.allow_wasm_code_generation_callback : AllowWasmCodeGenerationCallback;
   isolate->SetAllowWasmCodeGenerationCallback(allow_wasm_codegen_cb);
+
+  auto* modify_code_generation_from_strings_callback =
+      ModifyCodeGenerationFromStrings;
+  if (s.flags & ALLOW_MODIFY_CODE_GENERATION_FROM_STRINGS_CALLBACK &&
+      s.modify_code_generation_from_strings_callback) {
+    modify_code_generation_from_strings_callback =
+        s.modify_code_generation_from_strings_callback;
+  }
   isolate->SetModifyCodeGenerationFromStringsCallback(
-      ModifyCodeGenerationFromStrings);
+      modify_code_generation_from_strings_callback);
 
   Mutex::ScopedLock lock(node::per_process::cli_options_mutex);
   if (per_process::cli_options->get_per_isolate_options()
@@ -307,9 +316,15 @@ void SetIsolateUpForNode(v8::Isolate* isolate) {
 Isolate* NewIsolate(Isolate::CreateParams* params,
                     uv_loop_t* event_loop,
                     MultiIsolatePlatform* platform,
-                    bool has_snapshot_data) {
+                    const SnapshotData* snapshot_data,
+                    const IsolateSettings& settings) {
   Isolate* isolate = Isolate::Allocate();
   if (isolate == nullptr) return nullptr;
+
+  if (snapshot_data != nullptr) {
+    SnapshotBuilder::InitializeIsolateParams(snapshot_data, params);
+  }
+
 #ifdef NODE_V8_SHARED_RO_HEAP
   {
     // In shared-readonly-heap mode, V8 requires all snapshots used for
@@ -328,12 +343,12 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
 
   SetIsolateCreateParamsForNode(params);
   Isolate::Initialize(isolate, *params);
-  if (!has_snapshot_data) {
+  if (snapshot_data == nullptr) {
     // If in deserialize mode, delay until after the deserialization is
     // complete.
-    SetIsolateUpForNode(isolate);
+    SetIsolateUpForNode(isolate, settings);
   } else {
-    SetIsolateMiscHandlers(isolate, {});
+    SetIsolateMiscHandlers(isolate, settings);
   }
 
   return isolate;
@@ -341,25 +356,60 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
 
 Isolate* NewIsolate(ArrayBufferAllocator* allocator,
                     uv_loop_t* event_loop,
-                    MultiIsolatePlatform* platform) {
+                    MultiIsolatePlatform* platform,
+                    const EmbedderSnapshotData* snapshot_data,
+                    const IsolateSettings& settings) {
   Isolate::CreateParams params;
   if (allocator != nullptr) params.array_buffer_allocator = allocator;
-  return NewIsolate(&params, event_loop, platform);
+  return NewIsolate(&params,
+                    event_loop,
+                    platform,
+                    SnapshotData::FromEmbedderWrapper(snapshot_data),
+                    settings);
+}
+
+Isolate* NewIsolate(std::shared_ptr<ArrayBufferAllocator> allocator,
+                    uv_loop_t* event_loop,
+                    MultiIsolatePlatform* platform,
+                    const EmbedderSnapshotData* snapshot_data,
+                    const IsolateSettings& settings) {
+  Isolate::CreateParams params;
+  if (allocator) params.array_buffer_allocator_shared = allocator;
+  return NewIsolate(&params,
+                    event_loop,
+                    platform,
+                    SnapshotData::FromEmbedderWrapper(snapshot_data),
+                    settings);
+}
+
+Isolate* NewIsolate(ArrayBufferAllocator* allocator,
+                    uv_loop_t* event_loop,
+                    MultiIsolatePlatform* platform) {
+  return NewIsolate(allocator, event_loop, platform, nullptr);
 }
 
 Isolate* NewIsolate(std::shared_ptr<ArrayBufferAllocator> allocator,
                     uv_loop_t* event_loop,
                     MultiIsolatePlatform* platform) {
-  Isolate::CreateParams params;
-  if (allocator) params.array_buffer_allocator_shared = allocator;
-  return NewIsolate(&params, event_loop, platform);
+  return NewIsolate(allocator, event_loop, platform, nullptr);
+}
+
+IsolateData* CreateIsolateData(
+    Isolate* isolate,
+    uv_loop_t* loop,
+    MultiIsolatePlatform* platform,
+    ArrayBufferAllocator* allocator,
+    const EmbedderSnapshotData* embedder_snapshot_data) {
+  const SnapshotData* snapshot_data =
+      SnapshotData::FromEmbedderWrapper(embedder_snapshot_data);
+  return new IsolateData(isolate, loop, platform, allocator, snapshot_data);
 }
 
 IsolateData* CreateIsolateData(Isolate* isolate,
                                uv_loop_t* loop,
                                MultiIsolatePlatform* platform,
                                ArrayBufferAllocator* allocator) {
-  return new IsolateData(isolate, loop, platform, allocator);
+  return CreateIsolateData(isolate, loop, platform, allocator, nullptr);
 }
 
 void FreeIsolateData(IsolateData* isolate_data) {
@@ -387,13 +437,45 @@ Environment* CreateEnvironment(
     EnvironmentFlags::Flags flags,
     ThreadId thread_id,
     std::unique_ptr<InspectorParentHandle> inspector_parent_handle) {
-  Isolate* isolate = context->GetIsolate();
+  Isolate* isolate = isolate_data->isolate();
   HandleScope handle_scope(isolate);
-  Context::Scope context_scope(context);
+
+  const bool use_snapshot = context.IsEmpty();
+  const EnvSerializeInfo* env_snapshot_info = nullptr;
+  if (use_snapshot) {
+    CHECK_NOT_NULL(isolate_data->snapshot_data());
+    env_snapshot_info = &isolate_data->snapshot_data()->env_info;
+  }
+
   // TODO(addaleax): This is a much better place for parsing per-Environment
   // options than the global parse call.
-  Environment* env = new Environment(
-      isolate_data, context, args, exec_args, nullptr, flags, thread_id);
+  Environment* env = new Environment(isolate_data,
+                                     isolate,
+                                     args,
+                                     exec_args,
+                                     env_snapshot_info,
+                                     flags,
+                                     thread_id);
+  CHECK_NOT_NULL(env);
+
+  if (use_snapshot) {
+    context = Context::FromSnapshot(isolate,
+                                    SnapshotData::kNodeMainContextIndex,
+                                    {DeserializeNodeInternalFields, env})
+                  .ToLocalChecked();
+
+    CHECK(!context.IsEmpty());
+    Context::Scope context_scope(context);
+
+    if (InitializeContextRuntime(context).IsNothing()) {
+      FreeEnvironment(env);
+      return nullptr;
+    }
+    SetIsolateErrorHandlers(isolate, {});
+  }
+
+  Context::Scope context_scope(context);
+  env->InitializeMainContext(context, env_snapshot_info);
 
 #if HAVE_INSPECTOR
   if (env->should_create_inspector()) {
@@ -407,7 +489,7 @@ Environment* CreateEnvironment(
   }
 #endif
 
-  if (env->principal_realm()->RunBootstrapping().IsEmpty()) {
+  if (!use_snapshot && env->principal_realm()->RunBootstrapping().IsEmpty()) {
     FreeEnvironment(env);
     return nullptr;
   }
@@ -490,6 +572,10 @@ IsolateData* GetEnvironmentIsolateData(Environment* env) {
 
 ArrayBufferAllocator* GetArrayBufferAllocator(IsolateData* isolate_data) {
   return isolate_data->node_allocator();
+}
+
+Local<Context> GetMainContext(Environment* env) {
+  return env->context();
 }
 
 MultiIsolatePlatform* GetMultiIsolatePlatform(Environment* env) {
@@ -798,6 +884,10 @@ void DefaultProcessExitHandlerInternal(Environment* env, ExitCode exit_code) {
   env->set_can_call_into_js(false);
   env->stop_sub_worker_contexts();
   env->isolate()->DumpAndResetStats();
+  // The tracing agent could be in the process of writing data using the
+  // threadpool. Stop it before shutting down libuv. The rest of the tracing
+  // agent disposal will be performed in DisposePlatform().
+  per_process::v8_platform.StopTracingAgent();
   // When the process exits, the tasks in the thread pool may also need to
   // access the data of V8Platform, such as trace agent, or a field
   // added in the future. So make sure the thread pool exits first.

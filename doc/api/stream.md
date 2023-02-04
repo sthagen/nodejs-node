@@ -2603,6 +2603,9 @@ further errors except from `_destroy()` may be emitted as `'error'`.
 <!-- YAML
 added: v10.0.0
 changes:
+  - version: v19.5.0
+    pr-url: https://github.com/nodejs/node/pull/46205
+    description: Added support for `ReadableStream` and `WritableStream`.
   - version: v15.11.0
     pr-url: https://github.com/nodejs/node/pull/37354
     description: The `signal` option was added.
@@ -2622,7 +2625,9 @@ changes:
                  finished before the call to `finished(stream, cb)`.
 -->
 
-* `stream` {Stream} A readable and/or writable stream.
+* `stream` {Stream|ReadableStream|WritableStream}
+
+A readable and/or writable stream/webstream.
 
 * `options` {Object}
   * `error` {boolean} If set to `false`, then a call to `emit('error', err)` is
@@ -2693,6 +2698,9 @@ const cleanup = finished(rs, (err) => {
 <!-- YAML
 added: v10.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/46307
+    description: Added support for webstreams.
   - version: v18.0.0
     pr-url: https://github.com/nodejs/node/pull/41678
     description: Passing an invalid callback to the `callback` argument
@@ -2709,13 +2717,14 @@ changes:
     description: Add support for async generators.
 -->
 
-* `streams` {Stream\[]|Iterable\[]|AsyncIterable\[]|Function\[]}
-* `source` {Stream|Iterable|AsyncIterable|Function}
+* `streams` {Stream\[]|Iterable\[]|AsyncIterable\[]|Function\[]|
+  ReadableStream\[]|WritableStream\[]|TransformStream\[]}
+* `source` {Stream|Iterable|AsyncIterable|Function|ReadableStream}
   * Returns: {Iterable|AsyncIterable}
-* `...transforms` {Stream|Function}
+* `...transforms` {Stream|Function|TransformStream}
   * `source` {AsyncIterable}
   * Returns: {AsyncIterable}
-* `destination` {Stream|Function}
+* `destination` {Stream|Function|WritableStream}
   * `source` {AsyncIterable}
   * Returns: {AsyncIterable|Promise}
 * `callback` {Function} Called when the pipeline is fully done.
@@ -3031,10 +3040,16 @@ added: v17.0.0
 
 <!-- YAML
 added: v16.8.0
+changes:
+  - version: v19.5.0
+    pr-url: https://github.com/nodejs/node/pull/46190
+    description: The `src` argument can now be a `ReadableStream` or
+                 `WritableStream`.
 -->
 
 * `src` {Stream|Blob|ArrayBuffer|string|Iterable|AsyncIterable|
-  AsyncGeneratorFunction|AsyncFunction|Promise|Object}
+  AsyncGeneratorFunction|AsyncFunction|Promise|Object|
+  ReadableStream|WritableStream}
 
 A utility method for creating duplex streams.
 
@@ -3054,6 +3069,8 @@ A utility method for creating duplex streams.
   `writable` into `Stream` and then combines them into `Duplex` where the
   `Duplex` will write to the `writable` and read from the `readable`.
 * `Promise` converts into readable `Duplex`. Value `null` is ignored.
+* `ReadableStream` converts into readable `Duplex`.
+* `WritableStream` converts into writable `Duplex`.
 * Returns: {stream.Duplex}
 
 If an `Iterable` object containing promises is passed as an argument,

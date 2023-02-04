@@ -1516,7 +1516,9 @@ added:
  - v11.3.0
  - v10.14.0
 changes:
-  - version: v19.4.0
+  - version:
+    - v19.4.0
+    - v18.14.0
     pr-url: https://github.com/nodejs/node/pull/45778
     description: The default is now set to the minimum between 60000 (60 seconds) or `requestTimeout`.
 -->
@@ -2426,7 +2428,9 @@ as an argument to any listeners on the event.
 <!-- YAML
 added: v0.1.5
 changes:
-  - version: v19.5.0
+  - version:
+    - v19.5.0
+    - v18.14.0
     pr-url: https://github.com/nodejs/node/pull/45982
     description: >-
      The `joinDuplicateHeaders` option in the `http.request()`
@@ -2972,7 +2976,7 @@ headers with the same name.
 ### `outgoingMessage.setHeaders(headers)`
 
 <!-- YAML
-added: REPLACEME
+added: v19.6.0
 -->
 
 * `headers` {Headers|Map}
@@ -3235,6 +3239,7 @@ changes:
   * `requestTimeout`: Sets the timeout value in milliseconds for receiving
     the entire request from the client.
     See [`server.requestTimeout`][] for more information.
+    **Default:** `300000`.
   * `requireHostHeader` {boolean} It forces the server to respond with
     a 400 (Bad Request) status code to any HTTP/1.1 request message
     that lacks a Host header (as mandated by the specification).
@@ -3246,7 +3251,6 @@ changes:
   * `ServerResponse` {http.ServerResponse} Specifies the `ServerResponse` class
     to be used. Useful for extending the original `ServerResponse`. **Default:**
     `ServerResponse`.
-    **Default:** `300000`.
   * `uniqueHeaders` {Array} A list of response headers that should be sent only
     once. If the header's value is an array, the items will be joined
     using `; `.
@@ -3708,7 +3712,9 @@ request itself.
 <!-- YAML
 added: v14.3.0
 changes:
-  - version: v19.5.0
+  - version:
+    - v19.5.0
+    - v18.14.0
     pr-url: https://github.com/nodejs/node/pull/46143
     description: The `label` parameter is added.
 -->

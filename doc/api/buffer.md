@@ -5141,7 +5141,7 @@ and binary data should be performed using `Buffer.from(str, 'base64')` and
 ### `buffer.isAscii(input)`
 
 <!-- YAML
-added: REPLACEME
+added: v19.6.0
 -->
 
 * input {Buffer | ArrayBuffer | TypedArray} The input to validate.
@@ -5155,7 +5155,9 @@ Throws if the `input` is a detached array buffer.
 ### `buffer.isUtf8(input)`
 
 <!-- YAML
-added: v19.4.0
+added:
+  - v19.4.0
+  - v18.14.0
 -->
 
 * input {Buffer | ArrayBuffer | TypedArray} The input to validate.

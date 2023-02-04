@@ -169,7 +169,7 @@ $ node --completion-bash > node_bash_completion
 $ source node_bash_completion
 ```
 
-### `-C=condition`, `--conditions=condition`
+### `-C condition`, `--conditions=condition`
 
 <!-- YAML
 added:
@@ -190,7 +190,7 @@ The default Node.js conditions of `"node"`, `"default"`, `"import"`, and
 For example, to run a module with "development" resolutions:
 
 ```console
-$ node -C=development app.js
+$ node -C development app.js
 ```
 
 ### `--cpu-prof`
@@ -1257,7 +1257,7 @@ whose name matches the provided pattern. See the documentation on
 ### `--test-reporter`
 
 <!-- YAML
-added: REPLACEME
+added: v19.6.0
 -->
 
 A test reporter to use when running tests. See the documentation on
@@ -1266,7 +1266,7 @@ A test reporter to use when running tests. See the documentation on
 ### `--test-reporter-destination`
 
 <!-- YAML
-added: REPLACEME
+added: v19.6.0
 -->
 
 The destination for the corresponding test reporter. See the documentation on
