@@ -19,13 +19,14 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "node_file.h"  // NOLINT(build/include_inline)
-#include "node_file-inl.h"
 #include "aliased_buffer.h"
 #include "memory_tracker-inl.h"
 #include "node_buffer.h"
 #include "node_external_reference.h"
+#include "node_file-inl.h"
 #include "node_process-inl.h"
 #include "node_stat_watcher.h"
+#include "permission/permission.h"
 #include "util-inl.h"
 
 #include "tracing/trace_event.h"
@@ -242,29 +243,40 @@ FileHandle::FileHandle(BindingData* binding_data,
 }
 
 FileHandle* FileHandle::New(BindingData* binding_data,
-                            int fd, Local<Object> obj) {
+                            int fd,
+                            Local<Object> obj,
+                            std::optional<int64_t> maybeOffset,
+                            std::optional<int64_t> maybeLength) {
   Environment* env = binding_data->env();
   if (obj.IsEmpty() && !env->fd_constructor_template()
                             ->NewInstance(env->context())
                             .ToLocal(&obj)) {
     return nullptr;
   }
-  return new FileHandle(binding_data, obj, fd);
+  auto handle = new FileHandle(binding_data, obj, fd);
+  if (maybeOffset.has_value()) handle->read_offset_ = maybeOffset.value();
+  if (maybeLength.has_value()) handle->read_length_ = maybeLength.value();
+  return handle;
 }
 
 void FileHandle::New(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
   CHECK(args.IsConstructCall());
   CHECK(args[0]->IsInt32());
 
-  FileHandle* handle =
-      FileHandle::New(binding_data, args[0].As<Int32>()->Value(), args.This());
-  if (handle == nullptr) return;
+  std::optional<int64_t> maybeOffset = std::nullopt;
+  std::optional<int64_t> maybeLength = std::nullopt;
   if (args[1]->IsNumber())
-    handle->read_offset_ = args[1]->IntegerValue(env->context()).FromJust();
+    maybeOffset = args[1]->IntegerValue(env->context()).FromJust();
   if (args[2]->IsNumber())
-    handle->read_length_ = args[2]->IntegerValue(env->context()).FromJust();
+    maybeLength = args[2]->IntegerValue(env->context()).FromJust();
+
+  FileHandle::New(binding_data,
+                  args[0].As<Int32>()->Value(),
+                  args.This(),
+                  maybeOffset,
+                  maybeLength);
 }
 
 FileHandle::~FileHandle() {
@@ -313,7 +325,7 @@ BaseObjectPtr<BaseObject> FileHandle::TransferData::Deserialize(
     Environment* env,
     v8::Local<v8::Context> context,
     std::unique_ptr<worker::TransferData> self) {
-  BindingData* bd = Environment::GetBindingData<BindingData>(context);
+  BindingData* bd = Realm::GetBindingData<BindingData>(context);
   if (bd == nullptr) return {};
 
   int fd = fd_;
@@ -503,10 +515,15 @@ void FileHandle::Close(const FunctionCallbackInfo<Value>& args) {
 void FileHandle::ReleaseFD(const FunctionCallbackInfo<Value>& args) {
   FileHandle* fd;
   ASSIGN_OR_RETURN_UNWRAP(&fd, args.Holder());
-  // Just act as if this FileHandle has been closed.
-  fd->AfterClose();
+  fd->Release();
 }
 
+int FileHandle::Release() {
+  int fd = GetFD();
+  // Just pretend that Close was called and we're all done.
+  AfterClose();
+  return fd;
+}
 
 void FileHandle::AfterClose() {
   closing_ = false;
@@ -708,7 +725,7 @@ void FSReqCallback::SetReturnValue(const FunctionCallbackInfo<Value>& args) {
 
 void NewFSReqCallback(const FunctionCallbackInfo<Value>& args) {
   CHECK(args.IsConstructCall());
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   new FSReqCallback(binding_data, args.This(), args[0]->IsTrue());
 }
 
@@ -945,6 +962,7 @@ void AfterScanDir(uv_fs_t* req) {
 
 void Access(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
+
   Isolate* isolate = env->isolate();
   HandleScope scope(isolate);
 
@@ -956,6 +974,8 @@ void Access(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   FSReqBase* req_wrap_async = GetReqWrap(args, 2);
   if (req_wrap_async != nullptr) {  // access(path, mode, req)
@@ -1006,6 +1026,8 @@ static void InternalModuleReadJSON(const FunctionCallbackInfo<Value>& args) {
 
   CHECK(args[0]->IsString());
   node::Utf8Value path(isolate, args[0]);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   if (strlen(*path) != path.length()) {
     args.GetReturnValue().Set(Array::New(isolate));
@@ -1102,6 +1124,8 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
 
   CHECK(args[0]->IsString());
   node::Utf8Value path(env->isolate(), args[0]);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   uv_fs_t req;
   int rc = uv_fs_stat(env->event_loop(), &req, *path, nullptr);
@@ -1115,7 +1139,7 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void Stat(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
 
   const int argc = args.Length();
@@ -1123,6 +1147,8 @@ static void Stat(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   bool use_bigint = args[1]->IsTrue();
   FSReqBase* req_wrap_async = GetReqWrap(args, 2, use_bigint);
@@ -1148,7 +1174,7 @@ static void Stat(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void LStat(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
 
   const int argc = args.Length();
@@ -1182,7 +1208,7 @@ static void LStat(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void FStat(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
 
   const int argc = args.Length();
@@ -1214,7 +1240,7 @@ static void FStat(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void StatFs(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
 
   const int argc = args.Length();
@@ -1264,8 +1290,17 @@ static void Symlink(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue target(isolate, args[0]);
   CHECK_NOT_NULL(*target);
+  auto target_view = target.ToStringView();
+  // To avoid bypass the symlink target should be allowed to read and write
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, target_view);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, target_view);
+
   BufferValue path(isolate, args[1]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
 
   CHECK(args[2]->IsInt32());
   int flags = args[2].As<Int32>()->Value();
@@ -1332,6 +1367,8 @@ static void ReadLink(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   const enum encoding encoding = ParseEncoding(isolate, args[1], UTF8);
 
@@ -1377,8 +1414,18 @@ static void Rename(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue old_path(isolate, args[0]);
   CHECK_NOT_NULL(*old_path);
+  auto view_old_path = old_path.ToStringView();
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, view_old_path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, view_old_path);
+
   BufferValue new_path(isolate, args[1]);
   CHECK_NOT_NULL(*new_path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env,
+      permission::PermissionScope::kFileSystemWrite,
+      new_path.ToStringView());
 
   FSReqBase* req_wrap_async = GetReqWrap(args, 2);
   if (req_wrap_async != nullptr) {
@@ -1482,6 +1529,8 @@ static void Unlink(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
 
   FSReqBase* req_wrap_async = GetReqWrap(args, 1);
   if (req_wrap_async != nullptr) {
@@ -1506,6 +1555,8 @@ static void RMDir(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
 
   FSReqBase* req_wrap_async = GetReqWrap(args, 1);  // rmdir(path, req)
   if (req_wrap_async != nullptr) {
@@ -1713,6 +1764,8 @@ static void MKDir(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
 
   CHECK(args[1]->IsInt32());
   const int mode = args[1].As<Int32>()->Value();
@@ -1811,6 +1864,8 @@ static void ReadDir(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   const enum encoding encoding = ParseEncoding(isolate, args[1], UTF8);
 
@@ -1909,6 +1964,23 @@ static void Open(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[2]->IsInt32());
   const int mode = args[2].As<Int32>()->Value();
 
+  auto pathView = path.ToStringView();
+  // Open can be called either in write or read
+  if (flags == O_RDWR) {
+    // TODO(rafaelgss): it can be optimized to avoid O(2*n)
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemRead, pathView);
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemWrite, pathView);
+  } else if ((flags & ~(UV_FS_O_RDONLY | UV_FS_O_SYNC)) == 0) {
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemRead, pathView);
+  } else if ((flags & (UV_FS_O_APPEND | UV_FS_O_TRUNC | UV_FS_O_CREAT |
+                       UV_FS_O_WRONLY)) != 0) {
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemWrite, pathView);
+  }
+
   FSReqBase* req_wrap_async = GetReqWrap(args, 3);
   if (req_wrap_async != nullptr) {  // open(path, flags, mode, req)
     req_wrap_async->set_is_plain_open(true);
@@ -1929,7 +2001,7 @@ static void Open(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void OpenFileHandle(const FunctionCallbackInfo<Value>& args) {
-  BindingData* binding_data = Environment::GetBindingData<BindingData>(args);
+  BindingData* binding_data = Realm::GetBindingData<BindingData>(args);
   Environment* env = binding_data->env();
   Isolate* isolate = env->isolate();
 
@@ -1938,12 +2010,31 @@ static void OpenFileHandle(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
+  auto pathView = path.ToStringView();
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, pathView);
 
   CHECK(args[1]->IsInt32());
   const int flags = args[1].As<Int32>()->Value();
 
   CHECK(args[2]->IsInt32());
   const int mode = args[2].As<Int32>()->Value();
+
+  // Open can be called either in write or read
+  if (flags == O_RDWR) {
+    // TODO(rafaelgss): it can be optimized to avoid O(2*n)
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemRead, pathView);
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemWrite, pathView);
+  } else if ((flags & ~(UV_FS_O_RDONLY | UV_FS_O_SYNC)) == 0) {
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemRead, pathView);
+  } else if ((flags & (UV_FS_O_APPEND | UV_FS_O_TRUNC | UV_FS_O_CREAT |
+                       UV_FS_O_WRONLY)) != 0) {
+    THROW_IF_INSUFFICIENT_PERMISSIONS(
+        env, permission::PermissionScope::kFileSystemWrite, pathView);
+  }
 
   FSReqBase* req_wrap_async = GetReqWrap(args, 3);
   if (req_wrap_async != nullptr) {  // openFileHandle(path, flags, mode, req)
@@ -1976,9 +2067,13 @@ static void CopyFile(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue src(isolate, args[0]);
   CHECK_NOT_NULL(*src);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, src.ToStringView());
 
   BufferValue dest(isolate, args[1]);
   CHECK_NOT_NULL(*dest);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, dest.ToStringView());
 
   CHECK(args[2]->IsInt32());
   const int flags = args[2].As<Int32>()->Value();
@@ -2122,7 +2217,6 @@ static void WriteString(const FunctionCallbackInfo<Value>& args) {
 
   const int argc = args.Length();
   CHECK_GE(argc, 4);
-
   CHECK(args[0]->IsInt32());
   const int fd = args[0].As<Int32>()->Value();
 
@@ -2487,6 +2581,8 @@ static void UTimes(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
 
   CHECK(args[1]->IsNumber());
   const double atime = args[1].As<Number>()->Value();
@@ -2619,29 +2715,31 @@ void BindingData::MemoryInfo(MemoryTracker* tracker) const {
                       file_handle_read_wrap_freelist);
 }
 
-BindingData::BindingData(Environment* env, v8::Local<v8::Object> wrap)
-    : SnapshotableObject(env, wrap, type_int),
-      stats_field_array(env->isolate(), kFsStatsBufferLength),
-      stats_field_bigint_array(env->isolate(), kFsStatsBufferLength),
-      statfs_field_array(env->isolate(), kFsStatFsBufferLength),
-      statfs_field_bigint_array(env->isolate(), kFsStatFsBufferLength) {
-  wrap->Set(env->context(),
-            FIXED_ONE_BYTE_STRING(env->isolate(), "statValues"),
+BindingData::BindingData(Realm* realm, v8::Local<v8::Object> wrap)
+    : SnapshotableObject(realm, wrap, type_int),
+      stats_field_array(realm->isolate(), kFsStatsBufferLength),
+      stats_field_bigint_array(realm->isolate(), kFsStatsBufferLength),
+      statfs_field_array(realm->isolate(), kFsStatFsBufferLength),
+      statfs_field_bigint_array(realm->isolate(), kFsStatFsBufferLength) {
+  Isolate* isolate = realm->isolate();
+  Local<Context> context = realm->context();
+  wrap->Set(context,
+            FIXED_ONE_BYTE_STRING(isolate, "statValues"),
             stats_field_array.GetJSArray())
       .Check();
 
-  wrap->Set(env->context(),
-            FIXED_ONE_BYTE_STRING(env->isolate(), "bigintStatValues"),
+  wrap->Set(context,
+            FIXED_ONE_BYTE_STRING(isolate, "bigintStatValues"),
             stats_field_bigint_array.GetJSArray())
       .Check();
 
-  wrap->Set(env->context(),
-            FIXED_ONE_BYTE_STRING(env->isolate(), "statFsValues"),
+  wrap->Set(context,
+            FIXED_ONE_BYTE_STRING(isolate, "statFsValues"),
             statfs_field_array.GetJSArray())
       .Check();
 
-  wrap->Set(env->context(),
-            FIXED_ONE_BYTE_STRING(env->isolate(), "bigintStatFsValues"),
+  wrap->Set(context,
+            FIXED_ONE_BYTE_STRING(isolate, "bigintStatFsValues"),
             statfs_field_bigint_array.GetJSArray())
       .Check();
 }
@@ -2652,8 +2750,8 @@ void BindingData::Deserialize(Local<Context> context,
                               InternalFieldInfoBase* info) {
   DCHECK_EQ(index, BaseObject::kEmbedderType);
   HandleScope scope(context->GetIsolate());
-  Environment* env = Environment::GetCurrent(context);
-  BindingData* binding = env->AddBindingData<BindingData>(context, holder);
+  Realm* realm = Realm::GetCurrent(context);
+  BindingData* binding = realm->AddBindingData<BindingData>(context, holder);
   CHECK_NOT_NULL(binding);
 }
 
@@ -2682,10 +2780,11 @@ void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,
                 void* priv) {
-  Environment* env = Environment::GetCurrent(context);
+  Realm* realm = Realm::GetCurrent(context);
+  Environment* env = realm->env();
   Isolate* isolate = env->isolate();
   BindingData* const binding_data =
-      env->AddBindingData<BindingData>(context, target);
+      realm->AddBindingData<BindingData>(context, target);
   if (binding_data == nullptr) return;
 
   SetMethod(context, target, "access", Access);

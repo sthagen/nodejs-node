@@ -545,7 +545,8 @@ void Environment::AssignToContext(Local<v8::Context> context,
   context->SetAlignedPointerInEmbedderData(ContextEmbedderIndex::kRealm, realm);
   // Used to retrieve bindings
   context->SetAlignedPointerInEmbedderData(
-      ContextEmbedderIndex::kBindingListIndex, &(this->bindings_));
+      ContextEmbedderIndex::kBindingDataStoreIndex,
+      realm->binding_data_store());
 
   // ContextifyContexts will update this to a pointer to the native object.
   context->SetAlignedPointerInEmbedderData(
@@ -754,6 +755,31 @@ Environment::Environment(IsolateData* isolate_data,
                                       this,
                                       "args",
                                       std::move(traced_value));
+  }
+
+  if (options_->experimental_permission) {
+    permission()->EnablePermissions();
+    // If any permission is set the process shouldn't be able to neither
+    // spawn/worker nor use addons unless explicitly allowed by the user
+    if (!options_->allow_fs_read.empty() || !options_->allow_fs_write.empty()) {
+      options_->allow_native_addons = false;
+      if (!options_->allow_child_process) {
+        permission()->Deny(permission::PermissionScope::kChildProcess, {});
+      }
+      if (!options_->allow_worker_threads) {
+        permission()->Deny(permission::PermissionScope::kWorkerThreads, {});
+      }
+    }
+
+    if (!options_->allow_fs_read.empty()) {
+      permission()->Apply(options_->allow_fs_read,
+                          permission::PermissionScope::kFileSystemRead);
+    }
+
+    if (!options_->allow_fs_write.empty()) {
+      permission()->Apply(options_->allow_fs_write,
+                          permission::PermissionScope::kFileSystemWrite);
+    }
   }
 }
 
@@ -1019,7 +1045,6 @@ MaybeLocal<Value> Environment::RunSnapshotDeserializeMain() const {
 void Environment::RunCleanup() {
   started_cleanup_ = true;
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment), "RunCleanup");
-  bindings_.clear();
   // Only BaseObject's cleanups are registered as per-realm cleanup hooks now.
   // Defer the BaseObject cleanup after handles are cleaned up.
   CleanupHandles();

@@ -2698,7 +2698,7 @@ const cleanup = finished(rs, (err) => {
 <!-- YAML
 added: v10.0.0
 changes:
-  - version: REPLACEME
+  - version: v19.7.0
     pr-url: https://github.com/nodejs/node/pull/46307
     description: Added support for webstreams.
   - version: v18.0.0
@@ -3005,8 +3005,14 @@ added: v17.0.0
 * `streamReadable` {stream.Readable}
 * `options` {Object}
   * `strategy` {Object}
-    * `highWaterMark` {number}
-    * `size` {Function}
+    * `highWaterMark` {number} The maximum internal queue size (of the created
+      `ReadableStream`) before backpressure is applied in reading from the given
+      `stream.Readable`. If no value is provided, it will be taken from the
+      given `stream.Readable`.
+    * `size` {Function} A function that size of the given chunk of data.
+      If no value is provided, the size will be `1` for all the chunks.
+      * `chunk` {any}
+      * Returns: {number}
 * Returns: {ReadableStream}
 
 ### `stream.Writable.fromWeb(writableStream[, options])`
@@ -3229,7 +3235,7 @@ readable.getReader().read().then((result) => {
 <!-- YAML
 added: v15.4.0
 changes:
-  - version: REPLACEME
+  - version: v19.7.0
     pr-url: https://github.com/nodejs/node/pull/46273
     description: Added support for `ReadableStream` and
                  `WritableStream`.

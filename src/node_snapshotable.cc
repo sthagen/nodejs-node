@@ -1284,17 +1284,16 @@ ExitCode SnapshotBuilder::Generate(std::ostream& out,
   return exit_code;
 }
 
-SnapshotableObject::SnapshotableObject(Environment* env,
+SnapshotableObject::SnapshotableObject(Realm* realm,
                                        Local<Object> wrap,
                                        EmbedderObjectType type)
-    : BaseObject(env, wrap), type_(type) {
-}
+    : BaseObject(realm, wrap), type_(type) {}
 
-std::string_view SnapshotableObject::GetTypeName() const {
+std::string SnapshotableObject::GetTypeName() const {
   switch (type_) {
 #define V(PropertyName, NativeTypeName)                                        \
   case EmbedderObjectType::k_##PropertyName: {                                 \
-    return NativeTypeName::type_name.as_string_view();                         \
+    return #NativeTypeName;                                                    \
   }
     SERIALIZABLE_OBJECT_TYPES(V)
 #undef V
@@ -1335,7 +1334,7 @@ void DeserializeNodeInternalFields(Local<Object> holder,
     per_process::Debug(DebugCategory::MKSNAPSHOT,                              \
                        "Object %p is %s\n",                                    \
                        (*holder),                                              \
-                       NativeTypeName::type_name.as_string_view());            \
+                       #NativeTypeName);                                       \
     env_ptr->EnqueueDeserializeRequest(                                        \
         NativeTypeName::Deserialize,                                           \
         holder,                                                                \
@@ -1422,7 +1421,7 @@ void SerializeSnapshotableObjects(Realm* realm,
     }
     SnapshotableObject* ptr = static_cast<SnapshotableObject*>(obj);
 
-    std::string type_name{ptr->GetTypeName()};
+    std::string type_name = ptr->GetTypeName();
     per_process::Debug(DebugCategory::MKSNAPSHOT,
                        "Serialize snapshotable object %i (%p), "
                        "object=%p, type=%s\n",

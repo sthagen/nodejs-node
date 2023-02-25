@@ -38,10 +38,10 @@
 #include <array>
 #include <limits>
 #include <memory>
+#include <set>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -486,6 +486,11 @@ class MaybeStackBuffer {
       free(buf_);
   }
 
+  inline std::basic_string<T> ToString() const { return {out(), length()}; }
+  inline std::basic_string_view<T> ToStringView() const {
+    return {out(), length()};
+  }
+
  private:
   size_t length_;
   // capacity of the malloc'ed buf_
@@ -534,6 +539,9 @@ class Utf8Value : public MaybeStackBuffer<char> {
   explicit Utf8Value(v8::Isolate* isolate, v8::Local<v8::Value> value);
 
   inline std::string ToString() const { return std::string(out(), length()); }
+  inline std::string_view ToStringView() const {
+    return std::string_view(out(), length());
+  }
 
   inline bool operator==(const char* a) const {
     return strcmp(out(), a) == 0;
@@ -550,6 +558,9 @@ class BufferValue : public MaybeStackBuffer<char> {
   explicit BufferValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
 
   inline std::string ToString() const { return std::string(out(), length()); }
+  inline std::string_view ToStringView() const {
+    return std::string_view(out(), length());
+  }
 };
 
 #define SPREAD_BUFFER_ARG(val, name)                                           \
@@ -609,7 +620,7 @@ struct MallocedBuffer {
   }
 
   void Truncate(size_t new_size) {
-    CHECK(new_size <= size);
+    CHECK_LE(new_size, size);
     size = new_size;
   }
 
@@ -618,7 +629,7 @@ struct MallocedBuffer {
     data = UncheckedRealloc(data, new_size);
   }
 
-  inline bool is_empty() const { return data == nullptr; }
+  bool is_empty() const { return data == nullptr; }
 
   MallocedBuffer() : data(nullptr), size(0) {}
   explicit MallocedBuffer(size_t size) : data(Malloc<T>(size)), size(size) {}
@@ -894,6 +905,11 @@ void SetFastMethod(v8::Local<v8::Context> context,
                    const char* name,
                    v8::FunctionCallback slow_callback,
                    const v8::CFunction* c_function);
+void SetFastMethodNoSideEffect(v8::Local<v8::Context> context,
+                               v8::Local<v8::Object> that,
+                               const char* name,
+                               v8::FunctionCallback slow_callback,
+                               const v8::CFunction* c_function);
 
 void SetProtoMethod(v8::Isolate* isolate,
                     v8::Local<v8::FunctionTemplate> that,

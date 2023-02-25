@@ -557,6 +557,11 @@ const customReporter = new Transform({
       case 'test:diagnostic':
         callback(null, event.data.message);
         break;
+      case 'test:coverage': {
+        const { totalLineCount } = event.data.summary.totals;
+        callback(null, `total line count: ${totalLineCount}\n`);
+        break;
+      }
     }
   },
 });
@@ -586,6 +591,11 @@ const customReporter = new Transform({
       case 'test:diagnostic':
         callback(null, event.data.message);
         break;
+      case 'test:coverage': {
+        const { totalLineCount } = event.data.summary.totals;
+        callback(null, `total line count: ${totalLineCount}\n`);
+        break;
+      }
     }
   },
 });
@@ -614,6 +624,11 @@ export default async function * customReporter(source) {
       case 'test:diagnostic':
         yield `${event.data.message}\n`;
         break;
+      case 'test:coverage': {
+        const { totalLineCount } = event.data.summary.totals;
+        yield `total line count: ${totalLineCount}\n`;
+        break;
+      }
     }
   }
 }
@@ -638,6 +653,11 @@ module.exports = async function * customReporter(source) {
       case 'test:diagnostic':
         yield `${event.data.message}\n`;
         break;
+      case 'test:coverage': {
+        const { totalLineCount } = event.data.summary.totals;
+        yield `total line count: ${totalLineCount}\n`;
+        break;
+      }
     }
   }
 };
@@ -684,6 +704,9 @@ added:
     **Default:** `false`.
   * `files`: {Array} An array containing the list of files to run.
     **Default** matching files from [test runner execution model][].
+  * `setup` {Function} A function that accepts the `TestsStream` instance
+    and can be used to setup listeners before any tests are run.
+    **Default:** `undefined`.
   * `signal` {AbortSignal} Allows aborting an in-progress test execution.
   * `timeout` {number} A number of milliseconds the test execution will
     fail after.
@@ -808,6 +831,15 @@ Shorthand for skipping a suite, same as [`describe([name], { skip: true }[, fn])
 Shorthand for marking a suite as `TODO`, same as
 [`describe([name], { todo: true }[, fn])`][describe options].
 
+## `describe.only([name][, options][, fn])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Shorthand for marking a suite as `only`, same as
+[`describe([name], { only: true }[, fn])`][describe options].
+
 ## `it([name][, options][, fn])`
 
 * `name` {string} The name of the test, which is displayed when reporting test
@@ -831,6 +863,15 @@ same as [`it([name], { skip: true }[, fn])`][it options].
 
 Shorthand for marking a test as `TODO`,
 same as [`it([name], { todo: true }[, fn])`][it options].
+
+## `it.only([name][, options][, fn])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Shorthand for marking a test as `only`,
+same as [`it([name], { only: true }[, fn])`][it options].
 
 ## `before([fn][, options])`
 

@@ -267,16 +267,23 @@ overrides:
       - ./_stream_*.js
       - ./_tls_common.js
       - ./assert/*.js
+      - ./child_process.js
       - ./cluster.js
       - ./console.js
       - ./constants.js
+      - ./events.js
+      - ./fs.js
       - ./internal/assert.js
+      - ./internal/child_process.js
       - ./internal/child_process/*.js
       - ./internal/cli_table.js
-      - ./internal/debugger/inspect.js
+      - ./internal/cluster/*.js
+      - ./internal/debugger/*.js
+      - ./internal/event_target.js
       - ./internal/events/*.js
       - ./internal/fixed_queue.js
       - ./internal/freelist.js
+      - ./internal/fs/*.js
       - ./internal/heap_utils.js
       - ./internal/http.js
       - ./internal/idna.js
@@ -284,28 +291,35 @@ overrides:
       - ./internal/mime.js
       - ./internal/modules/*.js
       - ./internal/per_context/messageport.js
+      - ./internal/perf/*.js
       - ./internal/policy/*.js
       - ./internal/priority_queue.js
+      - ./internal/process/*.js
       - ./internal/readline/*.js
       - ./internal/readme.md
-      - ./internal/repl/history.js
+      - ./internal/repl.js
+      - ./internal/repl/*.js
       - ./internal/source_map/prepare_stack_trace.js
+      - ./internal/streams/*.js
       - ./internal/structured_clone.js
       - ./internal/test/*.js
       - ./internal/test_runner/**/*.js
-      - ./internal/tls/secure-context.js
+      - ./internal/tls/*.js
       - ./internal/util/parse_args/*.js
       - ./internal/v8_prof_processor.js
       - ./internal/vm.js
       - ./internal/watch_mode/*.js
       - ./internal/webidl.js
+      - ./internal/webstreams/*.js
       - ./module.js
       - ./path/*.js
       - ./process.js
       - ./punycode.js
+      - ./repl.js
       - ./stream/*.js
       - ./sys.js
       - ./test.js
+      - ./tls.js
       - ./url.js
       - ./util/*.js
     rules:

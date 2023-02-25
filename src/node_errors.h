@@ -30,6 +30,7 @@ void OOMErrorHandler(const char* location, const v8::OOMDetails& details);
 // a `Local<Value>` containing the TypeError with proper code and message
 
 #define ERRORS_WITH_CODE(V)                                                    \
+  V(ERR_ACCESS_DENIED, Error)                                                  \
   V(ERR_BUFFER_CONTEXT_NOT_AVAILABLE, Error)                                   \
   V(ERR_BUFFER_OUT_OF_BOUNDS, RangeError)                                      \
   V(ERR_BUFFER_TOO_LARGE, Error)                                               \
@@ -124,6 +125,7 @@ ERRORS_WITH_CODE(V)
 // Errors with predefined static messages
 
 #define PREDEFINED_ERROR_MESSAGES(V)                                           \
+  V(ERR_ACCESS_DENIED, "Access to this API has been restricted")               \
   V(ERR_BUFFER_CONTEXT_NOT_AVAILABLE,                                          \
     "Buffer is not available for the current Context")                         \
   V(ERR_CLOSED_MESSAGE_PORT, "Cannot send data on closed MessagePort")         \
@@ -156,6 +158,7 @@ ERRORS_WITH_CODE(V)
     "Context not associated with Node.js environment")                         \
   V(ERR_INVALID_ADDRESS, "Invalid socket address")                             \
   V(ERR_INVALID_MODULE, "No such module")                                      \
+  V(ERR_INVALID_STATE, "Invalid state")                                        \
   V(ERR_INVALID_THIS, "Value of \"this\" is the wrong type")                   \
   V(ERR_INVALID_TRANSFER_OBJECT, "Found invalid object in transferList")       \
   V(ERR_MEMORY_ALLOCATION_FAILED, "Failed to allocate memory")                 \

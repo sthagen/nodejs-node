@@ -43,6 +43,7 @@
 #include "node_perf_common.h"
 #include "node_realm.h"
 #include "node_snapshotable.h"
+#include "permission/permission.h"
 #include "req_wrap.h"
 #include "util.h"
 #include "uv.h"
@@ -587,25 +588,6 @@ class Environment : public MemoryRetainer {
   static inline Environment* GetCurrent(
       const v8::PropertyCallbackInfo<T>& info);
 
-  // Methods created using SetMethod(), SetPrototypeMethod(), etc. inside
-  // this scope can access the created T* object using
-  // GetBindingData<T>(args) later.
-  template <typename T>
-  T* AddBindingData(v8::Local<v8::Context> context,
-                    v8::Local<v8::Object> target);
-  template <typename T, typename U>
-  static inline T* GetBindingData(const v8::PropertyCallbackInfo<U>& info);
-  template <typename T>
-  static inline T* GetBindingData(
-      const v8::FunctionCallbackInfo<v8::Value>& info);
-  template <typename T>
-  static inline T* GetBindingData(v8::Local<v8::Context> context);
-
-  typedef std::unordered_map<
-      FastStringKey,
-      BaseObjectPtr<BaseObject>,
-      FastStringKey::Hash> BindingDataStore;
-
   // Create an Environment without initializing a main Context. Use
   // InitializeMainContext() to initialize a main context for it.
   Environment(IsolateData* isolate_data,
@@ -679,6 +661,7 @@ class Environment : public MemoryRetainer {
   inline AliasedInt32Array& timeout_info();
   inline TickInfo* tick_info();
   inline uint64_t timer_base() const;
+  inline permission::Permission* permission();
   inline std::shared_ptr<KVStore> env_vars();
   inline void set_env_vars(std::shared_ptr<KVStore> env_vars);
 
@@ -1015,6 +998,7 @@ class Environment : public MemoryRetainer {
   ImmediateInfo immediate_info_;
   AliasedInt32Array timeout_info_;
   TickInfo tick_info_;
+  permission::Permission permission_;
   const uint64_t timer_base_;
   std::shared_ptr<KVStore> env_vars_;
   bool printed_error_ = false;
@@ -1133,8 +1117,6 @@ class Environment : public MemoryRetainer {
   std::atomic<Environment**> interrupt_data_ {nullptr};
   void RequestInterruptFromV8();
   static void CheckImmediate(uv_check_t* handle);
-
-  BindingDataStore bindings_;
 
   CleanupQueue cleanup_queue_;
   bool started_cleanup_ = false;
