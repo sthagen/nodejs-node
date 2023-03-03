@@ -484,9 +484,7 @@ class WPTRunner {
   pretendGlobalThisAs(name) {
     switch (name) {
       case 'Window': {
-        this.globalThisInitScripts.push(
-          `global.Window = Object.getPrototypeOf(globalThis).constructor;
-          self.GLOBAL.isWorker = () => false;`);
+        this.globalThisInitScripts.push('globalThis.Window = Object.getPrototypeOf(globalThis).constructor;');
         this.loadLazyGlobals();
         break;
       }
@@ -503,6 +501,7 @@ class WPTRunner {
 
   loadLazyGlobals() {
     const lazyProperties = [
+      'DOMException',
       'Performance', 'PerformanceEntry', 'PerformanceMark', 'PerformanceMeasure',
       'PerformanceObserver', 'PerformanceObserverEntryList', 'PerformanceResourceTiming',
       'Blob', 'atob', 'btoa',
@@ -523,36 +522,6 @@ class WPTRunner {
       lazyProperties.push('crypto', 'Crypto', 'CryptoKey', 'SubtleCrypto');
     }
     const script = lazyProperties.map((name) => `globalThis.${name};`).join('\n');
-    this.globalThisInitScripts.push(script);
-  }
-
-  brandCheckGlobalScopeAttribute(name) {
-    // TODO(legendecas): idlharness GlobalScope attribute receiver validation.
-    const script = `
-      const desc = Object.getOwnPropertyDescriptor(globalThis, '${name}');
-      function getter() {
-        // Mimic GlobalScope instance brand check.
-        if (this !== globalThis) {
-          throw new TypeError('Illegal invocation');
-        }
-        return desc.get();
-      }
-      Object.defineProperty(getter, 'name', { value: 'get ${name}' });
-
-      function setter(value) {
-        // Mimic GlobalScope instance brand check.
-        if (this !== globalThis) {
-          throw new TypeError('Illegal invocation');
-        }
-        desc.set(value);
-      }
-      Object.defineProperty(setter, 'name', { value: 'set ${name}' });
-
-      Object.defineProperty(globalThis, '${name}', {
-        get: getter,
-        set: setter,
-      });
-    `;
     this.globalThisInitScripts.push(script);
   }
 
@@ -752,7 +721,7 @@ class WPTRunner {
 
   getTestTitle(filename) {
     const spec = this.specMap.get(filename);
-    return spec.meta?.title || filename;
+    return spec.meta?.title || filename.split('.')[0];
   }
 
   // Map WPT test status to strings

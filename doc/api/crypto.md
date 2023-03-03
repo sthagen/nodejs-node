@@ -23,12 +23,12 @@ console.log(hash);
 ```
 
 ```cjs
-const crypto = require('node:crypto');
+const { createHmac } = require('node:crypto');
 
 const secret = 'abcdefg';
-const hash = crypto.createHmac('sha256', secret)
-                   .update('I love cupcakes')
-                   .digest('hex');
+const hash = createHmac('sha256', secret)
+               .update('I love cupcakes')
+               .digest('hex');
 console.log(hash);
 // Prints:
 //   c0fa1bc00531bd78ef38c628449c5102aeabd49b5dc3a2a516ea6ea959d6658e
@@ -178,8 +178,8 @@ console.log(Certificate.verifySpkac(Buffer.from(spkac)));
 ```
 
 ```cjs
-const { Certificate } = require('node:crypto');
 const { Buffer } = require('node:buffer');
+const { Certificate } = require('node:crypto');
 
 const spkac = getSpkacSomehow();
 console.log(Certificate.verifySpkac(Buffer.from(spkac)));
@@ -292,8 +292,8 @@ console.log(cert.verifySpkac(Buffer.from(spkac)));
 ```
 
 ```cjs
-const { Certificate } = require('node:crypto');
 const { Buffer } = require('node:buffer');
+const { Certificate } = require('node:crypto');
 
 const cert = Certificate();
 const spkac = getSpkacSomehow();
