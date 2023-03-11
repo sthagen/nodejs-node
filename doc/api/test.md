@@ -6,9 +6,13 @@
 added:
   - v18.0.0
   - v16.17.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/46983
+    description: The test runner is now stable.
 -->
 
-> Stability: 1 - Experimental
+> Stability: 2 - Stable
 
 <!-- source_link=lib/test.js -->
 
@@ -156,8 +160,7 @@ test('skip() method with message', (t) => {
 Running tests can also be done using `describe` to declare a suite
 and `it` to declare a test.
 A suite is used to organize and group related tests together.
-`it` is an alias for `test`, except there is no test context passed,
-since nesting is done using suites.
+`it` is a shorthand for [`test()`][].
 
 ```js
 describe('A thing', () => {
@@ -378,6 +381,8 @@ internally.
 
 ## Collecting code coverage
 
+> Stability: 1 - Experimental
+
 When Node.js is started with the [`--experimental-test-coverage`][]
 command-line flag, code coverage is collected and statistics are reported once
 all tests have completed. If the [`NODE_V8_COVERAGE`][] environment variable is
@@ -512,7 +517,9 @@ test('spies on an object method', (t) => {
 ## Test reporters
 
 <!-- YAML
-added: v19.6.0
+added:
+  - v19.6.0
+  - v18.15.0
 -->
 
 The `node:test` module supports passing [`--test-reporter`][]
@@ -521,8 +528,7 @@ flags for the test runner to use a specific reporter.
 The following built-reporters are supported:
 
 * `tap`
-  The `tap` reporter is the default reporter used by the test runner. It outputs
-  the test results in the [TAP][] format.
+  The `tap` reporter outputs the test results in the [TAP][] format.
 
 * `spec`
   The `spec` reporter outputs the test results in a human-readable format.
@@ -531,6 +537,14 @@ The following built-reporters are supported:
   The `dot` reporter outputs the test results in a compact format,
   where each passing test is represented by a `.`,
   and each failing test is represented by a `X`.
+
+When `stdout` is a [TTY][], the `spec` reporter is used by default.
+Otherwise, the `tap` reporter is used by default.
+
+The exact output of these reporters is subject to change between versions of
+Node.js, and should not be relied on programmatically. If programmatic access
+to the test runner's output is required, use the events emitted by the
+{TestsStream}.
 
 ### Custom reporters
 
@@ -843,7 +857,7 @@ Shorthand for marking a suite as `TODO`, same as
 ## `describe.only([name][, options][, fn])`
 
 <!-- YAML
-added: REPLACEME
+added: v18.15.0
 -->
 
 Shorthand for marking a suite as `only`, same as
@@ -851,17 +865,19 @@ Shorthand for marking a suite as `only`, same as
 
 ## `it([name][, options][, fn])`
 
-* `name` {string} The name of the test, which is displayed when reporting test
-  results. **Default:** The `name` property of `fn`, or `'<anonymous>'` if `fn`
-  does not have a name.
-* `options` {Object} Configuration options for the suite.
-  supports the same options as `test([name][, options][, fn])`.
-* `fn` {Function|AsyncFunction} The function under test.
-  If the test uses callbacks, the callback function is passed as an argument.
-  **Default:** A no-op function.
-* Returns: `undefined`.
+<!-- YAML
+added:
+  - v18.6.0
+  - v16.17.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/46889
+    description: Calling `it()` is now equivalent to calling `test()`.
+-->
 
-The `it()` function is the value imported from the `node:test` module.
+Shorthand for [`test()`][].
+
+The `it()` function is imported from the `node:test` module.
 
 ## `it.skip([name][, options][, fn])`
 
@@ -876,7 +892,7 @@ same as [`it([name], { todo: true }[, fn])`][it options].
 ## `it.only([name][, options][, fn])`
 
 <!-- YAML
-added: REPLACEME
+added: v18.15.0
 -->
 
 Shorthand for marking a test as `only`,
@@ -1767,6 +1783,7 @@ added:
   aborted.
 
 [TAP]: https://testanything.org/
+[TTY]: tty.md
 [`--experimental-test-coverage`]: cli.md#--experimental-test-coverage
 [`--import`]: cli.md#--importmodule
 [`--test-name-pattern`]: cli.md#--test-name-pattern
