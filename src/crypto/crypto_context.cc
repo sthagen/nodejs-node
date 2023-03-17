@@ -854,6 +854,14 @@ void SecureContext::SetDHParam(const FunctionCallbackInfo<Value>& args) {
 
   CHECK_GE(args.Length(), 1);  // DH argument is mandatory
 
+  // If the user specified "auto" for dhparams, the JavaScript layer will pass
+  // true to this function instead of the original string. Any other string
+  // value will be interpreted as custom DH parameters below.
+  if (args[0]->IsTrue()) {
+    CHECK(SSL_CTX_set_dh_auto(sc->ctx_.get(), true));
+    return;
+  }
+
   DHPointer dh;
   {
     BIOPointer bio(LoadBIO(env, args[0]));
@@ -864,6 +872,7 @@ void SecureContext::SetDHParam(const FunctionCallbackInfo<Value>& args) {
   }
 
   // Invalid dhparam is silently discarded and DHE is no longer used.
+  // TODO(tniessen): don't silently discard invalid dhparam.
   if (!dh)
     return;
 
@@ -1114,8 +1123,6 @@ void SecureContext::SetClientCertEngine(
 #endif  // !OPENSSL_NO_ENGINE
 
 void SecureContext::GetTicketKeys(const FunctionCallbackInfo<Value>& args) {
-#if !defined(OPENSSL_NO_TLSEXT) && defined(SSL_CTX_get_tlsext_ticket_keys)
-
   SecureContext* wrap;
   ASSIGN_OR_RETURN_UNWRAP(&wrap, args.Holder());
 
@@ -1128,11 +1135,9 @@ void SecureContext::GetTicketKeys(const FunctionCallbackInfo<Value>& args) {
   memcpy(Buffer::Data(buff) + 32, wrap->ticket_key_aes_, 16);
 
   args.GetReturnValue().Set(buff);
-#endif  // !def(OPENSSL_NO_TLSEXT) && def(SSL_CTX_get_tlsext_ticket_keys)
 }
 
 void SecureContext::SetTicketKeys(const FunctionCallbackInfo<Value>& args) {
-#if !defined(OPENSSL_NO_TLSEXT) && defined(SSL_CTX_get_tlsext_ticket_keys)
   SecureContext* wrap;
   ASSIGN_OR_RETURN_UNWRAP(&wrap, args.Holder());
 
@@ -1147,7 +1152,6 @@ void SecureContext::SetTicketKeys(const FunctionCallbackInfo<Value>& args) {
   memcpy(wrap->ticket_key_aes_, buf.data() + 32, 16);
 
   args.GetReturnValue().Set(true);
-#endif  // !def(OPENSSL_NO_TLSEXT) && def(SSL_CTX_get_tlsext_ticket_keys)
 }
 
 // Currently, EnableTicketKeyCallback and TicketKeyCallback are only present for
