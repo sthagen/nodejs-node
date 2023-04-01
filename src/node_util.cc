@@ -263,18 +263,13 @@ void WeakReference::Get(const FunctionCallbackInfo<Value>& args) {
     args.GetReturnValue().Set(weak_ref->target_.Get(isolate));
 }
 
-void WeakReference::GetRef(const FunctionCallbackInfo<Value>& args) {
-  WeakReference* weak_ref = Unwrap<WeakReference>(args.Holder());
-  Isolate* isolate = args.GetIsolate();
-  args.GetReturnValue().Set(
-      v8::Number::New(isolate, weak_ref->reference_count_));
-}
-
 void WeakReference::IncRef(const FunctionCallbackInfo<Value>& args) {
   WeakReference* weak_ref = Unwrap<WeakReference>(args.Holder());
   weak_ref->reference_count_++;
   if (weak_ref->target_.IsEmpty()) return;
   if (weak_ref->reference_count_ == 1) weak_ref->target_.ClearWeak();
+  args.GetReturnValue().Set(
+      v8::Number::New(args.GetIsolate(), weak_ref->reference_count_));
 }
 
 void WeakReference::DecRef(const FunctionCallbackInfo<Value>& args) {
@@ -283,6 +278,8 @@ void WeakReference::DecRef(const FunctionCallbackInfo<Value>& args) {
   weak_ref->reference_count_--;
   if (weak_ref->target_.IsEmpty()) return;
   if (weak_ref->reference_count_ == 0) weak_ref->target_.SetWeak();
+  args.GetReturnValue().Set(
+      v8::Number::New(args.GetIsolate(), weak_ref->reference_count_));
 }
 
 static void GuessHandleType(const FunctionCallbackInfo<Value>& args) {
@@ -322,12 +319,16 @@ static void GuessHandleType(const FunctionCallbackInfo<Value>& args) {
 
 static void ToUSVString(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
-  CHECK_GE(args.Length(), 1);
+  CHECK_GE(args.Length(), 2);
   CHECK(args[0]->IsString());
+  CHECK(args[1]->IsNumber());
 
   TwoByteValue value(env->isolate(), args[0]);
 
-  for (size_t i = 0; i < value.length(); i++) {
+  int64_t start = args[1]->IntegerValue(env->context()).FromJust();
+  CHECK_GE(start, 0);
+
+  for (size_t i = start; i < value.length(); i++) {
     char16_t c = value[i];
     if (!IsUnicodeSurrogate(c)) {
       continue;
@@ -362,7 +363,6 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(ArrayBufferViewHasBuffer);
   registry->Register(WeakReference::New);
   registry->Register(WeakReference::Get);
-  registry->Register(WeakReference::GetRef);
   registry->Register(WeakReference::IncRef);
   registry->Register(WeakReference::DecRef);
   registry->Register(GuessHandleType);
@@ -466,7 +466,6 @@ void Initialize(Local<Object> target,
       WeakReference::kInternalFieldCount);
   weak_ref->Inherit(BaseObject::GetConstructorTemplate(env));
   SetProtoMethod(isolate, weak_ref, "get", WeakReference::Get);
-  SetProtoMethod(isolate, weak_ref, "getRef", WeakReference::GetRef);
   SetProtoMethod(isolate, weak_ref, "incRef", WeakReference::IncRef);
   SetProtoMethod(isolate, weak_ref, "decRef", WeakReference::DecRef);
   SetConstructorFunction(context, target, "WeakReference", weak_ref);
