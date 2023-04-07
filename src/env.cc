@@ -11,6 +11,7 @@
 #include "node_internals.h"
 #include "node_options-inl.h"
 #include "node_process-inl.h"
+#include "node_shadow_realm.h"
 #include "node_v8_platform-inl.h"
 #include "node_worker.h"
 #include "req_wrap-inl.h"
@@ -224,6 +225,14 @@ void Environment::UntrackContext(Local<Context> context) {
       break;
     }
   }
+}
+
+void Environment::TrackShadowRealm(shadow_realm::ShadowRealm* realm) {
+  shadow_realms_.insert(realm);
+}
+
+void Environment::UntrackShadowRealm(shadow_realm::ShadowRealm* realm) {
+  shadow_realms_.erase(realm);
 }
 
 AsyncHooks::DefaultTriggerAsyncIdScope::DefaultTriggerAsyncIdScope(
@@ -480,7 +489,6 @@ void IsolateData::CreateProperties() {
   Local<FunctionTemplate> templ = FunctionTemplate::New(isolate());
   templ->InstanceTemplate()->SetInternalFieldCount(
       BaseObject::kInternalFieldCount);
-  templ->Inherit(BaseObject::GetConstructorTemplate(this));
   set_binding_data_ctor_template(templ);
   binding::CreateInternalBindingTemplates(this);
 
@@ -784,10 +792,10 @@ Environment::Environment(IsolateData* isolate_data,
     if (!options_->allow_fs_read.empty() || !options_->allow_fs_write.empty()) {
       options_->allow_native_addons = false;
       if (!options_->allow_child_process) {
-        permission()->Deny(permission::PermissionScope::kChildProcess, {});
+        permission()->Apply("*", permission::PermissionScope::kChildProcess);
       }
       if (!options_->allow_worker_threads) {
-        permission()->Deny(permission::PermissionScope::kWorkerThreads, {});
+        permission()->Apply("*", permission::PermissionScope::kWorkerThreads);
       }
     }
 
@@ -901,6 +909,10 @@ Environment::~Environment() {
     for (binding::DLib& addon : loaded_addons_) {
       addon.Close();
     }
+  }
+
+  for (auto realm : shadow_realms_) {
+    realm->OnEnvironmentDestruct();
   }
 }
 
@@ -1897,6 +1909,7 @@ void Environment::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("timeout_info", timeout_info_);
   tracker->TrackField("tick_info", tick_info_);
   tracker->TrackField("principal_realm", principal_realm_);
+  tracker->TrackField("shadow_realms", shadow_realms_);
 
   // FIXME(joyeecheung): track other fields in Environment.
   // Currently MemoryTracker is unable to track these
