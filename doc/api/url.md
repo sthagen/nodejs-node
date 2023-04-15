@@ -669,7 +669,7 @@ ID that isn't registered will silently fail.
 #### `URL.canParse(input[, base])`
 
 <!-- YAML
-added: REPLACEME
+added: v19.9.0
 -->
 
 * `input` {string} The absolute or relative input URL to parse. If `input`
@@ -968,7 +968,9 @@ console.log(params.toString());
 #### `urlSearchParams.size`
 
 <!-- YAML
-added: v19.8.0
+added:
+ - v19.8.0
+ - v18.16.0
 -->
 
 The total number of parameter entries.
@@ -1254,7 +1256,7 @@ added:
   - v15.7.0
   - v14.18.0
 changes:
-  - version: REPLACEME
+  - version: v19.9.0
     pr-url: https://github.com/nodejs/node/pull/46989
     description: The returned object will also contain all the own enumerable
                  properties of the `url` argument.

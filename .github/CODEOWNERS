@@ -117,6 +117,7 @@
 
 /benchmark/misc/startup.js @nodejs/startup
 /src/node.cc @nodejs/startup
+/src/node_realm* @nodejs/startup @nodejs/realm
 /src/node_builtins* @nodejs/startup
 /src/node_snapshot* @nodejs/startup
 /lib/internal/bootstrap/* @nodejs/startup
@@ -134,7 +135,6 @@
 
 # Test runner
 
-/test/message/test_runner_* @nodejs/test_runner
 /test/parallel/test-runner-* @nodejs/test_runner
 /doc/api/test.md @nodejs/test_runner
 /lib/test.js @nodejs/test_runner
@@ -150,3 +150,7 @@
 /test/fixtures/postject-copy @nodejs/single-executable
 /test/parallel/test-single-executable-* @nodejs/single-executable
 /tools/dep_updaters/update-postject.sh @nodejs/single-executable
+
+# Permission Model
+/src/permission/* @nodejs/security-wg
+/doc/api/permissions.md @nodejs/security-wg

@@ -1991,7 +1991,9 @@ channel.port2.postMessage(signal, [signal]);
 ## `util.aborted(signal, resource)`
 
 <!-- YAML
-added: v19.7.0
+added:
+ - v19.7.0
+ - v18.16.0
 -->
 
 > Stability: 1 - Experimental
@@ -2539,7 +2541,7 @@ for these errors:
 ```js
 const vm = require('node:vm');
 const context = vm.createContext({});
-const myError = vm.runInContext('new Error', context);
+const myError = vm.runInContext('new Error()', context);
 console.log(util.types.isNativeError(myError)); // true
 console.log(myError instanceof Error); // false
 ```

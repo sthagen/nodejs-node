@@ -521,7 +521,7 @@ added:
   - v19.6.0
   - v18.15.0
 changes:
-  - version: REPLACEME
+  - version: v19.9.0
     pr-url: https://github.com/nodejs/node/pull/47238
     description: Reporters are now exposed at `node:test/reporters`.
 -->
@@ -898,7 +898,9 @@ added:
   - v18.6.0
   - v16.17.0
 changes:
-  - version: v19.8.0
+  - version:
+    - v19.8.0
+    - v18.16.0
     pr-url: https://github.com/nodejs/node/pull/46889
     description: Calling `it()` is now equivalent to calling `test()`.
 -->
