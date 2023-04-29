@@ -379,6 +379,11 @@ Otherwise, the test is considered to be a failure. Test files must be
 executable by Node.js, but are not required to use the `node:test` module
 internally.
 
+Each test file is executed as if it was a regular script. That is, if the test
+file itself uses `node:test` to define tests, all of those tests will be
+executed within a single application thread, regardless of the value of the
+`concurrency` option of [`test()`][].
+
 ## Collecting code coverage
 
 > Stability: 1 - Experimental
@@ -423,10 +428,6 @@ if (anAlwaysFalseCondition) {
 The test runner's code coverage functionality has the following limitations,
 which will be addressed in a future Node.js release:
 
-* Although coverage data is collected for child processes, this information is
-  not included in the coverage report. Because the command line test runner uses
-  child processes to execute test files, it cannot be used with
-  `--experimental-test-coverage`.
 * Source maps are not supported.
 * Excluding specific files or directories from the coverage report is not
   supported.
@@ -735,7 +736,8 @@ changes:
 * `options` {Object} Configuration options for running tests. The following
   properties are supported:
   * `concurrency` {number|boolean} If a number is provided,
-    then that many files would run in parallel.
+    then that many test processes would run in parallel, where each process
+    corresponds to one test file.
     If `true`, it would run `os.availableParallelism() - 1` test files in
     parallel.
     If `false`, it would only run one test file at a time.
@@ -805,10 +807,9 @@ changes:
 * `options` {Object} Configuration options for the test. The following
   properties are supported:
   * `concurrency` {number|boolean} If a number is provided,
-    then that many tests would run in parallel.
-    If `true`, it would run `os.availableParallelism() - 1` tests in parallel.
-    For subtests, it will be `Infinity` tests in parallel.
-    If `false`, it would only run one test at a time.
+    then that many tests would run in parallel within the application thread.
+    If `true`, all scheduled asynchronous tests run concurrently within the
+    thread. If `false`, only one test runs at a time.
     If unspecified, subtests inherit this value from their parent.
     **Default:** `false`.
   * `only` {boolean} If truthy, and the test context is configured to run
@@ -1776,7 +1777,7 @@ changes:
 * `options` {Object} Configuration options for the subtest. The following
   properties are supported:
   * `concurrency` {number|boolean|null} If a number is provided,
-    then that many tests would run in parallel.
+    then that many tests would run in parallel within the application thread.
     If `true`, it would run all subtests in parallel.
     If `false`, it would only run one test at a time.
     If unspecified, subtests inherit this value from their parent.

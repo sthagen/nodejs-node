@@ -166,8 +166,6 @@ For information about the governance of the Node.js project, see
   **Antoine du Hamel** <<duhamelantoine1995@gmail.com>> (he/him)
 * [apapirovski](https://github.com/apapirovski) -
   **Anatoli Papirovski** <<apapirovski@mac.com>> (he/him)
-* [BethGriggs](https://github.com/BethGriggs) -
-  **Beth Griggs** <<bethanyngriggs@gmail.com>> (she/her)
 * [BridgeAR](https://github.com/BridgeAR) -
   **Ruben Bridgewater** <<ruben@bridgewater.de>> (he/him)
 * [cjihrig](https://github.com/cjihrig) -
@@ -207,8 +205,8 @@ For information about the governance of the Node.js project, see
 
 #### TSC regular members
 
-* [addaleax](https://github.com/addaleax) -
-  **Anna Henningsen** <<anna@addaleax.net>> (she/her)
+* [BethGriggs](https://github.com/BethGriggs) -
+  **Beth Griggs** <<bethanyngriggs@gmail.com>> (she/her)
 * [bnoordhuis](https://github.com/bnoordhuis) -
   **Ben Noordhuis** <<info@bnoordhuis.nl>>
 * [ChALkeR](https://github.com/ChALkeR) -
@@ -236,6 +234,8 @@ For information about the governance of the Node.js project, see
 
 #### TSC emeriti members
 
+* [addaleax](https://github.com/addaleax) -
+  **Anna Henningsen** <<anna@addaleax.net>> (she/her)
 * [chrisdickinson](https://github.com/chrisdickinson) -
   **Chris Dickinson** <<christopher.s.dickinson@gmail.com>>
 * [evanlucas](https://github.com/evanlucas) -
