@@ -580,7 +580,8 @@ typedef enum {
   napi_arraybuffer_expected,
   napi_detachable_arraybuffer_expected,
   napi_would_deadlock,  /* unused */
-  napi_no_external_buffers_allowed
+  napi_no_external_buffers_allowed,
+  napi_cannot_run_js
 } napi_status;
 ```
 
@@ -813,6 +814,18 @@ typedef void (*napi_finalize)(napi_env env,
 
 Unless for reasons discussed in [Object Lifetime Management][], creating a
 handle and/or callback scope inside the function body is not necessary.
+
+Since these functions may be called while the JavaScript engine is in a state
+where it cannot execute JavaScript code, some Node-API calls may return
+`napi_pending_exception` even when there is no exception pending.
+
+Change History:
+
+* experimental (`NAPI_EXPERIMENTAL` is defined):
+
+  Node-API calls made from a finalizer will return `napi_cannot_run_js` when
+  the JavaScript engine is unable to execute JavaScript, and will return
+  `napi_exception_pending` if there is a pending exception.
 
 #### `napi_async_execute_callback`
 
@@ -1652,23 +1665,23 @@ managed by scopes and all scopes must be closed before the end of a native
 method.
 
 Node-API provides methods for creating persistent references to values.
+Currently Node-API only allows references to be created for a
+limited set of value types, including object, external, function, and symbol.
+
 Each reference has an associated count with a value of 0 or higher,
 which determines whether the reference will keep the corresponding value alive.
 References with a count of 0 do not prevent values from being collected.
 Values of object (object, function, external) and symbol types are becoming
 'weak' references and can still be accessed while they are not collected.
-Values of other types are released when the count becomes 0
-and cannot be accessed from the reference any more.
 Any count greater than 0 will prevent the values from being collected.
 
 Symbol values have different flavors. The true weak reference behavior is
-only supported by local symbols created with the `Symbol()` constructor call.
-Globally registered symbols created with the `Symbol.for()` call remain
-always strong references because the garbage collector does not collect them.
-The same is true for well-known symbols such as `Symbol.iterator`. They are
-also never collected by the garbage collector. JavaScript's `WeakRef` and
-`WeakMap` types return an error when registered symbols are used,
-but they succeed for local and well-known symbols.
+only supported by local symbols created with the `napi_create_symbol` function
+or the JavaScript `Symbol()` constructor calls. Globally registered symbols
+created with the `node_api_symbol_for` function or JavaScript `Symbol.for()`
+function calls remain always strong references because the garbage collector
+does not collect them. The same is true for well-known symbols such as
+`Symbol.iterator`. They are also never collected by the garbage collector.
 
 References can be created with an initial reference count. The count can
 then be modified through [`napi_reference_ref`][] and
@@ -1678,11 +1691,6 @@ get the object associated with the reference [`napi_get_reference_value`][]
 will return `NULL` for the returned `napi_value`. An attempt to call
 [`napi_reference_ref`][] for a reference whose object has been collected
 results in an error.
-
-Node-API versions 8 and earlier only allow references to be created for a
-limited set of value types, including object, external, function, and symbol.
-However, in newer Node-API versions, references can be created for any
-value type.
 
 References must be deleted once they are no longer required by the addon. When
 a reference is deleted, it will no longer prevent the corresponding object from
@@ -1700,6 +1708,15 @@ for the same object, the finalizers for that object will not be
 run and the native memory pointed by the earlier persistent reference
 will not be freed. This can be avoided by calling
 `napi_delete_reference` in addition to `napi_reference_unref` when possible.
+
+**Change History:**
+
+* Experimental (`NAPI_EXPERIMENTAL` is defined):
+
+  References can be created for all value types. The new supported value
+  types do not support weak reference semantic and the values of these types
+  are released when the reference count becomes 0 and cannot be accessed from
+  the reference anymore.
 
 #### `napi_create_reference`
 
@@ -1724,10 +1741,6 @@ Returns `napi_ok` if the API succeeded.
 
 This API creates a new reference with the specified reference count
 to the value passed in.
-
-In Node-API version 8 and earlier, a reference could only be created for
-object, function, external, and symbol value types. However, in newer Node-API
-versions, a reference can be created for any value type.
 
 #### `napi_delete_reference`
 
@@ -1952,11 +1965,11 @@ from [`napi_add_async_cleanup_hook`][].
 The Node.js environment may be torn down at an arbitrary time as soon as
 possible with JavaScript execution disallowed, like on the request of
 [`worker.terminate()`][]. When the environment is being torn down, the
-registered `napi_finalize` callbacks of JavaScript objects, Thread-safe
+registered `napi_finalize` callbacks of JavaScript objects, thread-safe
 functions and environment instance data are invoked immediately and
 independently.
 
-The invocation of `napi_finalize` callbacks are scheduled after the manually
+The invocation of `napi_finalize` callbacks is scheduled after the manually
 registered cleanup hooks. In order to ensure a proper order of addon
 finalization during environment shutdown to avoid use-after-free in the
 `napi_finalize` callback, addons should register a cleanup hook with

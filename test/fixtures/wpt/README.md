@@ -12,7 +12,7 @@ Last update:
 
 - common: https://github.com/web-platform-tests/wpt/tree/dbd648158d/common
 - console: https://github.com/web-platform-tests/wpt/tree/767ae35464/console
-- dom/abort: https://github.com/web-platform-tests/wpt/tree/8fadb38120/dom/abort
+- dom/abort: https://github.com/web-platform-tests/wpt/tree/d1f1ecbd52/dom/abort
 - dom/events: https://github.com/web-platform-tests/wpt/tree/ab8999891c/dom/events
 - encoding: https://github.com/web-platform-tests/wpt/tree/0c1b9d1622/encoding
 - fetch/data-urls/resources: https://github.com/web-platform-tests/wpt/tree/7c79d998ff/fetch/data-urls/resources
@@ -27,7 +27,7 @@ Last update:
 - resource-timing: https://github.com/web-platform-tests/wpt/tree/22d38586d0/resource-timing
 - resources: https://github.com/web-platform-tests/wpt/tree/919874f84f/resources
 - streams: https://github.com/web-platform-tests/wpt/tree/51750bc8d7/streams
-- url: https://github.com/web-platform-tests/wpt/tree/7c5c3cc125/url
+- url: https://github.com/web-platform-tests/wpt/tree/c4726447f3/url
 - user-timing: https://github.com/web-platform-tests/wpt/tree/df24fb604e/user-timing
 - wasm/jsapi: https://github.com/web-platform-tests/wpt/tree/cde25e7e3c/wasm/jsapi
 - wasm/webapi: https://github.com/web-platform-tests/wpt/tree/fd1b23eeaa/wasm/webapi

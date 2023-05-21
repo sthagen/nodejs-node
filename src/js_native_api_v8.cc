@@ -682,6 +682,7 @@ static const char* error_messages[] = {
     "A detachable arraybuffer was expected",
     "Main thread would deadlock",
     "External buffers are not allowed",
+    "Cannot run JavaScript",
 };
 
 napi_status NAPI_CDECL napi_get_last_error_info(
@@ -693,7 +694,7 @@ napi_status NAPI_CDECL napi_get_last_error_info(
   // message in the `napi_status` enum each time a new error message is added.
   // We don't have a napi_status_last as this would result in an ABI
   // change each time a message was added.
-  const int last_status = napi_no_external_buffers_allowed;
+  const int last_status = napi_cannot_run_js;
 
   static_assert(NAPI_ARRAYSIZE(error_messages) == last_status + 1,
                 "Count of error messages must match count of error values");
@@ -2436,7 +2437,7 @@ napi_status NAPI_CDECL napi_create_reference(napi_env env,
   CHECK_ARG(env, result);
 
   v8::Local<v8::Value> v8_value = v8impl::V8LocalValueFromJsValue(value);
-  if (env->module_api_version <= 8) {
+  if (env->module_api_version != NAPI_VERSION_EXPERIMENTAL) {
     if (!(v8_value->IsObject() || v8_value->IsFunction() ||
           v8_value->IsSymbol())) {
       return napi_set_last_error(env, napi_invalid_arg);
