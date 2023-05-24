@@ -4,7 +4,7 @@
 
 > Stability: 1 - Experimental: This feature is being designed and will change.
 
-<!-- source_link=lib/internal/main/single_executable_application.js -->
+<!-- source_link=src/node_sea.cc -->
 
 This feature allows the distribution of a Node.js application conveniently to a
 system that does not have Node.js installed.
@@ -54,13 +54,13 @@ tool, [postject][]:
 
    Using PowerShell:
 
-   ```bash
+   ```powershell
    cp (Get-Command node).Source hello.exe
    ```
 
    Using Command Prompt:
 
-   ```bash
+   ```text
    for /F "tokens=*" %n IN ('where.exe node') DO @(copy "%n" hello.exe)
    ```
 
@@ -79,7 +79,7 @@ tool, [postject][]:
    [signtool][] can be used from the installed [Windows SDK][]. If this step is
    skipped, ignore any signature-related warning from postject.
 
-   ```bash
+   ```powershell
    signtool remove /s hello.exe
    ```
 
@@ -105,9 +105,15 @@ tool, [postject][]:
          --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
      ```
 
-   * On Windows:
-     ```bash
-     npx postject hello.exe NODE_SEA_BLOB sea-prep.blob \
+   * On Windows - PowerShell:
+     ```powershell
+     npx postject hello.exe NODE_SEA_BLOB sea-prep.blob `
+         --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+     ```
+
+   * On Windows - Command Prompt:
+     ```text
+     npx postject hello.exe NODE_SEA_BLOB sea-prep.blob ^
          --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
      ```
 
@@ -131,7 +137,7 @@ tool, [postject][]:
    A certificate needs to be present for this to work. However, the unsigned
    binary would still be runnable.
 
-   ```bash
+   ```powershell
    signtool sign /fd SHA256 hello.exe
    ```
 
