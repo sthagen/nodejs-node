@@ -2,6 +2,12 @@
 
 <!--introduced_in=v19.7.0-->
 
+<!-- YAML
+added:
+  - v19.7.0
+  - v18.16.0
+-->
+
 > Stability: 1 - Experimental: This feature is being designed and will change.
 
 <!-- source_link=src/node_sea.cc -->
@@ -233,7 +239,7 @@ platforms:
 * Windows
 * macOS
 * Linux (all distributions [supported by Node.js][] except Alpine and all
-  architectures [supported by Node.js][] except s390x and ppc64)
+  architectures [supported by Node.js][] except s390x)
 
 This is due to a lack of better tools to generate single-executables that can be
 used to test this feature on other platforms.

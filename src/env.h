@@ -136,6 +136,9 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
   void MemoryInfo(MemoryTracker* tracker) const override;
   IsolateDataSerializeInfo Serialize(v8::SnapshotCreator* creator);
 
+  bool is_building_snapshot() const { return is_building_snapshot_; }
+  void set_is_building_snapshot(bool value) { is_building_snapshot_ = value; }
+
   inline uv_loop_t* event_loop() const;
   inline MultiIsolatePlatform* platform() const;
   inline const SnapshotData* snapshot_data() const;
@@ -163,7 +166,7 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
 #undef VS
 #undef VP
 
-#define VM(PropertyName) V(PropertyName##_binding, v8::FunctionTemplate)
+#define VM(PropertyName) V(PropertyName##_binding_template, v8::ObjectTemplate)
 #define V(PropertyName, TypeName)                                              \
   inline v8::Local<TypeName> PropertyName() const;                             \
   inline void set_##PropertyName(v8::Local<TypeName> value);
@@ -191,7 +194,7 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
 #define VY(PropertyName, StringValue) V(v8::Symbol, PropertyName)
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define VR(PropertyName, TypeName) V(v8::Private, per_realm_##PropertyName)
-#define VM(PropertyName) V(v8::FunctionTemplate, PropertyName##_binding)
+#define VM(PropertyName) V(v8::ObjectTemplate, PropertyName##_binding_template)
 #define VT(PropertyName, TypeName) V(TypeName, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   v8::Eternal<TypeName> PropertyName ## _;
@@ -219,6 +222,7 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
   const SnapshotData* snapshot_data_;
   std::shared_ptr<PerIsolateOptions> options_;
   worker::Worker* worker_context_ = nullptr;
+  bool is_building_snapshot_ = false;
 };
 
 struct ContextInfo {

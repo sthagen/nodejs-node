@@ -186,6 +186,7 @@ class WorkerThreadData {
                             allocator.get(),
                             w->snapshot_data()->AsEmbedderWrapper().get()));
       CHECK(isolate_data_);
+      CHECK(!isolate_data_->is_building_snapshot());
       if (w_->per_isolate_opts_)
         isolate_data_->set_options(std::move(w_->per_isolate_opts_));
       isolate_data_->set_worker_context(w_);
@@ -481,6 +482,7 @@ void Worker::New(const FunctionCallbackInfo<Value>& args) {
     THROW_ERR_MISSING_PLATFORM_FOR_WORKER(env);
     return;
   }
+  CHECK(!env->isolate_data()->is_building_snapshot());
 
   std::string url;
   std::string name;
@@ -900,9 +902,8 @@ void GetEnvMessagePort(const FunctionCallbackInfo<Value>& args) {
 }
 
 void CreateWorkerPerIsolateProperties(IsolateData* isolate_data,
-                                      Local<FunctionTemplate> target) {
+                                      Local<ObjectTemplate> target) {
   Isolate* isolate = isolate_data->isolate();
-  Local<ObjectTemplate> proto = target->PrototypeTemplate();
 
   {
     Local<FunctionTemplate> w = NewFunctionTemplate(isolate, Worker::New);
@@ -921,7 +922,7 @@ void CreateWorkerPerIsolateProperties(IsolateData* isolate_data,
     SetProtoMethod(isolate, w, "loopIdleTime", Worker::LoopIdleTime);
     SetProtoMethod(isolate, w, "loopStartTime", Worker::LoopStartTime);
 
-    SetConstructorFunction(isolate, proto, "Worker", w);
+    SetConstructorFunction(isolate, target, "Worker", w);
   }
 
   {
@@ -938,7 +939,7 @@ void CreateWorkerPerIsolateProperties(IsolateData* isolate_data,
         wst->InstanceTemplate());
   }
 
-  SetMethod(isolate, proto, "getEnvMessagePort", GetEnvMessagePort);
+  SetMethod(isolate, target, "getEnvMessagePort", GetEnvMessagePort);
 }
 
 void CreateWorkerPerContextProperties(Local<Object> target,

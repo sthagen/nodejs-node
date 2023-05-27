@@ -283,7 +283,7 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     auto reset_entry_point =
         OnScopeLeave([&]() { env->set_embedder_entry_point({}); });
 
-    const char* entry = env->isolate_data()->options()->build_snapshot
+    const char* entry = env->isolate_data()->is_building_snapshot()
                             ? "internal/main/mksnapshot"
                             : "internal/main/embedding";
 
@@ -311,7 +311,7 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     return StartExecution(env, "internal/main/inspect");
   }
 
-  if (env->isolate_data()->options()->build_snapshot) {
+  if (env->isolate_data()->is_building_snapshot()) {
     return StartExecution(env, "internal/main/mksnapshot");
   }
 
@@ -961,11 +961,6 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
       return ret;
     };
 
-    {
-      std::string extra_ca_certs;
-      if (credentials::SafeGetenv("NODE_EXTRA_CA_CERTS", &extra_ca_certs))
-        crypto::UseExtraCaCerts(extra_ca_certs);
-    }
     // In the case of FIPS builds we should make sure
     // the random source is properly initialized first.
 #if OPENSSL_VERSION_MAJOR >= 3
@@ -1052,6 +1047,12 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
       CHECK(crypto::CSPRNG(buffer, length).is_ok());
       return true;
     });
+
+    {
+      std::string extra_ca_certs;
+      if (credentials::SafeGetenv("NODE_EXTRA_CA_CERTS", &extra_ca_certs))
+        crypto::UseExtraCaCerts(extra_ca_certs);
+    }
 #endif  // HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
   }
 
