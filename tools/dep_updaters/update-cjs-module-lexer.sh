@@ -11,7 +11,12 @@ DEPS_DIR="$BASE_DIR/deps"
 NPM="$DEPS_DIR/npm/bin/npm-cli.js"
 
 NEW_VERSION="$("$NODE" --input-type=module <<'EOF'
-const res = await fetch('https://api.github.com/repos/nodejs/cjs-module-lexer/tags');
+const res = await fetch('https://api.github.com/repos/nodejs/cjs-module-lexer/tags',
+  process.env.GITHUB_TOKEN && {
+    headers: {
+      "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`
+    },
+  });
 if (!res.ok) throw new Error(`FetchError: ${res.status} ${res.statusText}`, { cause: res });
 const tags = await res.json();
 const { name } = tags.at(0)
@@ -50,14 +55,6 @@ rm -rf "$DEPS_DIR/cjs-module-lexer"
 
 mv node_modules/cjs-module-lexer "$DEPS_DIR/cjs-module-lexer"
 
-echo "All done!"
-echo ""
-echo "Please git add cjs-module-lexer, commit the new version:"
-echo ""
-echo "$ git add -A deps/cjs-module-lexer"
-echo "$ git commit -m \"deps: update cjs-module-lexer to $NEW_VERSION\""
-echo ""
-
 # update cjs_module_lexer_version.h
 cat > "$BASE_DIR/src/cjs_module_lexer_version.h" << EOL
 // This is an auto generated file, please do not edit.
@@ -67,6 +64,14 @@ cat > "$BASE_DIR/src/cjs_module_lexer_version.h" << EOL
 #define CJS_MODULE_LEXER_VERSION "$NEW_VERSION"
 #endif  // SRC_CJS_MODULE_LEXER_VERSION_H_
 EOL
+
+echo "All done!"
+echo ""
+echo "Please git add cjs-module-lexer, commit the new version:"
+echo ""
+echo "$ git add -A deps/cjs-module-lexer src/cjs_module_lexer_version.h"
+echo "$ git commit -m \"deps: update cjs-module-lexer to $NEW_VERSION\""
+echo ""
 
 # The last line of the script should always print the new version,
 # as we need to add it to $GITHUB_ENV variable.
