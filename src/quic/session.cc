@@ -363,7 +363,7 @@ Maybe<Session::Options> Session::Options::From(Environment* env,
 
   auto& state = BindingData::Get(env);
   auto params = value.As<Object>();
-  Options options;
+  Options options = Options();
 
 #define SET(name)                                                              \
   SetOption<Session::Options, &Session::Options::name>(                        \
@@ -645,7 +645,7 @@ void Session::Destroy() {
 
   for (auto cid : cids) endpoint_->DisassociateCID(CID(&cid));
 
-  for (auto token : tokens) {
+  for (const auto& token : tokens) {
     if (token.token_present)
       endpoint_->DisassociateStatelessResetToken(
           StatelessResetToken(token.token));

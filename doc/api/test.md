@@ -1461,15 +1461,35 @@ object, streaming a series of events representing the execution of the tests.
 
 Emitted when code coverage is enabled and all tests have completed.
 
+### Event: `'test:dequeue'`
+
+* `data` {Object}
+  * `file` {string|undefined} The path of the test file,
+    `undefined` if test was run through the REPL.
+  * `name` {string} The test name.
+  * `nesting` {number} The nesting level of the test.
+
+Emitted when a test is dequeued, right before it is executed.
+
 ### Event: `'test:diagnostic'`
 
 * `data` {Object}
   * `file` {string|undefined} The path of the test file,
-    undefined if test is not ran through a file.
+    `undefined` if test was run through the REPL.
   * `message` {string} The diagnostic message.
   * `nesting` {number} The nesting level of the test.
 
 Emitted when [`context.diagnostic`][] is called.
+
+### Event: `'test:enqueue'`
+
+* `data` {Object}
+  * `file` {string|undefined} The path of the test file,
+    `undefined` if test was run through the REPL.
+  * `name` {string} The test name.
+  * `nesting` {number} The nesting level of the test.
+
+Emitted when a test is enqueued for execution.
 
 ### Event: `'test:fail'`
 
@@ -1478,7 +1498,7 @@ Emitted when [`context.diagnostic`][] is called.
     * `duration` {number} The duration of the test in milliseconds.
     * `error` {Error} The error thrown by the test.
   * `file` {string|undefined} The path of the test file,
-    undefined if test is not ran through a file.
+    `undefined` if test was run through the REPL.
   * `name` {string} The test name.
   * `nesting` {number} The nesting level of the test.
   * `testNumber` {number} The ordinal number of the test.
@@ -1493,7 +1513,7 @@ Emitted when a test fails.
   * `details` {Object} Additional execution metadata.
     * `duration` {number} The duration of the test in milliseconds.
   * `file` {string|undefined} The path of the test file,
-    undefined if test is not ran through a file.
+    `undefined` if test was run through the REPL.
   * `name` {string} The test name.
   * `nesting` {number} The nesting level of the test.
   * `testNumber` {number} The ordinal number of the test.
@@ -1506,7 +1526,7 @@ Emitted when a test passes.
 
 * `data` {Object}
   * `file` {string|undefined} The path of the test file,
-    undefined if test is not ran through a file.
+    `undefined` if test was run through the REPL.
   * `nesting` {number} The nesting level of the test.
   * `count` {number} The number of subtests that have ran.
 
@@ -1516,11 +1536,13 @@ Emitted when all subtests have completed for a given test.
 
 * `data` {Object}
   * `file` {string|undefined} The path of the test file,
-    undefined if test is not ran through a file.
+    `undefined` if test was run through the REPL.
   * `name` {string} The test name.
   * `nesting` {number} The nesting level of the test.
 
-Emitted when a test starts.
+Emitted when a test starts reporting its own and its subtests status.
+This event is guaranteed to be emitted in the same order as the tests are
+defined.
 
 ### Event: `'test:stderr'`
 
