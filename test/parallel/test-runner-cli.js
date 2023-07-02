@@ -21,8 +21,8 @@ const testFixtures = fixtures.path('test-runner');
 {
   // Default behavior. node_modules is ignored. Files that don't match the
   // pattern are ignored except in test/ directories.
-  const args = ['--test', testFixtures];
-  const child = spawnSync(process.execPath, args);
+  const args = ['--test'];
+  const child = spawnSync(process.execPath, args, { cwd: testFixtures });
 
   assert.strictEqual(child.status, 1);
   assert.strictEqual(child.signal, null);
@@ -30,20 +30,24 @@ const testFixtures = fixtures.path('test-runner');
   const stdout = child.stdout.toString();
   assert.match(stdout, /ok 1 - this should pass/);
   assert.match(stdout, /not ok 2 - this should fail/);
-  assert.match(stdout, /ok 3 - .+subdir.+subdir_test\.js/);
+  assert.match(stdout, /ok 3 - subdir.+subdir_test\.js/);
   assert.match(stdout, /ok 4 - this should pass/);
+  assert.match(stdout, /ok 5 - this should be skipped/);
+  assert.match(stdout, /ok 6 - this should be executed/);
 }
 
 {
   // Same but with a prototype mutation in require scripts.
-  const args = ['--require', join(testFixtures, 'protoMutation.js'), '--test', testFixtures];
-  const child = spawnSync(process.execPath, args);
+  const args = ['--require', join(testFixtures, 'protoMutation.js'), '--test'];
+  const child = spawnSync(process.execPath, args, { cwd: testFixtures });
 
   const stdout = child.stdout.toString();
   assert.match(stdout, /ok 1 - this should pass/);
   assert.match(stdout, /not ok 2 - this should fail/);
-  assert.match(stdout, /ok 3 - .+subdir.+subdir_test\.js/);
+  assert.match(stdout, /ok 3 - subdir.+subdir_test\.js/);
   assert.match(stdout, /ok 4 - this should pass/);
+  assert.match(stdout, /ok 5 - this should be skipped/);
+  assert.match(stdout, /ok 6 - this should be executed/);
   assert.strictEqual(child.status, 1);
   assert.strictEqual(child.signal, null);
   assert.strictEqual(child.stderr.toString(), '');
@@ -51,23 +55,19 @@ const testFixtures = fixtures.path('test-runner');
 
 {
   // User specified files that don't match the pattern are still run.
-  const args = ['--test', testFixtures, join(testFixtures, 'index.js')];
-  const child = spawnSync(process.execPath, args);
+  const args = ['--test', join(testFixtures, 'index.js')];
+  const child = spawnSync(process.execPath, args, { cwd: testFixtures });
 
   assert.strictEqual(child.status, 1);
   assert.strictEqual(child.signal, null);
   assert.strictEqual(child.stderr.toString(), '');
   const stdout = child.stdout.toString();
   assert.match(stdout, /not ok 1 - .+index\.js/);
-  assert.match(stdout, /ok 2 - this should pass/);
-  assert.match(stdout, /not ok 3 - this should fail/);
-  assert.match(stdout, /ok 4 - .+subdir.+subdir_test\.js/);
-  assert.match(stdout, /ok 5 - this should pass/);
 }
 
 {
   // Searches node_modules if specified.
-  const args = ['--test', join(testFixtures, 'node_modules')];
+  const args = ['--test', join(testFixtures, 'node_modules/*.js')];
   const child = spawnSync(process.execPath, args);
 
   assert.strictEqual(child.status, 1);
@@ -89,8 +89,10 @@ const testFixtures = fixtures.path('test-runner');
   const stdout = child.stdout.toString();
   assert.match(stdout, /ok 1 - this should pass/);
   assert.match(stdout, /not ok 2 - this should fail/);
-  assert.match(stdout, /ok 3 - .+subdir.+subdir_test\.js/);
+  assert.match(stdout, /ok 3 - subdir.+subdir_test\.js/);
   assert.match(stdout, /ok 4 - this should pass/);
+  assert.match(stdout, /ok 5 - this should be skipped/);
+  assert.match(stdout, /ok 6 - this should be executed/);
 }
 
 {
@@ -156,9 +158,12 @@ const testFixtures = fixtures.path('test-runner');
   assert.match(stdout, /not ok 4 - level 0b/);
   assert.match(stdout, / {2}error: 'level 0b error'/);
   assert.match(stdout, /# tests 8/);
+  assert.match(stdout, /# suites 0/);
   assert.match(stdout, /# pass 4/);
   assert.match(stdout, /# fail 3/);
+  assert.match(stdout, /# cancelled 0/);
   assert.match(stdout, /# skipped 1/);
+  assert.match(stdout, /# todo 0/);
 }
 
 {
