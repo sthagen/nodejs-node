@@ -585,7 +585,9 @@ size_t SnapshotSerializer::Write(const SnapshotMetadata& data) {
 // [    ...       ]  code_cache
 
 std::vector<char> SnapshotData::ToBlob() const {
+  std::vector<char> result;
   SnapshotSerializer w;
+
   w.Debug("SnapshotData::ToBlob()\n");
 
   size_t written_total = 0;
@@ -603,7 +605,10 @@ std::vector<char> SnapshotData::ToBlob() const {
   w.Debug("Write code_cache\n");
   written_total += w.WriteVector<builtins::CodeCacheInfo>(code_cache);
   w.Debug("SnapshotData::ToBlob() Wrote %d bytes\n", written_total);
-  return w.sink;
+
+  // Return using the temporary value to enable copy elision.
+  std::swap(result, w.sink);
+  return result;
 }
 
 void SnapshotData::ToFile(FILE* out) const {
@@ -1159,14 +1164,16 @@ void DeserializeNodeInternalFields(Local<Object> holder,
 
 StartupData SerializeNodeContextInternalFields(Local<Object> holder,
                                                int index,
-                                               void* env) {
+                                               void* callback_data) {
   // We only do one serialization for the kEmbedderType slot, the result
   // contains everything necessary for deserializing the entire object,
   // including the fields whose index is bigger than kEmbedderType
   // (most importantly, BaseObject::kSlot).
   // For Node.js this design is enough for all the native binding that are
   // serializable.
-  if (index != BaseObject::kEmbedderType || !BaseObject::IsBaseObject(holder)) {
+  Environment* env = static_cast<Environment*>(callback_data);
+  if (index != BaseObject::kEmbedderType ||
+      !BaseObject::IsBaseObject(env->isolate_data(), holder)) {
     return StartupData{nullptr, 0};
   }
 

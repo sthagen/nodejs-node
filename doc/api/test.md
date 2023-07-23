@@ -609,7 +609,9 @@ added:
   - v19.6.0
   - v18.15.0
 changes:
-  - version: v19.9.0
+  - version:
+    - v19.9.0
+    - v18.17.0
     pr-url: https://github.com/nodejs/node/pull/47238
     description: Reporters are now exposed at `node:test/reporters`.
 -->
@@ -815,7 +817,9 @@ added:
   - v18.9.0
   - v16.19.0
 changes:
-  - version: v20.1.0
+  - version:
+    - v20.1.0
+    - v18.17.0
     pr-url: https://github.com/nodejs/node/pull/47628
     description: Add a testNamePatterns option.
 -->
@@ -882,7 +886,9 @@ added:
   - v18.0.0
   - v16.17.0
 changes:
-  - version: v20.2.0
+  - version:
+    - v20.2.0
+    - v18.17.0
     pr-url: https://github.com/nodejs/node/pull/47909
     description: Added the `skip`, `todo`, and `only` shorthands.
   - version:
@@ -2009,7 +2015,8 @@ Emitted when a test is enqueued for execution.
 * `data` {Object}
   * `details` {Object} Additional execution metadata.
     * `duration` {number} The duration of the test in milliseconds.
-    * `error` {Error} The error thrown by the test.
+    * `error` {Error} An error wrapping the error thrown by the test.
+      * `cause` {Error} The actual error thrown by the test.
   * `file` {string|undefined} The path of the test file,
     `undefined` if test was run through the REPL.
   * `name` {string} The test name.
@@ -2086,7 +2093,9 @@ added:
   - v18.0.0
   - v16.17.0
 changes:
-  - version: v20.1.0
+  - version:
+    - v20.1.0
+    - v18.17.0
     pr-url: https://github.com/nodejs/node/pull/47586
     description: The `before` function was added to TestContext.
 -->
@@ -2098,7 +2107,9 @@ exposed as part of the API.
 ### `context.before([fn][, options])`
 
 <!-- YAML
-added: v20.1.0
+added:
+  - v20.1.0
+  - v18.17.0
 -->
 
 * `fn` {Function|AsyncFunction} The hook function. The first argument

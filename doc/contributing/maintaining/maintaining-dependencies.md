@@ -21,7 +21,7 @@ This a list of all the dependencies:
 * [libuv 1.46.0][]
 * [llhttp 8.1.0][]
 * [minimatch 9.0.3][]
-* [nghttp2 1.55.0][]
+* [nghttp2 1.55.1][]
 * [nghttp3 0.7.0][]
 * [ngtcp2 0.8.1][]
 * [npm 9.6.7][]
@@ -31,7 +31,7 @@ This a list of all the dependencies:
 * [undici 5.22.1][]
 * [uvwasi 0.0.16][]
 * [V8 11.3.244.8][]
-* [zlib 1.2.13.1-motley-f81f385][]
+* [zlib 1.2.13.1-motley-61dc0bd][]
 
 Any code which meets one or more of these conditions should
 be managed as a dependency:
@@ -223,7 +223,7 @@ See [maintaining-http][] for more informations.
 The [minimatch](https://github.com/isaacs/minimatch) dependency is a
 minimal matching utility.
 
-### nghttp2 1.55.0
+### nghttp2 1.55.1
 
 The [nghttp2](https://github.com/nghttp2/nghttp2) dependency is a C library
 implementing HTTP/2 protocol.
@@ -311,7 +311,7 @@ See [maintaining-web-assembly][] for more informations.
 high-performance JavaScript and WebAssembly engine, written in C++.
 See [maintaining-V8][] for more informations.
 
-### zlib 1.2.13.1-motley-f81f385
+### zlib 1.2.13.1-motley-61dc0bd
 
 The [zlib](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/zlib)
 dependency lossless data-compression library,
@@ -338,7 +338,7 @@ performance improvements not currently available in standard zlib.
 [maintaining-openssl]: ./maintaining-openssl.md
 [maintaining-web-assembly]: ./maintaining-web-assembly.md
 [minimatch 9.0.3]: #minimatch-903
-[nghttp2 1.55.0]: #nghttp2-1550
+[nghttp2 1.55.1]: #nghttp2-1551
 [nghttp3 0.7.0]: #nghttp3-070
 [ngtcp2 0.8.1]: #ngtcp2-081
 [npm 9.6.7]: #npm-967
@@ -349,4 +349,4 @@ performance improvements not currently available in standard zlib.
 [update-openssl-action]: ../../../.github/workflows/update-openssl.yml
 [uvwasi 0.0.16]: #uvwasi-0016
 [v8 11.3.244.8]: #v8-1132448
-[zlib 1.2.13.1-motley-f81f385]: #zlib-12131-motley-f81f385
+[zlib 1.2.13.1-motley-61dc0bd]: #zlib-12131-motley-61dc0bd
