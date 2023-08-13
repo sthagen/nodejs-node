@@ -34,6 +34,8 @@ using v8::PropertyFilter;
 using v8::Proxy;
 using v8::SKIP_STRINGS;
 using v8::SKIP_SYMBOLS;
+using v8::StackFrame;
+using v8::StackTrace;
 using v8::String;
 using v8::Uint32;
 using v8::Value;
@@ -138,6 +140,24 @@ static void GetProxyDetails(const FunctionCallbackInfo<Value>& args) {
 
     args.GetReturnValue().Set(ret);
   }
+}
+
+static void GetCallerLocation(const FunctionCallbackInfo<Value>& args) {
+  Isolate* isolate = args.GetIsolate();
+  Local<StackTrace> trace = StackTrace::CurrentStackTrace(isolate, 2);
+
+  // This function is frame zero. The caller is frame one. If there aren't two
+  // stack frames, return undefined.
+  if (trace->GetFrameCount() != 2) {
+    return;
+  }
+
+  Local<StackFrame> frame = trace->GetFrame(isolate, 1);
+  Local<Value> ret[] = {Integer::New(isolate, frame->GetLineNumber()),
+                        Integer::New(isolate, frame->GetColumn()),
+                        frame->GetScriptNameOrSourceURL()};
+
+  args.GetReturnValue().Set(Array::New(args.GetIsolate(), ret, arraysize(ret)));
 }
 
 static void IsArrayBufferDetached(const FunctionCallbackInfo<Value>& args) {
@@ -284,6 +304,31 @@ void WeakReference::DecRef(const FunctionCallbackInfo<Value>& args) {
       v8::Number::New(args.GetIsolate(), weak_ref->reference_count_));
 }
 
+static uint32_t GetUVHandleTypeCode(const uv_handle_type type) {
+  // TODO(anonrig): We can use an enum here and then create the array in the
+  // binding, which will remove the hard-coding in C++ and JS land.
+
+  // Currently, the return type of this function corresponds to the index of the
+  // array defined in the JS land. This is done as an optimization to reduce the
+  // string serialization overhead.
+  switch (type) {
+    case UV_TCP:
+      return 0;
+    case UV_TTY:
+      return 1;
+    case UV_UDP:
+      return 2;
+    case UV_FILE:
+      return 3;
+    case UV_NAMED_PIPE:
+      return 4;
+    case UV_UNKNOWN_HANDLE:
+      return 5;
+    default:
+      ABORT();
+  }
+}
+
 static void GuessHandleType(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   int fd;
@@ -291,67 +336,12 @@ static void GuessHandleType(const FunctionCallbackInfo<Value>& args) {
   CHECK_GE(fd, 0);
 
   uv_handle_type t = uv_guess_handle(fd);
-  // TODO(anonrig): We can use an enum here and then create the array in the
-  // binding, which will remove the hard-coding in C++ and JS land.
-  uint32_t type{0};
-
-  // Currently, the return type of this function corresponds to the index of the
-  // array defined in the JS land. This is done as an optimization to reduce the
-  // string serialization overhead.
-  switch (t) {
-    case UV_TCP:
-      type = 0;
-      break;
-    case UV_TTY:
-      type = 1;
-      break;
-    case UV_UDP:
-      type = 2;
-      break;
-    case UV_FILE:
-      type = 3;
-      break;
-    case UV_NAMED_PIPE:
-      type = 4;
-      break;
-    case UV_UNKNOWN_HANDLE:
-      type = 5;
-      break;
-    default:
-      ABORT();
-  }
-
-  args.GetReturnValue().Set(type);
+  args.GetReturnValue().Set(GetUVHandleTypeCode(t));
 }
 
 static uint32_t FastGuessHandleType(Local<Value> receiver, const uint32_t fd) {
   uv_handle_type t = uv_guess_handle(fd);
-  uint32_t type{0};
-
-  switch (t) {
-    case UV_TCP:
-      type = 0;
-      break;
-    case UV_TTY:
-      type = 1;
-      break;
-    case UV_UDP:
-      type = 2;
-      break;
-    case UV_FILE:
-      type = 3;
-      break;
-    case UV_NAMED_PIPE:
-      type = 4;
-      break;
-    case UV_UNKNOWN_HANDLE:
-      type = 5;
-      break;
-    default:
-      ABORT();
-  }
-
-  return type;
+  return GetUVHandleTypeCode(t);
 }
 
 CFunction fast_guess_handle_type_(CFunction::Make(FastGuessHandleType));
@@ -393,6 +383,7 @@ static void ToUSVString(const FunctionCallbackInfo<Value>& args) {
 void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(GetPromiseDetails);
   registry->Register(GetProxyDetails);
+  registry->Register(GetCallerLocation);
   registry->Register(IsArrayBufferDetached);
   registry->Register(PreviewEntries);
   registry->Register(GetOwnNonIndexProperties);
@@ -494,6 +485,8 @@ void Initialize(Local<Object> target,
   SetMethodNoSideEffect(
       context, target, "getPromiseDetails", GetPromiseDetails);
   SetMethodNoSideEffect(context, target, "getProxyDetails", GetProxyDetails);
+  SetMethodNoSideEffect(
+      context, target, "getCallerLocation", GetCallerLocation);
   SetMethodNoSideEffect(
       context, target, "isArrayBufferDetached", IsArrayBufferDetached);
   SetMethodNoSideEffect(context, target, "previewEntries", PreviewEntries);

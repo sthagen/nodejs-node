@@ -679,6 +679,12 @@ The absolute path to the `test/fixtures/` directory.
 
 Returns the result of `path.join(fixtures.fixturesDir, ...args)`.
 
+### `fixtures.fileURL(...args)`
+
+* `...args` [\<string>][<string>]
+
+Returns the result of `url.pathToFileURL(fixtures.path(...args))`.
+
 ### `fixtures.readSync(args[, enc])`
 
 * `args` [\<string>][<string>] | [\<Array>][<Array>]
@@ -1027,6 +1033,16 @@ The `tmpdir` module supports the use of a temporary directory for testing.
 
 The realpath of the testing temporary directory.
 
+### `fileURL([...paths])`
+
+* `...paths` [\<string>][<string>]
+* return [\<URL>][<URL>]
+
+Resolves a sequence of paths into absolute url in the temporary directory.
+
+When called without arguments, returns absolute url of the testing
+temporary directory with explicit trailing `/`.
+
 ### `refresh(useSpawn)`
 
 * `useSpawn` [\<boolean>][<boolean>] default = false
@@ -1045,6 +1061,13 @@ It is usually only necessary to call `refresh()` once in a test file.
 Avoid calling it more than once in an asynchronous context as one call
 might refresh the temporary directory of a different context, causing
 the test to fail somewhat mysteriously.
+
+### `resolve([...paths])`
+
+* `...paths` [\<string>][<string>]
+* return [\<string>][<string>]
+
+Resolves a sequence of paths into absolute path in the temporary directory.
 
 ### `hasEnoughSpace(size)`
 
@@ -1092,6 +1115,7 @@ See [the WPT tests README][] for details.
 [<Function>]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function
 [<Object>]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
 [<RegExp>]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+[<URL>]: https://developer.mozilla.org/en-US/docs/Web/API/URL
 [<any>]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types
 [<bigint>]: https://github.com/tc39/proposal-bigint
 [<boolean>]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type

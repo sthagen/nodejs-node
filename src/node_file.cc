@@ -456,7 +456,7 @@ MaybeLocal<Promise> FileHandle::ClosePromise() {
   Local<Context> context = env()->context();
 
   Local<Value> close_resolver =
-      object()->GetInternalField(FileHandle::kClosingPromiseSlot);
+      object()->GetInternalField(FileHandle::kClosingPromiseSlot).As<Value>();
   if (!close_resolver.IsEmpty() && !close_resolver->IsUndefined()) {
     CHECK(close_resolver->IsPromise());
     return close_resolver.As<Promise>();
@@ -1217,6 +1217,8 @@ static void StatFs(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(env->isolate(), args[0]);
   CHECK_NOT_NULL(*path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
 
   bool use_bigint = args[1]->IsTrue();
   FSReqBase* req_wrap_async = GetReqWrap(args, 2, use_bigint);
@@ -3042,10 +3044,11 @@ void BindingData::LegacyMainResolve(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  std::string err_module_message =
-      "Cannot find package '" + module_path + "' imported from " + module_base;
   env->isolate()->ThrowException(
-      ERR_MODULE_NOT_FOUND(env->isolate(), err_module_message.c_str()));
+      ERR_MODULE_NOT_FOUND(env->isolate(),
+                           "Cannot find package '%s' imported from %s",
+                           module_path,
+                           module_base));
 }
 
 void BindingData::MemoryInfo(MemoryTracker* tracker) const {
@@ -3118,7 +3121,7 @@ void BindingData::Deserialize(Local<Context> context,
   Realm* realm = Realm::GetCurrent(context);
   InternalFieldInfo* casted_info = static_cast<InternalFieldInfo*>(info);
   BindingData* binding =
-      realm->AddBindingData<BindingData>(context, holder, casted_info);
+      realm->AddBindingData<BindingData>(holder, casted_info);
   CHECK_NOT_NULL(binding);
 }
 
@@ -3271,7 +3274,7 @@ static void CreatePerContextProperties(Local<Object> target,
                                        Local<Context> context,
                                        void* priv) {
   Realm* realm = Realm::GetCurrent(context);
-  realm->AddBindingData<BindingData>(context, target);
+  realm->AddBindingData<BindingData>(target);
 }
 
 BindingData* FSReqBase::binding_data() {

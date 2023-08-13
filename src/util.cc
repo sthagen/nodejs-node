@@ -28,6 +28,7 @@
 #include "node_errors.h"
 #include "node_internals.h"
 #include "node_util.h"
+#include "node_v8_platform-inl.h"
 #include "string_bytes.h"
 #include "uv.h"
 
@@ -55,6 +56,7 @@ static std::atomic_int seq = {0};  // Sequence number for diagnostic filenames.
 
 namespace node {
 
+using v8::ArrayBuffer;
 using v8::ArrayBufferView;
 using v8::Context;
 using v8::FunctionTemplate;
@@ -480,6 +482,53 @@ void SetFastMethodNoSideEffect(Isolate* isolate,
   that->Set(name_string, t);
 }
 
+void SetFastMethod(Isolate* isolate,
+                   Local<Template> that,
+                   const std::string_view name,
+                   v8::FunctionCallback slow_callback,
+                   const v8::MemorySpan<const v8::CFunction>& methods) {
+  Local<v8::FunctionTemplate> t = FunctionTemplate::NewWithCFunctionOverloads(
+      isolate,
+      slow_callback,
+      Local<Value>(),
+      Local<v8::Signature>(),
+      0,
+      v8::ConstructorBehavior::kThrow,
+      v8::SideEffectType::kHasSideEffect,
+      methods);
+
+  // kInternalized strings are created in the old space.
+  const v8::NewStringType type = v8::NewStringType::kInternalized;
+  Local<v8::String> name_string =
+      v8::String::NewFromUtf8(isolate, name.data(), type, name.size())
+          .ToLocalChecked();
+  that->Set(name_string, t);
+}
+
+void SetFastMethodNoSideEffect(
+    Isolate* isolate,
+    Local<Template> that,
+    const std::string_view name,
+    v8::FunctionCallback slow_callback,
+    const v8::MemorySpan<const v8::CFunction>& methods) {
+  Local<v8::FunctionTemplate> t = FunctionTemplate::NewWithCFunctionOverloads(
+      isolate,
+      slow_callback,
+      Local<Value>(),
+      Local<v8::Signature>(),
+      0,
+      v8::ConstructorBehavior::kThrow,
+      v8::SideEffectType::kHasNoSideEffect,
+      methods);
+
+  // kInternalized strings are created in the old space.
+  const v8::NewStringType type = v8::NewStringType::kInternalized;
+  Local<v8::String> name_string =
+      v8::String::NewFromUtf8(isolate, name.data(), type, name.size())
+          .ToLocalChecked();
+  that->Set(name_string, t);
+}
+
 void SetMethodNoSideEffect(Local<v8::Context> context,
                            Local<v8::Object> that,
                            const std::string_view name,
@@ -627,6 +676,22 @@ Local<String> UnionBytes::ToStringChecked(Isolate* isolate) const {
     return String::NewExternalTwoByte(isolate, two_byte_resource_)
         .ToLocalChecked();
   }
+}
+
+RAIIIsolate::RAIIIsolate()
+    : allocator_{ArrayBuffer::Allocator::NewDefaultAllocator()} {
+  isolate_ = Isolate::Allocate();
+  CHECK_NOT_NULL(isolate_);
+  per_process::v8_platform.Platform()->RegisterIsolate(isolate_,
+                                                       uv_default_loop());
+  Isolate::CreateParams params;
+  params.array_buffer_allocator = allocator_.get();
+  Isolate::Initialize(isolate_, params);
+}
+
+RAIIIsolate::~RAIIIsolate() {
+  per_process::v8_platform.Platform()->UnregisterIsolate(isolate_);
+  isolate_->Dispose();
 }
 
 }  // namespace node

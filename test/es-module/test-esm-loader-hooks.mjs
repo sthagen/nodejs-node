@@ -94,7 +94,6 @@ describe('Loader hooks', { concurrency: true }, () => {
     it('import.meta.resolve of a never-settling resolve', async () => {
       const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
         '--no-warnings',
-        '--experimental-import-meta-resolve',
         '--experimental-loader',
         fixtures.fileURL('es-module-loaders/never-settling-resolve-step/loader.mjs'),
         fixtures.path('es-module-loaders/never-settling-resolve-step/import.meta.never-resolve.mjs'),
@@ -207,7 +206,6 @@ describe('Loader hooks', { concurrency: true }, () => {
   it('should not leak internals or expose import.meta.resolve', async () => {
     const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
       '--no-warnings',
-      '--experimental-import-meta-resolve',
       '--experimental-loader',
       fixtures.fileURL('es-module-loaders/loader-edge-cases.mjs'),
       fixtures.path('empty.js'),
@@ -222,7 +220,6 @@ describe('Loader hooks', { concurrency: true }, () => {
   it('should be fine to call `process.exit` from a custom async hook', async () => {
     const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
       '--no-warnings',
-      '--experimental-import-meta-resolve',
       '--experimental-loader',
       'data:text/javascript,export function load(a,b,next){if(a==="data:exit")process.exit(42);return next(a,b)}',
       '--input-type=module',
@@ -239,7 +236,6 @@ describe('Loader hooks', { concurrency: true }, () => {
   it('should be fine to call `process.exit` from a custom sync hook', async () => {
     const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
       '--no-warnings',
-      '--experimental-import-meta-resolve',
       '--experimental-loader',
       'data:text/javascript,export function resolve(a,b,next){if(a==="exit:")process.exit(42);return next(a,b)}',
       '--input-type=module',
@@ -424,6 +420,16 @@ describe('Loader hooks', { concurrency: true }, () => {
   });
 
   describe('globalPreload', () => {
+    it('should emit deprecation warning', async () => {
+      const { stderr } = await spawnPromisified(execPath, [
+        '--experimental-loader',
+        'data:text/javascript,export function globalPreload(){}',
+        fixtures.path('empty.js'),
+      ]);
+
+      assert.match(stderr, /`globalPreload` will be removed/);
+    });
+
     it('should handle globalPreload returning undefined', async () => {
       const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
         '--no-warnings',
@@ -550,6 +556,201 @@ describe('Loader hooks', { concurrency: true }, () => {
 
     assert.strictEqual(stderr, '');
     assert.strictEqual(stdout, '');
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should invoke `initialize` correctly', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--experimental-loader',
+      fixtures.fileURL('/es-module-loaders/hooks-initialize.mjs'),
+      '--input-type=module',
+      '--eval',
+      'import os from "node:os";',
+    ]);
+
+    const lines = stdout.trim().split('\n');
+
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0], 'hooks initialize 1');
+
+    assert.strictEqual(stderr, '');
+
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should allow communicating with loader via `register` ports', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--input-type=module',
+      '--eval',
+      `
+        import {MessageChannel} from 'node:worker_threads';
+        import {register} from 'node:module';
+        import {setTimeout} from 'node:timers/promises';
+        const {port1, port2} = new MessageChannel();
+        port1.on('message', (msg) => {
+          console.log('message', msg);
+        });
+        const result = register(
+          ${JSON.stringify(fixtures.fileURL('es-module-loaders/hooks-initialize-port.mjs'))},
+          {data: port2, transferList: [port2]},
+        );
+        console.log('register', result);
+
+        await import('node:os');
+        await setTimeout(99); // delay to limit flakiness
+        port1.close();
+      `,
+    ]);
+
+    assert.strictEqual(stderr, '');
+    assert.deepStrictEqual(stdout.split('\n'), ['register ok', 'message initialize', 'message resolve node:os', '']);
+
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should have `register` work with cjs', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--input-type=commonjs',
+      '--eval',
+      `
+        'use strict';
+        const {register} = require('node:module');
+        register(
+          ${JSON.stringify(fixtures.fileURL('es-module-loaders/hooks-initialize.mjs'))},
+        );
+        register(
+          ${JSON.stringify(fixtures.fileURL('es-module-loaders/loader-load-foo-or-42.mjs'))},
+        );
+
+        import('node:os').then((result) => {
+          console.log(JSON.stringify(result));
+        });
+      `,
+    ]);
+
+    assert.strictEqual(stderr, '');
+    assert.deepStrictEqual(stdout.split('\n').sort(), ['hooks initialize 1', '{"default":"foo"}', ''].sort());
+
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('`register` should work with `require`', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--require',
+      fixtures.path('/es-module-loaders/register-loader.cjs'),
+      '--input-type=module',
+      '--eval',
+      'import "node:os";',
+    ]);
+
+    const lines = stdout.split('\n');
+
+    assert.strictEqual(lines[0], 'resolve passthru');
+
+    assert.strictEqual(stderr, '');
+
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('`register` should work with `import`', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--import',
+      fixtures.fileURL('/es-module-loaders/register-loader.mjs'),
+      '--input-type=module',
+      '--eval',
+      `
+        import 'node:os';
+      `,
+    ]);
+
+    const lines = stdout.split('\n');
+
+    assert.strictEqual(lines[0], 'resolve passthru');
+
+    assert.strictEqual(stderr, '');
+
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should execute `initialize` in sequence', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--input-type=module',
+      '--eval',
+      `
+        import {register} from 'node:module';
+        console.log('result', register(
+          ${JSON.stringify(fixtures.fileURL('/es-module-loaders/hooks-initialize.mjs'))}
+        ));
+        console.log('result', register(
+          ${JSON.stringify(fixtures.fileURL('/es-module-loaders/hooks-initialize.mjs'))}
+        ));
+
+        await import('node:os');
+      `,
+    ]);
+
+    const lines = stdout.split('\n');
+
+    assert.strictEqual(lines[0], 'result 1');
+    assert.strictEqual(lines[1], 'result 2');
+    assert.strictEqual(lines[2], 'hooks initialize 1');
+    assert.strictEqual(lines[3], 'hooks initialize 2');
+
+    assert.strictEqual(stderr, '');
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should use CJS loader to respond to require.resolve calls by default', async () => {
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--experimental-loader',
+      fixtures.fileURL('es-module-loaders/loader-resolve-passthru.mjs'),
+      fixtures.path('require-resolve.js'),
+    ]);
+
+    assert.strictEqual(stderr, '');
+    assert.strictEqual(stdout, 'resolve passthru\n');
+    assert.strictEqual(code, 0);
+    assert.strictEqual(signal, null);
+  });
+
+  it('should use ESM loader to respond to require.resolve calls when opting in', async () => {
+    const readFile = async () => {};
+    const fileURLToPath = () => {};
+    const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
+      '--no-warnings',
+      '--experimental-loader',
+      `data:text/javascript,import{readFile}from"node:fs/promises";import{fileURLToPath}from"node:url";export ${
+        async function load(u, c, n) {
+          const r = await n(u, c);
+          if (u.endsWith('/common/index.js')) {
+            r.source = '"use strict";module.exports=require("node:module").createRequire(' +
+                     `${JSON.stringify(u)})(${JSON.stringify(fileURLToPath(u))});\n`;
+          } else if (c.format === 'commonjs') {
+            r.source = await readFile(new URL(u));
+          }
+          return r;
+        }}`,
+      '--experimental-loader',
+      fixtures.fileURL('es-module-loaders/loader-resolve-passthru.mjs'),
+      fixtures.path('require-resolve.js'),
+    ]);
+
+    assert.strictEqual(stderr, '');
+    assert.strictEqual(stdout, 'resolve passthru\n'.repeat(10));
     assert.strictEqual(code, 0);
     assert.strictEqual(signal, null);
   });
