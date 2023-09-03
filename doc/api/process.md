@@ -871,7 +871,7 @@ added: v0.5.0
 
 The operating system CPU architecture for which the Node.js binary was compiled.
 Possible values are: `'arm'`, `'arm64'`, `'ia32'`, `'mips'`,`'mipsel'`, `'ppc'`,
-`'ppc64'`, `'s390'`, `'s390x'`, and `'x64'`.
+`'ppc64'`, `'riscv64'`, `'s390'`, `'s390x'`, and `'x64'`.
 
 ```mjs
 import { arch } from 'node:process';
@@ -3516,6 +3516,19 @@ throw an error.
 
 Using this function is mutually exclusive with using the deprecated
 [`domain`][] built-in module.
+
+## `process.sourceMapsEnabled`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1 - Experimental
+
+* {boolean}
+
+The `process.sourceMapsEnabled` property returns whether the
+[Source Map v3][Source Map] support for stack traces is enabled.
 
 ## `process.stderr`
 

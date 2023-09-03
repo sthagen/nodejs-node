@@ -12,6 +12,7 @@
 #include "node_options-inl.h"
 #include "node_process-inl.h"
 #include "node_shadow_realm.h"
+#include "node_snapshotable.h"
 #include "node_v8_platform-inl.h"
 #include "node_worker.h"
 #include "req_wrap-inl.h"
@@ -683,7 +684,7 @@ void Environment::TryLoadAddon(
   }
 }
 
-std::string Environment::GetCwd() {
+std::string Environment::GetCwd(const std::string& exec_path) {
   char cwd[PATH_MAX_BYTES];
   size_t size = PATH_MAX_BYTES;
   const int err = uv_cwd(cwd, &size);
@@ -695,7 +696,6 @@ std::string Environment::GetCwd() {
 
   // This can fail if the cwd is deleted. In that case, fall back to
   // exec_path.
-  const std::string& exec_path = exec_path_;
   return exec_path.substr(0, exec_path.find_last_of(kPathSeparator));
 }
 
@@ -729,7 +729,7 @@ std::unique_ptr<v8::BackingStore> Environment::release_managed_buffer(
   return bs;
 }
 
-std::string GetExecPath(const std::vector<std::string>& argv) {
+std::string Environment::GetExecPath(const std::vector<std::string>& argv) {
   char exec_path_buf[2 * PATH_MAX];
   size_t exec_path_len = sizeof(exec_path_buf);
   std::string exec_path;
@@ -771,7 +771,7 @@ Environment::Environment(IsolateData* isolate_data,
       timer_base_(uv_now(isolate_data->event_loop())),
       exec_argv_(exec_args),
       argv_(args),
-      exec_path_(GetExecPath(args)),
+      exec_path_(Environment::GetExecPath(args)),
       exit_info_(
           isolate_, kExitInfoFieldCount, MAYBE_FIELD_PTR(env_info, exit_info)),
       should_abort_on_uncaught_toggle_(
@@ -875,12 +875,12 @@ Environment::Environment(IsolateData* isolate_data,
     // unless explicitly allowed by the user
     options_->allow_native_addons = false;
     flags_ = flags_ | EnvironmentFlags::kNoCreateInspector;
-    permission()->Apply("*", permission::PermissionScope::kInspector);
+    permission()->Apply({"*"}, permission::PermissionScope::kInspector);
     if (!options_->allow_child_process) {
-      permission()->Apply("*", permission::PermissionScope::kChildProcess);
+      permission()->Apply({"*"}, permission::PermissionScope::kChildProcess);
     }
     if (!options_->allow_worker_threads) {
-      permission()->Apply("*", permission::PermissionScope::kWorkerThreads);
+      permission()->Apply({"*"}, permission::PermissionScope::kWorkerThreads);
     }
 
     if (!options_->allow_fs_read.empty()) {
@@ -1761,7 +1761,7 @@ void Environment::EnqueueDeserializeRequest(DeserializeRequestCallback cb,
                                             Local<Object> holder,
                                             int index,
                                             InternalFieldInfoBase* info) {
-  DCHECK_EQ(index, BaseObject::kEmbedderType);
+  DCHECK_IS_SNAPSHOT_SLOT(index);
   DeserializeRequest request{cb, {isolate(), holder}, index, info};
   deserialize_requests_.push_back(std::move(request));
 }
@@ -1921,7 +1921,7 @@ size_t Environment::NearHeapLimitCallback(void* data,
 
   std::string dir = env->options()->diagnostic_dir;
   if (dir.empty()) {
-    dir = env->GetCwd();
+    dir = Environment::GetCwd(env->exec_path_);
   }
   DiagnosticFilename name(env, "Heap", "heapsnapshot");
   std::string filename = dir + kPathSeparator + (*name);
