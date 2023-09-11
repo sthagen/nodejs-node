@@ -527,7 +527,7 @@ added:
   - v13.9.0
   - v12.16.2
 changes:
-  - version: REPLACEME
+  - version: v20.6.0
     pr-url: https://github.com/nodejs/node/pull/49028
     description: synchronous import.meta.resolve made available by default, with
                  the flag retained for enabling the experimental second argument
@@ -1007,7 +1007,7 @@ disappear in a non-semver-major release.
 > Stability: 1.1 - Active development
 
 <!-- YAML
-added: REPLACEME
+added: v20.6.0
 -->
 
 Loads environment variables from a file relative to the current directory,
@@ -1015,6 +1015,13 @@ making them available to applications on `process.env`. The [environment
 variables which configure Node.js][environment_variables], such as `NODE_OPTIONS`,
 are parsed and applied. If the same variable is defined in the environment and
 in the file, the value from the environment takes precedence.
+
+You can pass multiple `--env-file` arguments. Subsequent files override
+pre-existing variables defined in previous files.
+
+```bash
+node --env-file=.env --env-file=.development.env index.js
+```
 
 The format of the file should be one line per key-value pair of environment
 variable name and value separated by `=`:
