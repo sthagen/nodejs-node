@@ -11,9 +11,6 @@ prefix parallel
 test-crypto-keygen: PASS,FLAKY
 # https://github.com/nodejs/node/issues/41201
 test-fs-rmdir-recursive: PASS, FLAKY
-# https://github.com/nodejs/node/issues/48300
-test-child-process-pipe-dataflow: PASS, FLAKY
-test-child-process-stdio-reuse-readable-stdio: PASS, FLAKY
 
 # Windows on ARM
 [$system==win32 && $arch==arm64]
@@ -23,6 +20,10 @@ test-child-process-stdio-reuse-readable-stdio: PASS, FLAKY
 test-domain-error-types: PASS,FLAKY
 # https://github.com/nodejs/node/issues/47420
 test-file-write-stream4: PASS,FLAKY
+
+[$system==linux || $system==win32]
+# https://github.com/nodejs/node/issues/49605
+test-runner-watch-mode: PASS,FLAKY
 
 [$system==macos]
 # https://github.com/nodejs/node/issues/42741
