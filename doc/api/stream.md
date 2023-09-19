@@ -1907,7 +1907,9 @@ has less then 64 KiB of data because no `highWaterMark` option is provided to
 ##### `readable[Symbol.asyncDispose]()`
 
 <!-- YAML
-added: v20.4.0
+added:
+ - v20.4.0
+ - v18.18.0
 -->
 
 > Stability: 1 - Experimental
@@ -2013,7 +2015,7 @@ added:
   - v17.4.0
   - v16.14.0
 changes:
-  - version: REPLACEME
+  - version: v20.7.0
     pr-url: https://github.com/nodejs/node/pull/49249
     description: added `highWaterMark` in options.
 -->
@@ -2066,7 +2068,7 @@ added:
   - v17.4.0
   - v16.14.0
 changes:
-  - version: REPLACEME
+  - version: v20.7.0
     pr-url: https://github.com/nodejs/node/pull/49249
     description: added `highWaterMark` in options.
 -->

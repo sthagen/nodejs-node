@@ -146,7 +146,7 @@ Error: Access to this API has been restricted
 <!-- YAML
 added: v20.0.0
 changes:
-  - version: REPLACEME
+  - version: v20.7.0
     pr-url: https://github.com/nodejs/node/pull/49047
     description: Paths delimited by comma (`,`) are no longer allowed.
 -->
@@ -200,7 +200,7 @@ node --experimental-permission --allow-fs-read=/path/to/index.js index.js
 <!-- YAML
 added: v20.0.0
 changes:
-  - version: REPLACEME
+  - version: v20.7.0
     pr-url: https://github.com/nodejs/node/pull/49047
     description: Paths delimited by comma (`,`) are no longer allowed.
 -->
@@ -491,6 +491,15 @@ added: v6.0.0
 
 Enable FIPS-compliant crypto at startup. (Requires Node.js to be built
 against FIPS-compatible OpenSSL.)
+
+### `--enable-network-family-autoselection`
+
+<!-- YAML
+added: v18.18.0
+-->
+
+Enables the family autoselection algorithm unless connection options explicitly
+disables it.
 
 ### `--enable-source-maps`
 
@@ -924,7 +933,9 @@ Specify ICU data load path. (Overrides `NODE_ICU_DATA`.)
 ### `--import=module`
 
 <!-- YAML
-added: v19.0.0
+added:
+ - v19.0.0
+ - v18.18.0
 -->
 
 > Stability: 1 - Experimental
