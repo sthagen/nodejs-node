@@ -2203,18 +2203,29 @@ static void WriteBuffers(const FunctionCallbackInfo<Value>& args) {
     iovs[i] = uv_buf_init(Buffer::Data(chunk), Buffer::Length(chunk));
   }
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 3);
-  if (req_wrap_async != nullptr) {  // writeBuffers(fd, chunks, pos, req)
+  if (argc > 3) {  // writeBuffers(fd, chunks, pos, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 3);
     FS_ASYNC_TRACE_BEGIN0(UV_FS_WRITE, req_wrap_async)
-    AsyncCall(env, req_wrap_async, args, "write", UTF8, AfterInteger,
-              uv_fs_write, fd, *iovs, iovs.length(), pos);
-  } else {  // writeBuffers(fd, chunks, pos, undefined, ctx)
-    CHECK_EQ(argc, 5);
-    FSReqWrapSync req_wrap_sync;
+    AsyncCall(env,
+              req_wrap_async,
+              args,
+              "write",
+              UTF8,
+              AfterInteger,
+              uv_fs_write,
+              fd,
+              *iovs,
+              iovs.length(),
+              pos);
+  } else {  // writeBuffers(fd, chunks, pos)
+    FSReqWrapSync req_wrap_sync("write");
     FS_SYNC_TRACE_BEGIN(write);
-    int bytesWritten = SyncCall(env, args[4], &req_wrap_sync, "write",
-                                uv_fs_write, fd, *iovs, iovs.length(), pos);
+    int bytesWritten = SyncCallAndThrowOnError(
+        env, &req_wrap_sync, uv_fs_write, fd, *iovs, iovs.length(), pos);
     FS_SYNC_TRACE_END(write, "bytesWritten", bytesWritten);
+    if (is_uv_error(bytesWritten)) {
+      return;
+    }
     args.GetReturnValue().Set(bytesWritten);
   }
 }
@@ -2506,18 +2517,16 @@ static void Chmod(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsInt32());
   int mode = args[1].As<Int32>()->Value();
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 2);
-  if (req_wrap_async != nullptr) {  // chmod(path, mode, req)
+  if (argc > 2) {  // chmod(path, mode, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 2);
     FS_ASYNC_TRACE_BEGIN1(
         UV_FS_CHMOD, req_wrap_async, "path", TRACE_STR_COPY(*path))
     AsyncCall(env, req_wrap_async, args, "chmod", UTF8, AfterNoArgs,
               uv_fs_chmod, *path, mode);
-  } else {  // chmod(path, mode, undefined, ctx)
-    CHECK_EQ(argc, 4);
-    FSReqWrapSync req_wrap_sync;
+  } else {  // chmod(path, mode)
+    FSReqWrapSync req_wrap_sync("chmod", *path);
     FS_SYNC_TRACE_BEGIN(chmod);
-    SyncCall(env, args[3], &req_wrap_sync, "chmod",
-             uv_fs_chmod, *path, mode);
+    SyncCallAndThrowOnError(env, &req_wrap_sync, uv_fs_chmod, *path, mode);
     FS_SYNC_TRACE_END(chmod);
   }
 }
@@ -2538,17 +2547,15 @@ static void FChmod(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsInt32());
   const int mode = args[1].As<Int32>()->Value();
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 2);
-  if (req_wrap_async != nullptr) {  // fchmod(fd, mode, req)
+  if (argc > 2) {  // fchmod(fd, mode, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 2);
     FS_ASYNC_TRACE_BEGIN0(UV_FS_FCHMOD, req_wrap_async)
     AsyncCall(env, req_wrap_async, args, "fchmod", UTF8, AfterNoArgs,
               uv_fs_fchmod, fd, mode);
-  } else {  // fchmod(fd, mode, undefined, ctx)
-    CHECK_EQ(argc, 4);
-    FSReqWrapSync req_wrap_sync;
+  } else {  // fchmod(fd, mode)
+    FSReqWrapSync req_wrap_sync("fchmod");
     FS_SYNC_TRACE_BEGIN(fchmod);
-    SyncCall(env, args[3], &req_wrap_sync, "fchmod",
-             uv_fs_fchmod, fd, mode);
+    SyncCallAndThrowOnError(env, &req_wrap_sync, uv_fs_fchmod, fd, mode);
     FS_SYNC_TRACE_END(fchmod);
   }
 }
@@ -2675,18 +2682,17 @@ static void UTimes(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[2]->IsNumber());
   const double mtime = args[2].As<Number>()->Value();
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 3);
-  if (req_wrap_async != nullptr) {  // utimes(path, atime, mtime, req)
+  if (argc > 3) {  // utimes(path, atime, mtime, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 3);
     FS_ASYNC_TRACE_BEGIN1(
         UV_FS_UTIME, req_wrap_async, "path", TRACE_STR_COPY(*path))
     AsyncCall(env, req_wrap_async, args, "utime", UTF8, AfterNoArgs,
               uv_fs_utime, *path, atime, mtime);
-  } else {  // utimes(path, atime, mtime, undefined, ctx)
-    CHECK_EQ(argc, 5);
-    FSReqWrapSync req_wrap_sync;
+  } else {  // utimes(path, atime, mtime)
+    FSReqWrapSync req_wrap_sync("utime", *path);
     FS_SYNC_TRACE_BEGIN(utimes);
-    SyncCall(env, args[4], &req_wrap_sync, "utime",
-             uv_fs_utime, *path, atime, mtime);
+    SyncCallAndThrowOnError(
+        env, &req_wrap_sync, uv_fs_utime, *path, atime, mtime);
     FS_SYNC_TRACE_END(utimes);
   }
 }
@@ -2706,17 +2712,16 @@ static void FUTimes(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[2]->IsNumber());
   const double mtime = args[2].As<Number>()->Value();
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 3);
-  if (req_wrap_async != nullptr) {  // futimes(fd, atime, mtime, req)
+  if (argc > 3) {  // futimes(fd, atime, mtime, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 3);
     FS_ASYNC_TRACE_BEGIN0(UV_FS_FUTIME, req_wrap_async)
     AsyncCall(env, req_wrap_async, args, "futime", UTF8, AfterNoArgs,
               uv_fs_futime, fd, atime, mtime);
-  } else {  // futimes(fd, atime, mtime, undefined, ctx)
-    CHECK_EQ(argc, 5);
-    FSReqWrapSync req_wrap_sync;
+  } else {  // futimes(fd, atime, mtime)
+    FSReqWrapSync req_wrap_sync("futime");
     FS_SYNC_TRACE_BEGIN(futimes);
-    SyncCall(env, args[4], &req_wrap_sync, "futime",
-             uv_fs_futime, fd, atime, mtime);
+    SyncCallAndThrowOnError(
+        env, &req_wrap_sync, uv_fs_futime, fd, atime, mtime);
     FS_SYNC_TRACE_END(futimes);
   }
 }
@@ -2738,18 +2743,17 @@ static void LUTimes(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[2]->IsNumber());
   const double mtime = args[2].As<Number>()->Value();
 
-  FSReqBase* req_wrap_async = GetReqWrap(args, 3);
-  if (req_wrap_async != nullptr) {  // lutimes(path, atime, mtime, req)
+  if (argc > 3) {  // lutimes(path, atime, mtime, req)
+    FSReqBase* req_wrap_async = GetReqWrap(args, 3);
     FS_ASYNC_TRACE_BEGIN1(
         UV_FS_LUTIME, req_wrap_async, "path", TRACE_STR_COPY(*path))
     AsyncCall(env, req_wrap_async, args, "lutime", UTF8, AfterNoArgs,
               uv_fs_lutime, *path, atime, mtime);
-  } else {  // lutimes(path, atime, mtime, undefined, ctx)
-    CHECK_EQ(argc, 5);
-    FSReqWrapSync req_wrap_sync;
+  } else {  // lutimes(path, atime, mtime)
+    FSReqWrapSync req_wrap_sync("lutime", *path);
     FS_SYNC_TRACE_BEGIN(lutimes);
-    SyncCall(env, args[4], &req_wrap_sync, "lutime",
-             uv_fs_lutime, *path, atime, mtime);
+    SyncCallAndThrowOnError(
+        env, &req_wrap_sync, uv_fs_lutime, *path, atime, mtime);
     FS_SYNC_TRACE_END(lutimes);
   }
 }
