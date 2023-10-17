@@ -1791,7 +1791,7 @@ An import attribute is not supported by this version of Node.js.
 ### `ERR_IMPORT_ATTRIBUTE_UNSUPPORTED`
 
 <!-- YAML
-added: REPLACEME
+added: v21.0.0
 -->
 
 An import attribute is not supported by this version of Node.js.
@@ -2981,6 +2981,12 @@ An attempt was made to use something that was already closed.
 While using the Performance Timing API (`perf_hooks`), no valid performance
 entry types are found.
 
+<a id="ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG"></a>
+
+### `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG`
+
+A dynamic import callback was invoked without `--experimental-vm-modules`.
+
 <a id="ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING"></a>
 
 ### `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`
@@ -3293,9 +3299,9 @@ An invalid or unknown file encoding was passed.
 ### `ERR_INVALID_TRANSFER_OBJECT`
 
 <!-- YAML
-removed: REPLACEME
+removed: v21.0.0
 changes:
-  - version: REPLACEME
+  - version: v21.0.0
     pr-url: https://github.com/nodejs/node/pull/47839
     description: A `DOMException` is thrown instead.
 -->
@@ -3320,9 +3326,9 @@ transferable objects also exist now.
 
 <!-- YAML
 added: v15.0.0
-removed: REPLACEME
+removed: v21.0.0
 changes:
-  - version: REPLACEME
+  - version: v21.0.0
     pr-url: https://github.com/nodejs/node/pull/47839
     description: A `DOMException` is thrown instead.
 -->
