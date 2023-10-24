@@ -15,11 +15,11 @@ This a list of all the dependencies:
 * [c-ares 1.20.1][]
 * [cjs-module-lexer 1.2.2][]
 * [corepack][]
-* [googletest 2dd1c13][]
+* [googletest 116b7e5][]
 * [histogram 0.11.8][]
 * [icu-small 73.2][]
 * [libuv 1.46.0][]
-* [llhttp 9.1.2][]
+* [llhttp 9.1.3][]
 * [minimatch 9.0.3][]
 * [nghttp2 1.57.0][]
 * [nghttp3 0.7.0][]
@@ -189,7 +189,7 @@ In practical terms, Corepack will let you use Yarn and pnpm without having to
 install them - just like what currently happens with npm, which is shipped
 by Node.js by default.
 
-### googletest 2dd1c13
+### googletest 116b7e5
 
 The [googletest](https://github.com/google/googletest) dependency is Google’s
 C++ testing and mocking framework.
@@ -212,7 +212,7 @@ The [libuv](https://github.com/libuv/libuv) dependency is a
 multi-platform support library with a focus on asynchronous I/O.
 It was primarily developed for use by Node.js.
 
-### llhttp 9.1.2
+### llhttp 9.1.3
 
 The [llhttp](https://github.com/nodejs/llhttp) dependency is
 the http parser used by Node.js.
@@ -326,11 +326,11 @@ performance improvements not currently available in standard zlib.
 [cjs-module-lexer 1.2.2]: #cjs-module-lexer-122
 [corepack]: #corepack
 [dependency-update-action]: ../../../.github/workflows/tools.yml
-[googletest 2dd1c13]: #googletest-2dd1c13
+[googletest 116b7e5]: #googletest-116b7e5
 [histogram 0.11.8]: #histogram-0118
 [icu-small 73.2]: #icu-small-732
 [libuv 1.46.0]: #libuv-1460
-[llhttp 9.1.2]: #llhttp-912
+[llhttp 9.1.3]: #llhttp-913
 [maintaining-V8]: ./maintaining-V8.md
 [maintaining-cjs-module-lexer]: ./maintaining-cjs-module-lexer.md
 [maintaining-http]: ./maintaining-http.md
