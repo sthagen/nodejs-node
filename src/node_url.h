@@ -12,6 +12,7 @@
 #include "v8-fast-api-calls.h"
 #include "v8.h"
 
+#include <optional>
 #include <string>
 
 namespace node {
@@ -82,6 +83,9 @@ class BindingData : public SnapshotableObject {
 };
 
 std::string FromFilePath(std::string_view file_path);
+std::optional<std::string> FileURLToPath(Environment* env,
+                                         const ada::url_aggregator& file_url);
+void FromNamespacedPath(std::string* path);
 
 }  // namespace url
 
