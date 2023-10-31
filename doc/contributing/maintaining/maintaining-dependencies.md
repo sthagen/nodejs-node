@@ -8,7 +8,7 @@ directories to create the Node.js binaries.
 All dependencies are located within the `deps` directory.
 This a list of all the dependencies:
 
-* [acorn 8.10.0][]
+* [acorn 8.11.2][]
 * [ada 2.7.2][]
 * [base64 0.5.0][]
 * [brotli 1.0.9][]
@@ -28,7 +28,7 @@ This a list of all the dependencies:
 * [openssl 3.0.8][]
 * [postject 1.0.0-alpha.6][]
 * [simdutf 3.2.18][]
-* [undici 5.26.4][]
+* [undici 5.27.0][]
 * [uvwasi 0.0.19][]
 * [V8 11.8.172.12][]
 * [zlib 1.2.13.1-motley-fef5869][]
@@ -144,7 +144,7 @@ takes care of npm update, it is maintained by the npm team.
 
 ## Dependency list
 
-### acorn 8.10.0
+### acorn 8.11.2
 
 The [acorn](https://github.com/acornjs/acorn) dependency is a JavaScript parser.
 [acorn-walk](https://github.com/acornjs/acorn/tree/master/acorn-walk) is
@@ -291,7 +291,7 @@ The [postject](https://github.com/nodejs/postject) dependency is used for the
 The [simdutf](https://github.com/simdutf/simdutf) dependency is
 a C++ library for fast UTF-8 decoding and encoding.
 
-### undici 5.26.4
+### undici 5.27.0
 
 The [undici](https://github.com/nodejs/undici) dependency is an HTTP/1.1 client,
 written from scratch for Node.js..
@@ -318,7 +318,7 @@ dependency lossless data-compression library,
 it comes from the Chromium team's zlib fork which incorporated
 performance improvements not currently available in standard zlib.
 
-[acorn 8.10.0]: #acorn-8100
+[acorn 8.11.2]: #acorn-8112
 [ada 2.7.2]: #ada-272
 [base64 0.5.0]: #base64-050
 [brotli 1.0.9]: #brotli-109
@@ -345,7 +345,7 @@ performance improvements not currently available in standard zlib.
 [openssl 3.0.8]: #openssl-308
 [postject 1.0.0-alpha.6]: #postject-100-alpha6
 [simdutf 3.2.18]: #simdutf-3218
-[undici 5.26.4]: #undici-5264
+[undici 5.27.0]: #undici-5270
 [update-openssl-action]: ../../../.github/workflows/update-openssl.yml
 [uvwasi 0.0.19]: #uvwasi-0019
 [v8 11.8.172.12]: #v8-11817212
