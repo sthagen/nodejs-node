@@ -3,7 +3,6 @@
     'configuring_node%': 0,
     'asan%': 0,
     'ubsan%': 0,
-    'werror': '',                     # Turn off -Werror in V8 build.
     'visibility%': 'hidden',          # V8's visibility setting
     'target_arch%': 'ia32',           # set v8's target architecture
     'host_arch%': 'ia32',             # set v8's host architecture
@@ -107,7 +106,6 @@
         'v8_base': '<(PRODUCT_DIR)/obj.target/tools/v8_gypfiles/libv8_snapshot.a',
       }],
       ['OS=="mac"', {
-        'clang%': 1,
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
       }],
@@ -182,10 +180,10 @@
             }, {
               'MSVC_runtimeType': 2   # MultiThreadedDLL (/MD)
             }],
-            ['llvm_version=="0.0"', {
-              'lto': ' -flto=4 -fuse-linker-plugin -ffat-lto-objects ', # GCC
-            }, {
+            ['clang==1', {
               'lto': ' -flto ', # Clang
+            }, {
+              'lto': ' -flto=4 -fuse-linker-plugin -ffat-lto-objects ', # GCC
             }],
           ],
         },
