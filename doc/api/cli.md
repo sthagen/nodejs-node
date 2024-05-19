@@ -981,6 +981,16 @@ generated as part of the test runner output. If no tests are run, a coverage
 report is not generated. See the documentation on
 [collecting code coverage from tests][] for more details.
 
+### `--experimental-test-module-mocks`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+> Stability: 1.0 - Early development
+
+Enable module mocking in the test runner.
+
 ### `--experimental-vm-modules`
 
 <!-- YAML
@@ -1847,6 +1857,10 @@ Modules preloaded with `--require` will run before modules preloaded with `--imp
 
 <!-- YAML
 added: v22.0.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/53032
+    description: NODE_RUN_SCRIPT_NAME environment variable is added.
 -->
 
 > Stability: 1.1 - Active development
@@ -1886,6 +1900,13 @@ are:
   current folder.
 * Running `pre` or `post` scripts in addition to the specified script.
 * Defining package manager-specific environment variables.
+
+#### Environment variables
+
+The following environment variables are set when running a script with `--run`:
+
+* `NODE_RUN_SCRIPT_NAME`: The name of the script being run. For example, if
+  `--run` is used to run `test`, the value of this variable will be `test`.
 
 ### `--secure-heap=n`
 
