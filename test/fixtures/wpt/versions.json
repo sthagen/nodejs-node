@@ -4,7 +4,7 @@
     "path": "common"
   },
   "compression": {
-    "commit": "c82521cfa587505746a853a24d22589633825b10",
+    "commit": "5aa50dd4151b5bc1d04d5505366c6e27df30af5b",
     "path": "compression"
   },
   "console": {
@@ -20,7 +20,7 @@
     "path": "dom/events"
   },
   "encoding": {
-    "commit": "a58bbf6d8c0db1f1fd5352e846acb0754ee55567",
+    "commit": "5aa50dd4151b5bc1d04d5505366c6e27df30af5b",
     "path": "encoding"
   },
   "fetch/data-urls/resources": {
@@ -72,7 +72,7 @@
     "path": "streams"
   },
   "url": {
-    "commit": "0f550ab9f5a07ed293926a306e914866164b346b",
+    "commit": "7f369fef2b6f740a0738510331274bf2cbf7b509",
     "path": "url"
   },
   "user-timing": {
