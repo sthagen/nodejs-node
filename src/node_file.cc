@@ -48,13 +48,18 @@
 # include <io.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace node {
 
 namespace fs {
 
 using v8::Array;
 using v8::BigInt;
-using v8::CFunction;
 using v8::Context;
 using v8::EscapableHandleScope;
 using v8::FastApiCallbackOptions;
@@ -299,7 +304,7 @@ FileHandle::TransferData::~TransferData() {
 
 BaseObjectPtr<BaseObject> FileHandle::TransferData::Deserialize(
     Environment* env,
-    Local<v8::Context> context,
+    v8::Local<v8::Context> context,
     std::unique_ptr<worker::TransferData> self) {
   BindingData* bd = Realm::GetBindingData<BindingData>(context);
   if (bd == nullptr) return {};
@@ -438,7 +443,8 @@ MaybeLocal<Promise> FileHandle::ClosePromise() {
 
   auto maybe_resolver = Promise::Resolver::New(context);
   CHECK(!maybe_resolver.IsEmpty());
-  Local<Promise::Resolver> resolver = maybe_resolver.ToLocalChecked();
+  Local<Promise::Resolver> resolver;
+  if (!maybe_resolver.ToLocal(&resolver)) return {};
   Local<Promise> promise = resolver.As<Promise>();
 
   Local<Object> close_req_obj;
@@ -845,10 +851,12 @@ void AfterStringPath(uv_fs_t* req) {
                                req->path,
                                req_wrap->encoding(),
                                &error);
-    if (link.IsEmpty())
+    if (link.IsEmpty()) {
       req_wrap->Reject(error);
-    else
-      req_wrap->Resolve(link.ToLocalChecked());
+    } else {
+      Local<Value> val;
+      if (link.ToLocal(&val)) req_wrap->Resolve(val);
+    }
   }
 }
 
@@ -865,10 +873,12 @@ void AfterStringPtr(uv_fs_t* req) {
                                static_cast<const char*>(req->ptr),
                                req_wrap->encoding(),
                                &error);
-    if (link.IsEmpty())
+    if (link.IsEmpty()) {
       req_wrap->Reject(error);
-    else
-      req_wrap->Resolve(link.ToLocalChecked());
+    } else {
+      Local<Value> val;
+      if (link.ToLocal(&val)) req_wrap->Resolve(val);
+    }
   }
 }
 
@@ -961,7 +971,7 @@ void Access(const FunctionCallbackInfo<Value>& args) {
   }
 }
 
-static void Close(const FunctionCallbackInfo<Value>& args) {
+void Close(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
   const int argc = args.Length();
@@ -986,30 +996,6 @@ static void Close(const FunctionCallbackInfo<Value>& args) {
     FS_SYNC_TRACE_END(close);
   }
 }
-
-static void FastClose(Local<Object> recv,
-                      int32_t fd,
-                      // NOLINTNEXTLINE(runtime/references) This is V8 api.
-                      v8::FastApiCallbackOptions& options) {
-  Environment* env = Environment::GetCurrent(recv->GetCreationContextChecked());
-
-  uv_fs_t req;
-  FS_SYNC_TRACE_BEGIN(close);
-  int err = uv_fs_close(nullptr, &req, fd, nullptr) < 0;
-  FS_SYNC_TRACE_END(close);
-  uv_fs_req_cleanup(&req);
-
-  if (err < 0) {
-    options.fallback = true;
-  } else {
-    // Note: Only remove unmanaged fds if the close was successful.
-    // RemoveUnmanagedFd() can call ProcessEmitWarning() which calls back into
-    // JS process.emitWarning() and violates the fast API protocol.
-    env->RemoveUnmanagedFd(fd, true /* schedule native immediate */);
-  }
-}
-
-CFunction fast_close_ = CFunction::Make(FastClose);
 
 static void ExistsSync(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
@@ -1622,6 +1608,102 @@ static void RMDir(const FunctionCallbackInfo<Value>& args) {
     SyncCallAndThrowOnError(env, &req_wrap_sync, uv_fs_rmdir, *path);
     FS_SYNC_TRACE_END(rmdir);
   }
+}
+
+static void RmSync(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  Isolate* isolate = env->isolate();
+
+  CHECK_EQ(args.Length(), 4);  // path, maxRetries, recursive, retryDelay
+
+  BufferValue path(isolate, args[0]);
+  CHECK_NOT_NULL(*path);
+  ToNamespacedPath(env, &path);
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, path.ToStringView());
+  auto file_path = std::filesystem::path(path.ToStringView());
+  std::error_code error;
+  auto file_status = std::filesystem::status(file_path, error);
+
+  if (file_status.type() == std::filesystem::file_type::not_found) {
+    return;
+  }
+
+  int maxRetries = args[1].As<Int32>()->Value();
+  int recursive = args[2]->IsTrue();
+  int retryDelay = args[3].As<Int32>()->Value();
+
+  // File is a directory and recursive is false
+  if (file_status.type() == std::filesystem::file_type::directory &&
+      !recursive) {
+    return THROW_ERR_FS_EISDIR(
+        isolate, "Path is a directory: %s", file_path.c_str());
+  }
+
+  // Allowed errors are:
+  // - EBUSY: std::errc::device_or_resource_busy
+  // - EMFILE: std::errc::too_many_files_open
+  // - ENFILE: std::errc::too_many_files_open_in_system
+  // - ENOTEMPTY: std::errc::directory_not_empty
+  // - EPERM: std::errc::operation_not_permitted
+  auto can_omit_error = [](std::error_code error) -> bool {
+    return (error == std::errc::device_or_resource_busy ||
+            error == std::errc::too_many_files_open ||
+            error == std::errc::too_many_files_open_in_system ||
+            error == std::errc::directory_not_empty ||
+            error == std::errc::operation_not_permitted);
+  };
+
+  while (maxRetries >= 0) {
+    if (recursive) {
+      std::filesystem::remove_all(file_path, error);
+    } else {
+      std::filesystem::remove(file_path, error);
+    }
+
+    if (!error || error == std::errc::no_such_file_or_directory) {
+      return;
+    } else if (!can_omit_error(error)) {
+      break;
+    }
+
+    if (retryDelay != 0) {
+#ifdef _WIN32
+      Sleep(retryDelay / 1000);
+#else
+      sleep(retryDelay / 1000);
+#endif
+    }
+    maxRetries--;
+  }
+
+  // This is required since std::filesystem::path::c_str() returns different
+  // values in Windows and Unix.
+#ifdef _WIN32
+  auto file_ = file_path.string().c_str();
+  int permission_denied_error = EPERM;
+#else
+  auto file_ = file_path.c_str();
+  int permission_denied_error = EACCES;
+#endif  // !_WIN32
+
+  if (error == std::errc::operation_not_permitted) {
+    std::string message = "Operation not permitted: " + file_path.string();
+    return env->ThrowErrnoException(EPERM, "rm", message.c_str(), file_);
+  } else if (error == std::errc::directory_not_empty) {
+    std::string message = "Directory not empty: " + file_path.string();
+    return env->ThrowErrnoException(EACCES, "rm", message.c_str(), file_);
+  } else if (error == std::errc::not_a_directory) {
+    std::string message = "Not a directory: " + file_path.string();
+    return env->ThrowErrnoException(ENOTDIR, "rm", message.c_str(), file_);
+  } else if (error == std::errc::permission_denied) {
+    std::string message = "Permission denied: " + file_path.string();
+    return env->ThrowErrnoException(
+        permission_denied_error, "rm", message.c_str(), file_);
+  }
+
+  std::string message = "Unknown error: " + error.message();
+  return env->ThrowErrnoException(UV_UNKNOWN, "rm", message.c_str(), file_);
 }
 
 int MKDirpSync(uv_loop_t* loop,
@@ -2262,7 +2344,8 @@ static void WriteBuffers(const FunctionCallbackInfo<Value>& args) {
   MaybeStackBuffer<uv_buf_t> iovs(chunks->Length());
 
   for (uint32_t i = 0; i < iovs.length(); i++) {
-    Local<Value> chunk = chunks->Get(env->context(), i).ToLocalChecked();
+    Local<Value> chunk;
+    if (!chunks->Get(env->context(), i).ToLocal(&chunk)) return;
     CHECK(Buffer::HasInstance(chunk));
     iovs[i] = uv_buf_init(Buffer::Data(chunk), Buffer::Length(chunk));
   }
@@ -2602,8 +2685,12 @@ static void ReadFileUtf8(const FunctionCallbackInfo<Value>& args) {
   }
   FS_SYNC_TRACE_END(read);
 
-  args.GetReturnValue().Set(
-      ToV8Value(env->context(), result, isolate).ToLocalChecked());
+  Local<Value> val;
+  if (!ToV8Value(env->context(), result, isolate).ToLocal(&val)) {
+    return;
+  }
+
+  args.GetReturnValue().Set(val);
 }
 
 // Wrapper for readv(2).
@@ -2631,7 +2718,8 @@ static void ReadBuffers(const FunctionCallbackInfo<Value>& args) {
 
   // Init uv buffers from ArrayBufferViews
   for (uint32_t i = 0; i < iovs.length(); i++) {
-    Local<Value> buffer = buffers->Get(env->context(), i).ToLocalChecked();
+    Local<Value> buffer;
+    if (!buffers->Get(env->context(), i).ToLocal(&buffer)) return;
     CHECK(Buffer::HasInstance(buffer));
     iovs[i] = uv_buf_init(Buffer::Data(buffer), Buffer::Length(buffer));
   }
@@ -3330,7 +3418,7 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
             "getFormatOfExtensionlessFile",
             GetFormatOfExtensionlessFile);
   SetMethod(isolate, target, "access", Access);
-  SetFastMethod(isolate, target, "close", Close, &fast_close_);
+  SetMethod(isolate, target, "close", Close);
   SetMethod(isolate, target, "existsSync", ExistsSync);
   SetMethod(isolate, target, "open", Open);
   SetMethod(isolate, target, "openFileHandle", OpenFileHandle);
@@ -3342,6 +3430,7 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
   SetMethod(isolate, target, "rename", Rename);
   SetMethod(isolate, target, "ftruncate", FTruncate);
   SetMethod(isolate, target, "rmdir", RMDir);
+  SetMethod(isolate, target, "rmSync", RmSync);
   SetMethod(isolate, target, "mkdir", MKDir);
   SetMethod(isolate, target, "readdir", ReadDir);
   SetFastMethod(isolate,
@@ -3455,8 +3544,6 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
 
   registry->Register(GetFormatOfExtensionlessFile);
   registry->Register(Close);
-  registry->Register(FastClose);
-  registry->Register(fast_close_.GetTypeInfo());
   registry->Register(ExistsSync);
   registry->Register(Open);
   registry->Register(OpenFileHandle);
@@ -3468,6 +3555,7 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(Rename);
   registry->Register(FTruncate);
   registry->Register(RMDir);
+  registry->Register(RmSync);
   registry->Register(MKDir);
   registry->Register(ReadDir);
   registry->Register(InternalModuleStat);
