@@ -166,14 +166,10 @@ For information about the governance of the Node.js project, see
   **Antoine du Hamel** <<duhamelantoine1995@gmail.com>> (he/him)
 * [anonrig](https://github.com/anonrig) -
   **Yagiz Nizipli** <<yagiz@nizipli.com>> (he/him)
-* [apapirovski](https://github.com/apapirovski) -
-  **Anatoli Papirovski** <<apapirovski@mac.com>> (he/him)
 * [benjamingr](https://github.com/benjamingr) -
   **Benjamin Gruenbaum** <<benjamingr@gmail.com>>
 * [BridgeAR](https://github.com/BridgeAR) -
   **Ruben Bridgewater** <<ruben@bridgewater.de>> (he/him)
-* [GeoffreyBooth](https://github.com/GeoffreyBooth) -
-  **Geoffrey Booth** <<webadmin@geoffreybooth.com>> (he/him)
 * [gireeshpunathil](https://github.com/gireeshpunathil) -
   **Gireesh Punathil** <<gpunathi@in.ibm.com>> (he/him)
 * [jasnell](https://github.com/jasnell) -
@@ -207,6 +203,8 @@ For information about the governance of the Node.js project, see
 
 #### TSC regular members
 
+* [apapirovski](https://github.com/apapirovski) -
+  **Anatoli Papirovski** <<apapirovski@mac.com>> (he/him)
 * [BethGriggs](https://github.com/BethGriggs) -
   **Beth Griggs** <<bethanyngriggs@gmail.com>> (she/her)
 * [bnoordhuis](https://github.com/bnoordhuis) -
@@ -215,6 +213,8 @@ For information about the governance of the Node.js project, see
   **Colin Ihrig** <<cjihrig@gmail.com>> (he/him)
 * [codebytere](https://github.com/codebytere) -
   **Shelley Vohr** <<shelley.vohr@gmail.com>> (she/her)
+* [GeoffreyBooth](https://github.com/GeoffreyBooth) -
+  **Geoffrey Booth** <<webadmin@geoffreybooth.com>> (he/him)
 * [Trott](https://github.com/Trott) -
   **Rich Trott** <<rtrott@gmail.com>> (he/him)
 
