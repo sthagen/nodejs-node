@@ -474,7 +474,8 @@ command-line flag, code coverage is collected and statistics are reported once
 all tests have completed. If the [`NODE_V8_COVERAGE`][] environment variable is
 used to specify a code coverage directory, the generated V8 coverage files are
 written to that directory. Node.js core modules and files within
-`node_modules/` directories are not included in the coverage report. If
+`node_modules/` directories are, by default, not included in the coverage report.
+However, they can be explicity included via the [`--test-coverage-include`][] flag. If
 coverage is enabled, the coverage report is sent to any [test reporters][] via
 the `'test:coverage'` event.
 
@@ -1000,11 +1001,12 @@ flags for the test runner to use a specific reporter.
 
 The following built-reporters are supported:
 
+* `spec`
+  The `spec` reporter outputs the test results in a human-readable format. This
+  is the default reporter.
+
 * `tap`
   The `tap` reporter outputs the test results in the [TAP][] format.
-
-* `spec`
-  The `spec` reporter outputs the test results in a human-readable format.
 
 * `dot`
   The `dot` reporter outputs the test results in a compact format,
@@ -1017,9 +1019,6 @@ The following built-reporters are supported:
 * `lcov`
   The `lcov` reporter outputs test coverage when used with the
   [`--experimental-test-coverage`][] flag.
-
-When `stdout` is a [TTY][], the `spec` reporter is used by default.
-Otherwise, the `tap` reporter is used by default.
 
 The exact output of these reporters is subject to change between versions of
 Node.js, and should not be relied on programmatically. If programmatic access
@@ -3505,11 +3504,11 @@ added:
 Can be used to abort test subtasks when the test has been aborted.
 
 [TAP]: https://testanything.org/
-[TTY]: tty.md
 [`--experimental-test-coverage`]: cli.md#--experimental-test-coverage
 [`--experimental-test-snapshots`]: cli.md#--experimental-test-snapshots
 [`--import`]: cli.md#--importmodule
 [`--test-concurrency`]: cli.md#--test-concurrency
+[`--test-coverage-include`]: cli.md#--test-coverage-include
 [`--test-name-pattern`]: cli.md#--test-name-pattern
 [`--test-only`]: cli.md#--test-only
 [`--test-reporter-destination`]: cli.md#--test-reporter-destination
