@@ -22,6 +22,7 @@
 #include "node_contextify.h"
 
 #include "base_object-inl.h"
+#include "cppgc/allocation.h"
 #include "memory_tracker-inl.h"
 #include "module_wrap.h"
 #include "node_context_data.h"
@@ -769,19 +770,25 @@ Intercepted ContextifyContext::PropertyDeleterCallback(
 // static
 void ContextifyContext::PropertyEnumeratorCallback(
     const PropertyCallbackInfo<Array>& args) {
+  // Named enumerator will be invoked on Object.keys,
+  // Object.getOwnPropertyNames, Object.getOwnPropertySymbols,
+  // Object.getOwnPropertyDescriptors, for...in, etc. operations.
+  // Named enumerator should return all own non-indices property names,
+  // including string properties and symbol properties. V8 will filter the
+  // result array to match the expected symbol-only, enumerable-only with
+  // NamedPropertyQueryCallback.
   ContextifyContext* ctx = ContextifyContext::Get(args);
 
   // Still initializing
   if (IsStillInitializing(ctx)) return;
 
   Local<Array> properties;
-  // Only get named properties, exclude symbols and indices.
+  // Only get own named properties, exclude indices.
   if (!ctx->sandbox()
            ->GetPropertyNames(
                ctx->context(),
-               KeyCollectionMode::kIncludePrototypes,
-               static_cast<PropertyFilter>(PropertyFilter::ONLY_ENUMERABLE |
-                                           PropertyFilter::SKIP_SYMBOLS),
+               KeyCollectionMode::kOwnOnly,
+               static_cast<PropertyFilter>(PropertyFilter::ALL_PROPERTIES),
                IndexFilter::kSkipIndices)
            .ToLocal(&properties))
     return;
@@ -792,6 +799,12 @@ void ContextifyContext::PropertyEnumeratorCallback(
 // static
 void ContextifyContext::IndexedPropertyEnumeratorCallback(
     const PropertyCallbackInfo<Array>& args) {
+  // Indexed enumerator will be invoked on Object.keys,
+  // Object.getOwnPropertyNames, Object.getOwnPropertyDescriptors, for...in,
+  // etc. operations. Indexed enumerator should return all own non-indices index
+  // properties. V8 will filter the result array to match the expected
+  // enumerable-only with IndexedPropertyQueryCallback.
+
   Isolate* isolate = args.GetIsolate();
   HandleScope scope(isolate);
   ContextifyContext* ctx = ContextifyContext::Get(args);
@@ -802,9 +815,15 @@ void ContextifyContext::IndexedPropertyEnumeratorCallback(
 
   Local<Array> properties;
 
-  // By default, GetPropertyNames returns string and number property names, and
-  // doesn't convert the numbers to strings.
-  if (!ctx->sandbox()->GetPropertyNames(context).ToLocal(&properties)) return;
+  // Only get own index properties.
+  if (!ctx->sandbox()
+           ->GetPropertyNames(
+               context,
+               KeyCollectionMode::kOwnOnly,
+               static_cast<PropertyFilter>(PropertyFilter::SKIP_SYMBOLS),
+               IndexFilter::kIncludeIndices)
+           .ToLocal(&properties))
+    return;
 
   std::vector<v8::Global<Value>> properties_vec;
   if (FromV8Array(context, properties, &properties_vec).IsNothing()) {
@@ -942,6 +961,12 @@ void ContextifyScript::RegisterExternalReferences(
   registry->Register(RunInContext);
 }
 
+ContextifyScript* ContextifyScript::New(Environment* env,
+                                        Local<Object> object) {
+  return cppgc::MakeGarbageCollected<ContextifyScript>(
+      env->isolate()->GetCppHeap()->GetAllocationHandle(), env, object);
+}
+
 void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   Isolate* isolate = env->isolate();
@@ -992,8 +1017,7 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     id_symbol = args[7].As<Symbol>();
   }
 
-  ContextifyScript* contextify_script =
-      new ContextifyScript(env, args.This());
+  ContextifyScript* contextify_script = New(env, args.This());
 
   if (*TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(
           TRACING_CATEGORY_NODE2(vm, script)) != 0) {
@@ -1051,9 +1075,7 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  contextify_script->script_.Reset(isolate, v8_script);
-  contextify_script->script_.SetWeak();
-  contextify_script->object()->SetInternalField(kUnboundScriptSlot, v8_script);
+  contextify_script->set_unbound_script(v8_script);
 
   std::unique_ptr<ScriptCompiler::CachedData> new_cached_data;
   if (produce_cached_data) {
@@ -1156,11 +1178,9 @@ void ContextifyScript::CreateCachedData(
     const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   ContextifyScript* wrapped_script;
-  ASSIGN_OR_RETURN_UNWRAP(&wrapped_script, args.This());
-  Local<UnboundScript> unbound_script =
-      PersistentToLocal::Default(env->isolate(), wrapped_script->script_);
+  ASSIGN_OR_RETURN_UNWRAP_CPPGC(&wrapped_script, args.This());
   std::unique_ptr<ScriptCompiler::CachedData> cached_data(
-      ScriptCompiler::CreateCodeCache(unbound_script));
+      ScriptCompiler::CreateCodeCache(wrapped_script->unbound_script()));
   if (!cached_data) {
     args.GetReturnValue().Set(Buffer::New(env, 0).ToLocalChecked());
   } else {
@@ -1174,9 +1194,8 @@ void ContextifyScript::CreateCachedData(
 
 void ContextifyScript::RunInContext(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
-
   ContextifyScript* wrapped_script;
-  ASSIGN_OR_RETURN_UNWRAP(&wrapped_script, args.This());
+  ASSIGN_OR_RETURN_UNWRAP_CPPGC(&wrapped_script, args.This());
 
   CHECK_EQ(args.Length(), 5);
   CHECK(args[0]->IsObject() || args[0]->IsNull());
@@ -1246,10 +1265,9 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
 
   TryCatchScope try_catch(env);
   ContextifyScript* wrapped_script;
-  ASSIGN_OR_RETURN_UNWRAP(&wrapped_script, args.This(), false);
-  Local<UnboundScript> unbound_script =
-      PersistentToLocal::Default(env->isolate(), wrapped_script->script_);
-  Local<Script> script = unbound_script->BindToCurrentContext();
+  ASSIGN_OR_RETURN_UNWRAP_CPPGC(&wrapped_script, args.This(), false);
+  Local<Script> script =
+      wrapped_script->unbound_script()->BindToCurrentContext();
 
 #if HAVE_INSPECTOR
   if (break_on_first_line) {
@@ -1331,9 +1349,21 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   return true;
 }
 
-ContextifyScript::ContextifyScript(Environment* env, Local<Object> object)
-    : BaseObject(env, object) {
-  MakeWeak();
+Local<UnboundScript> ContextifyScript::unbound_script() const {
+  return script_.Get(env()->isolate());
+}
+
+void ContextifyScript::set_unbound_script(Local<UnboundScript> script) {
+  script_.Reset(env()->isolate(), script);
+}
+
+void ContextifyScript::Trace(cppgc::Visitor* visitor) const {
+  CppgcMixin::Trace(visitor);
+  visitor->Trace(script_);
+}
+
+ContextifyScript::ContextifyScript(Environment* env, Local<Object> object) {
+  CppgcMixin::Wrap(this, env, object);
 }
 
 ContextifyScript::~ContextifyScript() {}
