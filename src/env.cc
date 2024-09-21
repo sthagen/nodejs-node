@@ -847,14 +847,12 @@ Environment::Environment(IsolateData* isolate_data,
     }
   }
 
-  // We are supposed to call builtin_loader_.SetEagerCompile() in
-  // snapshot mode here because it's beneficial to compile built-ins
-  // loaded in the snapshot eagerly and include the code of inner functions
-  // that are likely to be used by user since they are part of the core
-  // startup. But this requires us to start the coverage collections
-  // before Environment/Context creation which is not currently possible.
-  // TODO(joyeecheung): refactor V8ProfilerConnection classes to parse
-  // JSON without v8 and lift this restriction.
+  // Compile builtins eagerly when building the snapshot so that inner functions
+  // of essential builtins that are loaded in the snapshot can have faster first
+  // invocation.
+  if (isolate_data->is_building_snapshot()) {
+    builtin_loader()->SetEagerCompile();
+  }
 
   // We'll be creating new objects so make sure we've entered the context.
   HandleScope handle_scope(isolate);
@@ -1101,13 +1099,8 @@ void Environment::InitializeLibuv() {
     }
   }
 
-  // Register clean-up cb to be called to clean up the handles
-  // when the environment is freed, note that they are not cleaned in
-  // the one environment per process setup, but will be called in
-  // FreeEnvironment.
-  RegisterHandleCleanups();
-
   StartProfilerIdleNotifier();
+  env_handle_initialized_ = true;
 }
 
 void Environment::InitializeCompileCache() {
@@ -1143,7 +1136,7 @@ CompileCacheEnableResult Environment::EnableCompileCache(
       compile_cache_handler_ = std::move(handler);
       AtExit(
           [](void* env) {
-            static_cast<Environment*>(env)->compile_cache_handler()->Persist();
+            static_cast<Environment*>(env)->FlushCompileCache();
           },
           this);
     }
@@ -1158,6 +1151,13 @@ CompileCacheEnableResult Environment::EnableCompileCache(
     result.cache_directory = compile_cache_handler_->cache_dir();
   }
   return result;
+}
+
+void Environment::FlushCompileCache() {
+  if (!compile_cache_handler_ || compile_cache_handler_->cache_dir().empty()) {
+    return;
+  }
+  compile_cache_handler_->Persist();
 }
 
 void Environment::ExitEnv(StopFlags::Flags flags) {
@@ -1178,27 +1178,27 @@ void Environment::ExitEnv(StopFlags::Flags flags) {
   });
 }
 
-void Environment::RegisterHandleCleanups() {
-  HandleCleanupCb close_and_finish = [](Environment* env, uv_handle_t* handle,
-                                        void* arg) {
-    handle->data = env;
+void Environment::ClosePerEnvHandles() {
+  // If LoadEnvironment and InitializeLibuv are not called, like when building
+  // snapshots, skip closing the per environment handles.
+  if (!env_handle_initialized_) {
+    return;
+  }
 
-    env->CloseHandle(handle, [](uv_handle_t* handle) {
+  auto close_and_finish = [&](uv_handle_t* handle) {
+    CloseHandle(handle, [](uv_handle_t* handle) {
 #ifdef DEBUG
       memset(handle, 0xab, uv_handle_size(handle->type));
 #endif
     });
   };
 
-  auto register_handle = [&](uv_handle_t* handle) {
-    RegisterHandleCleanup(handle, close_and_finish, nullptr);
-  };
-  register_handle(reinterpret_cast<uv_handle_t*>(timer_handle()));
-  register_handle(reinterpret_cast<uv_handle_t*>(immediate_check_handle()));
-  register_handle(reinterpret_cast<uv_handle_t*>(immediate_idle_handle()));
-  register_handle(reinterpret_cast<uv_handle_t*>(&idle_prepare_handle_));
-  register_handle(reinterpret_cast<uv_handle_t*>(&idle_check_handle_));
-  register_handle(reinterpret_cast<uv_handle_t*>(&task_queues_async_));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(timer_handle()));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(immediate_check_handle()));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(immediate_idle_handle()));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(&idle_prepare_handle_));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(&idle_check_handle_));
+  close_and_finish(reinterpret_cast<uv_handle_t*>(&task_queues_async_));
 }
 
 void Environment::CleanupHandles() {
@@ -1217,10 +1217,6 @@ void Environment::CleanupHandles() {
 
   for (HandleWrap* handle : handle_wrap_queue_)
     handle->Close();
-
-  for (HandleCleanup& hc : handle_cleanup_queue_)
-    hc.cb_(this, hc.handle_, hc.arg_);
-  handle_cleanup_queue_.clear();
 
   while (handle_cleanup_waiting_ != 0 ||
          request_waiting_ != 0 ||
@@ -1275,6 +1271,7 @@ MaybeLocal<Value> Environment::RunSnapshotDeserializeMain() const {
 void Environment::RunCleanup() {
   started_cleanup_ = true;
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment), "RunCleanup");
+  ClosePerEnvHandles();
   // Only BaseObject's cleanups are registered as per-realm cleanup hooks now.
   // Defer the BaseObject cleanup after handles are cleaned up.
   CleanupHandles();
