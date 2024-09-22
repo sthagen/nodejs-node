@@ -2112,8 +2112,10 @@ added: v22.3.0
 
 This function is used to mock the exports of ECMAScript modules, CommonJS
 modules, and Node.js builtin modules. Any references to the original module
-prior to mocking are not impacted. The following example demonstrates how a mock
-is created for a module.
+prior to mocking are not impacted. In order to enable module mocking, Node.js must
+be started with the [`--experimental-test-module-mocks`][] command-line flag.
+
+The following example demonstrates how a mock is created for a module.
 
 ```js
 test('mocks a builtin module in both module systems', async (t) => {
@@ -3042,6 +3044,31 @@ This event is only emitted if `--test` flag is passed.
 This event is not guaranteed to be emitted in the same order as the tests are
 defined.
 
+### Event: `'test:summary'`
+
+* `data` {Object}
+  * `counts` {Object} An object containing the counts of various test results.
+    * `cancelled` {number} The total number of cancelled tests.
+    * `failed` {number} The total number of failed tests.
+    * `passed` {number} The total number of passed tests.
+    * `skipped` {number} The total number of skipped tests.
+    * `suites` {number} The total number of suites run.
+    * `tests` {number} The total number of tests run, excluding suites.
+    * `todo` {number} The total number of TODO tests.
+    * `topLevel` {number} The total number of top level tests and suites.
+  * `duration_ms` {number} The duration of the test run in milliseconds.
+  * `file` {string|undefined} The path of the test file that generated the
+    summary. If the summary corresponds to multiple files, this value is
+    `undefined`.
+  * `success` {boolean} Indicates whether or not the test run is considered
+    successful or not. If any error condition occurs, such as a failing test or
+    unmet coverage threshold, this value will be set to `false`.
+
+Emitted when a test run completes. This event contains metrics pertaining to
+the completed test run, and is useful for determining if a test run passed or
+failed. If process-level test isolation is used, a `'test:summary'` event is
+generated for each test file in addition to a final cumulative summary.
+
 ### Event: `'test:watch:drained'`
 
 Emitted when no more tests are queued for execution in watch mode.
@@ -3536,6 +3563,7 @@ Can be used to abort test subtasks when the test has been aborted.
 
 [TAP]: https://testanything.org/
 [`--experimental-test-coverage`]: cli.md#--experimental-test-coverage
+[`--experimental-test-module-mocks`]: cli.md#--experimental-test-module-mocks
 [`--experimental-test-snapshots`]: cli.md#--experimental-test-snapshots
 [`--import`]: cli.md#--importmodule
 [`--test-concurrency`]: cli.md#--test-concurrency
