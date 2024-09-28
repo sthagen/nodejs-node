@@ -1040,8 +1040,9 @@ static void ExistsSync(const FunctionCallbackInfo<Value>& args) {
 static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  CHECK(args[0]->IsString());
-  BufferValue path(env->isolate(), args[0]);
+  CHECK_GE(args.Length(), 2);
+  CHECK(args[1]->IsString());
+  BufferValue path(env->isolate(), args[1]);
   CHECK_NOT_NULL(*path);
   ToNamespacedPath(env, &path);
   THROW_IF_INSUFFICIENT_PERMISSIONS(
@@ -1059,6 +1060,7 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
 }
 
 static int32_t FastInternalModuleStat(
+    Local<Object> unused,
     Local<Object> recv,
     const FastOneByteString& input,
     // NOLINTNEXTLINE(runtime/references) This is V8 api.
@@ -3204,9 +3206,12 @@ static void CpSyncCheckPaths(const FunctionCallbackInfo<Value>& args) {
   }
 
   std::u8string dest_path_str = dest_path.u8string();
-
+  std::u8string src_path_str = src_path.u8string();
+  if (!src_path_str.ends_with(std::filesystem::path::preferred_separator)) {
+    src_path_str += std::filesystem::path::preferred_separator;
+  }
   // Check if dest_path is a subdirectory of src_path.
-  if (src_is_dir && dest_path_str.starts_with(src_path.u8string())) {
+  if (src_is_dir && dest_path_str.starts_with(src_path_str)) {
     std::u8string message = u8"Cannot copy " + src_path.u8string() +
                             u8" to a subdirectory of self " +
                             dest_path.u8string();
