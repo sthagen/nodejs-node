@@ -1257,6 +1257,9 @@ added:
   - v16.19.0
 changes:
   - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/54705
+    description: Added the `cwd` option.
+  - version: REPLACEME
     pr-url: https://github.com/nodejs/node/pull/53937
     description: Added coverage options.
   - version: v22.8.0
@@ -1286,6 +1289,9 @@ changes:
     parallel.
     If `false`, it would only run one test file at a time.
     **Default:** `false`.
+  * `cwd`: {string} Specifies the current working directory to be used by the test runner.
+    Serves as the base path for resolving files according to the [test runner execution model][].
+    **Default:** `process.cwd()`.
   * `files`: {Array} An array containing the list of files to run.
     **Default:** matching files from [test runner execution model][].
   * `forceExit`: {boolean} Configures the test runner to exit the process once
@@ -1950,7 +1956,9 @@ mock can still be used after calling this function.
 ## Class: `MockModuleContext`
 
 <!-- YAML
-added: v22.3.0
+added:
+  - v22.3.0
+  - v20.18.0
 -->
 
 > Stability: 1.0 - Early development
@@ -1961,7 +1969,9 @@ created via the [`MockTracker`][] APIs.
 ### `ctx.restore()`
 
 <!-- YAML
-added: v22.3.0
+added:
+  - v22.3.0
+  - v20.18.0
 -->
 
 Resets the implementation of the mock module.
@@ -2102,7 +2112,9 @@ test('spies on an object method', (t) => {
 ### `mock.module(specifier[, options])`
 
 <!-- YAML
-added: v22.3.0
+added:
+  - v22.3.0
+  - v20.18.0
 -->
 
 > Stability: 1.0 - Early development
@@ -3231,6 +3243,7 @@ test('top level test', async (t) => {
 <!-- YAML
 added:
   - v22.2.0
+  - v20.15.0
 -->
 
 An object containing assertion methods bound to `context`. The top-level
