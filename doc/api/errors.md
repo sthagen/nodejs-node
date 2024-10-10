@@ -2003,13 +2003,6 @@ An invalid [`package.json`][] file failed parsing.
 The `package.json` [`"exports"`][] field contains an invalid target mapping
 value for the attempted module resolution.
 
-<a id="ERR_INVALID_PERFORMANCE_MARK"></a>
-
-### `ERR_INVALID_PERFORMANCE_MARK`
-
-While using the Performance Timing API (`perf_hooks`), a performance mark is
-invalid.
-
 <a id="ERR_INVALID_PROTOCOL"></a>
 
 ### `ERR_INVALID_PROTOCOL`
@@ -2093,6 +2086,18 @@ An element in the `iterable` provided to the [WHATWG][WHATWG URL API]
 [`URLSearchParams` constructor][`new URLSearchParams(iterable)`] did not
 represent a `[name, value]` tuple – that is, if an element is not iterable, or
 does not consist of exactly two elements.
+
+<a id="ERR_INVALID_TYPESCRIPT_SYNTAX"></a>
+
+### `ERR_INVALID_TYPESCRIPT_SYNTAX`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+The provided TypeScript syntax is not valid or unsupported.
+This could happen when using TypeScript syntax that requires
+transformation with [type-stripping][].
 
 <a id="ERR_INVALID_URI"></a>
 
@@ -3461,6 +3466,18 @@ removed: v15.0.0
 
 An invalid or unknown file encoding was passed.
 
+<a id="ERR_INVALID_PERFORMANCE_MARK"></a>
+
+### `ERR_INVALID_PERFORMANCE_MARK`
+
+<!-- YAML
+added: v8.5.0
+removed: v16.7.0
+-->
+
+While using the Performance Timing API (`perf_hooks`), a performance mark is
+invalid.
+
 <a id="ERR_INVALID_TRANSFER_OBJECT"></a>
 
 ### `ERR_INVALID_TRANSFER_OBJECT`
@@ -4203,4 +4220,5 @@ An error occurred trying to allocate memory. This should never happen.
 [stream-based]: stream.md
 [syscall]: https://man7.org/linux/man-pages/man2/syscalls.2.html
 [try-catch]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch
+[type-stripping]: typescript.md#type-stripping
 [vm]: vm.md
