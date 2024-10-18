@@ -770,12 +770,6 @@ Primary GPG keys for Node.js Releasers (some Releasers sign with subkeys):
 
 * **Antoine du Hamel** <<duhamelantoine1995@gmail.com>>
   `C0D6248439F1D5604AAFFB4021D900FFDB233756`
-* **Beth Griggs** <<bethanyngriggs@gmail.com>>
-  `4ED778F539E3634C779C87C6D7062848A1AB005C`
-* **Bryan English** <<bryan@bryanenglish.com>>
-  `141F07595B7B3FFE74309A937405533BE57C7D57`
-* **Danielle Adams** <<adamzdanielle@gmail.com>>
-  `74F12602B6F1C4E913FAA37AD3A89613643B6201`
 * **Juan José Arboleda** <<soyjuanarbol@gmail.com>>
   `DD792F5973C6DE52C432CBDAC77ABFA00DDBF2B7`
 * **Marco Ippolito** <<marcoippolito54@gmail.com>>
@@ -796,9 +790,6 @@ to sign releases):
 
 ```bash
 gpg --keyserver hkps://keys.openpgp.org --recv-keys C0D6248439F1D5604AAFFB4021D900FFDB233756 # Antoine du Hamel
-gpg --keyserver hkps://keys.openpgp.org --recv-keys 4ED778F539E3634C779C87C6D7062848A1AB005C # Beth Griggs
-gpg --keyserver hkps://keys.openpgp.org --recv-keys 141F07595B7B3FFE74309A937405533BE57C7D57 # Bryan English
-gpg --keyserver hkps://keys.openpgp.org --recv-keys 74F12602B6F1C4E913FAA37AD3A89613643B6201 # Danielle Adams
 gpg --keyserver hkps://keys.openpgp.org --recv-keys DD792F5973C6DE52C432CBDAC77ABFA00DDBF2B7 # Juan José Arboleda
 gpg --keyserver hkps://keys.openpgp.org --recv-keys CC68F5A3106FF448322E48ED27F5E38D5B0A215F # Marco Ippolito
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 # Michaël Zasso
@@ -815,12 +806,17 @@ verify a downloaded file.
 
 <summary>Other keys used to sign some previous releases</summary>
 
+* **Beth Griggs** <<bethanyngriggs@gmail.com>>
+  `4ED778F539E3634C779C87C6D7062848A1AB005C`
+* **Bryan English** <<bryan@bryanenglish.com>>
+  `141F07595B7B3FFE74309A937405533BE57C7D57`
 * **Chris Dickinson** <<christopher.s.dickinson@gmail.com>>
   `9554F04D7259F04124DE6B476D5A82AC7E37093B`
 * **Colin Ihrig** <<cjihrig@gmail.com>>
   `94AE36675C464D64BAFA68DD7434390BDBE9B9C5`
 * **Danielle Adams** <<adamzdanielle@gmail.com>>
   `1C050899334244A8AF75E53792EF661D867B9DFA`
+  `74F12602B6F1C4E913FAA37AD3A89613643B6201`
 * **Evan Lucas** <<evanlucas@me.com>>
   `B9AE9905FFD7803F25714661B63B535A4C206CA9`
 * **Gibson Fahnestock** <<gibfahn@gmail.com>>

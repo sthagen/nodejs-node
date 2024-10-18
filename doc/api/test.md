@@ -2224,9 +2224,13 @@ set to `true`.
 added:
   - v20.4.0
   - v18.19.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/55398
+    description: The Mock Timers is now stable.
 -->
 
-> Stability: 1 - Experimental
+> Stability: 2 - Stable
 
 Mocking timers is a technique commonly used in software testing to simulate and
 control the behavior of timers, such as `setInterval` and `setTimeout`,
