@@ -22,7 +22,7 @@ added:
   - v8.10.0
   - v6.13.0
 changes:
-  - version: REPLACEME
+  - version: v23.5.0
     pr-url: https://github.com/nodejs/node/pull/56185
     description: The list now also contains prefix-only modules.
 -->
@@ -204,7 +204,7 @@ resolution and loading behavior. See [Customization hooks][].
 ### `module.registerHooks(options)`
 
 <!-- YAML
-added: REPLACEME
+added: v23.5.0
 -->
 
 > Stability: 1.1 - Active development
@@ -530,7 +530,7 @@ added: v22.8.0
 <!-- YAML
 added: v8.8.0
 changes:
-  - version: REPLACEME
+  - version: v23.5.0
     pr-url: https://github.com/nodejs/node/pull/55698
     description: Add support for synchronous and in-thread hooks.
   - version:
@@ -863,7 +863,7 @@ child workers by default.
 #### Synchronous hooks accepted by `module.registerHooks()`
 
 <!-- YAML
-added: REPLACEME
+added: v23.5.0
 -->
 
 > Stability: 1.1 - Active development
@@ -992,7 +992,7 @@ register('./path-to-my-hooks.js', {
 
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v23.5.0
     pr-url: https://github.com/nodejs/node/pull/55698
     description: Add support for synchronous and in-thread hooks.
   - version:
@@ -1117,7 +1117,7 @@ function resolve(specifier, context, nextResolve) {
 
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v23.5.0
     pr-url: https://github.com/nodejs/node/pull/55698
     description: Add support for synchronous and in-thread version.
   - version: v20.6.0
@@ -1159,13 +1159,13 @@ validating the import attributes.
 
 The final value of `format` must be one of the following:
 
-| `format`     | Description                    | Acceptable types for `source` returned by `load`                           |
-| ------------ | ------------------------------ | -------------------------------------------------------------------------- |
-| `'builtin'`  | Load a Node.js builtin module  | Not applicable                                                             |
-| `'commonjs'` | Load a Node.js CommonJS module | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][], `null`, `undefined` } |
-| `'json'`     | Load a JSON file               | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] }                      |
-| `'module'`   | Load an ES module              | { [`string`][], [`ArrayBuffer`][], [`TypedArray`][] }                      |
-| `'wasm'`     | Load a WebAssembly module      | { [`ArrayBuffer`][], [`TypedArray`][] }                                    |
+| `format`     | Description                    | Acceptable types for `source` returned by `load`   |
+| ------------ | ------------------------------ | -------------------------------------------------- |
+| `'builtin'`  | Load a Node.js builtin module  | {null}                                             |
+| `'commonjs'` | Load a Node.js CommonJS module | {string\|ArrayBuffer\|TypedArray\|null\|undefined} |
+| `'json'`     | Load a JSON file               | {string\|ArrayBuffer\|TypedArray}                  |
+| `'module'`   | Load an ES module              | {string\|ArrayBuffer\|TypedArray}                  |
+| `'wasm'`     | Load a WebAssembly module      | {ArrayBuffer\|TypedArray}                          |
 
 The value of `source` is ignored for type `'builtin'` because currently it is
 not possible to replace the value of a Node.js builtin (core) module.
@@ -1222,8 +1222,8 @@ of module format.
 
 > These types all correspond to classes defined in ECMAScript.
 
-* The specific [`ArrayBuffer`][] object is a [`SharedArrayBuffer`][].
-* The specific [`TypedArray`][] object is a [`Uint8Array`][].
+* The specific {ArrayBuffer} object is a {SharedArrayBuffer}.
+* The specific {TypedArray} object is a {Uint8Array}.
 
 If the source value of a text-based format (i.e., `'json'`, `'module'`)
 is not a string, it is converted to a string using [`util.TextDecoder`][].
@@ -1702,14 +1702,10 @@ returned object contains the following keys:
 [`--enable-source-maps`]: cli.md#--enable-source-maps
 [`--import`]: cli.md#--importmodule
 [`--require`]: cli.md#-r---require-module
-[`ArrayBuffer`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
 [`NODE_COMPILE_CACHE=dir`]: cli.md#node_compile_cachedir
 [`NODE_DISABLE_COMPILE_CACHE=1`]: cli.md#node_disable_compile_cache1
 [`NODE_V8_COVERAGE=dir`]: cli.md#node_v8_coveragedir
-[`SharedArrayBuffer`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
 [`SourceMap`]: #class-modulesourcemap
-[`TypedArray`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
-[`Uint8Array`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
 [`initialize`]: #initialize
 [`module.constants.compileCacheStatus`]: #moduleconstantscompilecachestatus
 [`module.enableCompileCache()`]: #moduleenablecompilecachecachedir
@@ -1719,7 +1715,6 @@ returned object contains the following keys:
 [`os.tmpdir()`]: os.md#ostmpdir
 [`registerHooks`]: #moduleregisterhooksoptions
 [`register`]: #moduleregisterspecifier-parenturl-options
-[`string`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
 [`util.TextDecoder`]: util.md#class-utiltextdecoder
 [chain]: #chaining
 [hooks]: #customization-hooks
