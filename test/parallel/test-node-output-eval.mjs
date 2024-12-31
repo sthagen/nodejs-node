@@ -10,20 +10,27 @@ describe('eval output', { concurrency: true }, () => {
   }
 
   const defaultTransform = snapshot.transform(
-    removeStackTraces,
     normalize,
     snapshot.replaceWindowsLineEndings,
     snapshot.replaceWindowsPaths,
-    snapshot.replaceNodeVersion
+    snapshot.replaceNodeVersion,
+    removeStackTraces,
+    filterEmptyLines,
   );
 
   function removeStackTraces(output) {
     return output.replaceAll(/^ *at .+$/gm, '');
   }
 
+  function filterEmptyLines(output) {
+    return output.replaceAll(/^\s*$/gm, '');
+  }
+
   const tests = [
     { name: 'eval/eval_messages.js' },
     { name: 'eval/stdin_messages.js' },
+    { name: 'eval/stdin_typescript.js' },
+    { name: 'eval/eval_typescript.js' },
   ];
 
   for (const { name } of tests) {
