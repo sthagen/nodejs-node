@@ -192,7 +192,9 @@ Error: Access to this API has been restricted
 <!-- YAML
 added: v20.0.0
 changes:
-  - version: v23.5.0
+  - version:
+    - v23.5.0
+    - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/56201
     description: Permission Model and --allow-fs flags are stable.
   - version: v20.7.0
@@ -237,7 +239,9 @@ node --permission --allow-fs-read=/path/to/index.js index.js
 <!-- YAML
 added: v20.0.0
 changes:
-  - version: v23.5.0
+  - version:
+    - v23.5.0
+    - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/56201
     description: Permission Model and --allow-fs flags are stable.
   - version: v20.7.0
@@ -886,7 +890,7 @@ It is possible to run code containing inline types unless the
 ### `--experimental-addon-modules`
 
 <!-- YAML
-added: REPLACEME
+added: v23.6.0
 -->
 
 > Stability: 1.0 - Early development
@@ -1653,7 +1657,9 @@ See [Loading ECMAScript modules using `require()`][].
 <!-- YAML
 added: v22.5.0
 changes:
-  - version: v23.4.0
+  - version:
+    - v23.4.0
+    - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/55890
     description: SQLite is unflagged but still experimental.
 -->
@@ -1665,7 +1671,7 @@ Disable the experimental [`node:sqlite`][] module.
 <!-- YAML
 added: v22.6.0
 changes:
-  - version: REPLACEME
+  - version: v23.6.0
     pr-url: https://github.com/nodejs/node/pull/56350
     description: Type stripping is enabled by default.
 -->
@@ -1802,7 +1808,9 @@ developers may leverage to detect deprecated API usage.
 <!-- YAML
 added: v20.0.0
 changes:
-  - version: v23.5.0
+  - version:
+    - v23.5.0
+    - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/56201
     description: Permission Model is now stable.
 -->
@@ -1960,7 +1968,9 @@ Location at which the report will be generated.
 ### `--report-exclude-env`
 
 <!-- YAML
-added: v23.3.0
+added:
+  - v23.3.0
+  - v22.13.0
 -->
 
 When `--report-exclude-env` is passed the diagnostic report generated will not
@@ -2354,7 +2364,7 @@ finished executing even if the event loop would otherwise remain active.
 <!-- YAML
 added: v22.8.0
 changes:
-  - version: REPLACEME
+  - version: v23.6.0
     pr-url: https://github.com/nodejs/node/pull/56298
     description: This flag was renamed from `--experimental-test-isolation` to
                  `--test-isolation`.
@@ -2481,7 +2491,9 @@ subtests inherit this value from their parent. The default value is `Infinity`.
 <!-- YAML
 added: v22.3.0
 changes:
-  - version: v23.4.0
+  - version:
+    - v23.4.0
+    - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/55897
     description: Snapsnot testing is no longer experimental.
 -->
@@ -2599,7 +2611,9 @@ Print stack traces for deprecations.
 ### `--trace-env`
 
 <!-- YAML
-added: v23.4.0
+added:
+  - v23.4.0
+  - v22.13.0
 -->
 
 Print information about any access to environment variables done in the current Node.js
@@ -2622,7 +2636,9 @@ To print the stack trace of the access, use `--trace-env-js-stack` and/or
 ### `--trace-env-js-stack`
 
 <!-- YAML
-added: v23.4.0
+added:
+  - v23.4.0
+  - v22.13.0
 -->
 
 In addition to what `--trace-env` does, this prints the JavaScript stack trace of the access.
@@ -2630,7 +2646,9 @@ In addition to what `--trace-env` does, this prints the JavaScript stack trace o
 ### `--trace-env-native-stack`
 
 <!-- YAML
-added: v23.4.0
+added:
+  - v23.4.0
+  - v22.13.0
 -->
 
 In addition to what `--trace-env` does, this prints the native stack trace of the access.
@@ -2677,6 +2695,7 @@ i.e. invoking `process.exit()`.
 <!-- YAML
 added:
  - v23.5.0
+ - v22.13.0
 -->
 
 Prints information about usage of [Loading ECMAScript modules using `require()`][].
