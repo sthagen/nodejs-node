@@ -226,17 +226,6 @@ The TTY file descriptor is assumed to be capable of being writable.
 
 Indicates whether OpenSSL is available.
 
-### `hasFipsCrypto`
-
-* [\<boolean>][<boolean>]
-
-Indicates that Node.js has been linked with a FIPS compatible OpenSSL library,
-and that FIPS as been enabled using `--enable-fips`.
-
-To only detect if the OpenSSL library is FIPS compatible, regardless if it has
-been enabled or not, then `process.config.variables.openssl_is_fips` can be
-used to determine that situation.
-
 ### `hasIntl`
 
 * [\<boolean>][<boolean>]
@@ -248,12 +237,6 @@ Indicates if [internationalization][] is supported.
 * [\<boolean>][<boolean>]
 
 Indicates whether `IPv6` is supported on this platform.
-
-### `hasMultiLocalhost`
-
-* [\<boolean>][<boolean>]
-
-Indicates if there are multiple localhosts available.
 
 ### `inFreeBSDJail`
 
@@ -416,12 +399,6 @@ Returns a function that accepts arguments `(err, ...args)`. If `err` is not
 Returns `true` if the exit code `exitCode` and/or signal name `signal` represent
 the exit code and/or signal name of a node process that aborted, `false`
 otherwise.
-
-### `opensslCli`
-
-* [\<boolean>][<boolean>]
-
-Indicates whether 'opensslCli' is supported.
 
 ### `platformTimeout(ms)`
 
