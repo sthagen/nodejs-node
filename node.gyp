@@ -146,6 +146,7 @@
       'src/node_trace_events.cc',
       'src/node_types.cc',
       'src/node_url.cc',
+      'src/node_url_pattern.cc',
       'src/node_util.cc',
       'src/node_v8.cc',
       'src/node_wasi.cc',
@@ -275,6 +276,7 @@
       'src/node_stat_watcher.h',
       'src/node_union_bytes.h',
       'src/node_url.h',
+      'src/node_url_pattern.h',
       'src/node_version.h',
       'src/node_v8.h',
       'src/node_v8_platform-inl.h',
@@ -402,8 +404,8 @@
     ],
     'node_cctest_sources': [
       'src/node_snapshot_stub.cc',
-      '<!@(<(python) tools/search_files.py . test/cctest cc)',
-      '<!@(<(python) tools/search_files.py . test/cctest h)',
+      '<!@("<(python)" tools/search_files.py . test/cctest cc)',
+      '<!@("<(python)" tools/search_files.py . test/cctest h)',
     ],
     'node_cctest_openssl_sources': [
       'test/cctest/test_crypto_clienthello.cc',
