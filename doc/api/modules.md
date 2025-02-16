@@ -208,7 +208,7 @@ regarding which files are parsed as ECMAScript modules.
   3. The file has a `.js` extension, the closest `package.json` does not contain
      `"type": "commonjs"`, and the module contains ES module syntax.
 
-If the ES Module being loaded meet the requirements, `require()` can load it and
+If the ES Module being loaded meets the requirements, `require()` can load it and
 return the module namespace object. In this case it is similar to dynamic
 `import()` but is run synchronously and returns the name space object
 directly.
@@ -217,7 +217,7 @@ With the following ES Modules:
 
 ```mjs
 // distance.mjs
-export function distance(a, b) { return (b.x - a.x) ** 2 + (b.y - a.y) ** 2; }
+export function distance(a, b) { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2); }
 ```
 
 ```mjs
@@ -269,7 +269,7 @@ export default class Point {
 
 // `distance` is lost to CommonJS consumers of this module, unless it's
 // added to `Point` as a static property.
-export function distance(a, b) { return (b.x - a.x) ** 2 + (b.y - a.y) ** 2; }
+export function distance(a, b) { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2); }
 export { Point as 'module.exports' }
 ```
 
@@ -293,7 +293,7 @@ named exports attached to it as properties. For example with the example above,
 <!-- eslint-disable @stylistic/js/semi -->
 
 ```mjs
-export function distance(a, b) { return (b.x - a.x) ** 2 + (b.y - a.y) ** 2; }
+export function distance(a, b) { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2); }
 
 export default class Point {
   constructor(x, y) { this.x = x; this.y = y; }
@@ -516,9 +516,11 @@ by that name.
 
 Some built-in modules are always preferentially loaded if their identifier is
 passed to `require()`. For instance, `require('http')` will always
-return the built-in HTTP module, even if there is a file by that name. The list
-of built-in modules that can be loaded without using the `node:` prefix is exposed
-in [`module.builtinModules`][], listed without the prefix.
+return the built-in HTTP module, even if there is a file by that name.
+
+The list of all the built-in modules can be retrieved from [`module.builtinModules`][].
+The modules being all listed without the `node:` prefix, except those that mandate such
+prefix (as explained in the next section).
 
 ### Built-in modules with mandatory `node:` prefix
 
