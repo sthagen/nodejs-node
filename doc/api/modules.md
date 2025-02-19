@@ -209,7 +209,7 @@ regarding which files are parsed as ECMAScript modules.
      `"type": "commonjs"`, and the module contains ES module syntax.
 
 If the ES Module being loaded meets the requirements, `require()` can load it and
-return the module namespace object. In this case it is similar to dynamic
+return the [module namespace object][]. In this case it is similar to dynamic
 `import()` but is run synchronously and returns the name space object
 directly.
 
@@ -254,7 +254,7 @@ by tools converting ES modules into CommonJS modules, following existing ecosyst
 conventions. Code authored directly in CommonJS should avoid depending on it.
 
 When an ES Module contains both named exports and a default export, the result returned by `require()`
-is the module namespace object, which places the default export in the `.default` property, similar to
+is the [module namespace object][], which places the default export in the `.default` property, similar to
 the results returned by `import()`.
 To customize what should be returned by `require(esm)` directly, the ES Module can export the
 desired value using the string name `"module.exports"`.
@@ -346,7 +346,7 @@ require(X) from module at path Y
    a. return the core module
    b. STOP
 2. If X begins with '/'
-   a. set Y to be the file system root
+   a. set Y to the file system root
 3. If X begins with './' or '/' or '../'
    a. LOAD_AS_FILE(Y + X)
    b. LOAD_AS_DIRECTORY(Y + X)
@@ -1271,9 +1271,9 @@ This section was moved to
 
 * <a id="modules_module_findsourcemap_path_error" href="module.html#modulefindsourcemappath">`module.findSourceMap(path)`</a>
 * <a id="modules_class_module_sourcemap" href="module.html#class-modulesourcemap">Class: `module.SourceMap`</a>
-  * <a id="modules_new_sourcemap_payload" href="module.html#new-sourcemappayload">`new SourceMap(payload)`</a>
+  * <a id="modules_new_sourcemap_payload" href="module.html#new-sourcemappayload--linelengths-">`new SourceMap(payload)`</a>
   * <a id="modules_sourcemap_payload" href="module.html#sourcemappayload">`sourceMap.payload`</a>
-  * <a id="modules_sourcemap_findentry_linenumber_columnnumber" href="module.html#sourcemapfindentrylinenumber-columnnumber">`sourceMap.findEntry(lineNumber, columnNumber)`</a>
+  * <a id="modules_sourcemap_findentry_linenumber_columnnumber" href="module.html#sourcemapfindentrylineoffset-columnoffset">`sourceMap.findEntry(lineNumber, columnNumber)`</a>
 
 [Determining module system]: packages.md#determining-module-system
 [ECMAScript Modules]: esm.md
@@ -1301,6 +1301,7 @@ This section was moved to
 [`process.features.require_module`]: process.md#processfeaturesrequire_module
 [`require.main`]: #requiremain
 [exports shortcut]: #exports-shortcut
+[module namespace object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import#module_namespace_object
 [module resolution]: #all-together
 [native addons]: addons.md
 [subpath exports]: packages.md#subpath-exports
