@@ -436,7 +436,7 @@ corresponding argument. Supported specifiers are:
 
 * `%s`: `String` will be used to convert all values except `BigInt`, `Object`
   and `-0`. `BigInt` values will be represented with an `n` and Objects that
-  have no user defined `toString` function are inspected using `util.inspect()`
+  have neither a user defined `toString` function nor `Symbol.toPrimitive` function are inspected using `util.inspect()`
   with options `{ depth: 0, colors: false, compact: 3 }`.
 * `%d`: `Number` will be used to convert all values except `BigInt` and
   `Symbol`.
@@ -3101,6 +3101,23 @@ types.isExternal(new String('foo')); // returns false
 
 For further information on `napi_create_external`, refer to
 [`napi_create_external()`][].
+
+### `util.types.isFloat16Array(value)`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `value` {any}
+* Returns: {boolean}
+
+Returns `true` if the value is a built-in {Float16Array} instance.
+
+```js
+util.types.isFloat16Array(new ArrayBuffer());  // Returns false
+util.types.isFloat16Array(new Float16Array());  // Returns true
+util.types.isFloat16Array(new Float32Array());  // Returns false
+```
 
 ### `util.types.isFloat32Array(value)`
 
