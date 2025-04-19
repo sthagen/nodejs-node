@@ -6,27 +6,18 @@ if (!common.hasCrypto)
 const assert = require('assert');
 const h2 = require('http2');
 
-// Http2ServerResponse.statusMessage should warn
-
-const unsupportedWarned = common.mustCall(1);
-process.on('warning', ({ name, message }) => {
-  const expectedMessage =
-    'Status message is not supported by HTTP/2 (RFC7540 8.1.2.4)';
-  if (name === 'UnsupportedWarning' && message === expectedMessage)
-    unsupportedWarned();
-});
-
 const server = h2.createServer();
+let session;
+
+server.on('session', common.mustCall(function(s) {
+  session = s;
+  session.on('close', common.mustCall(function() {
+    server.close();
+  }));
+}));
+
 server.listen(0, common.mustCall(function() {
   const port = server.address().port;
-  server.once('request', common.mustCall(function(request, response) {
-    response.on('finish', common.mustCall(function() {
-      response.statusMessage = 'test';
-      response.statusMessage = 'test'; // only warn once
-      assert.strictEqual(response.statusMessage, ''); // no change
-    }));
-    response.end();
-  }));
 
   const url = `http://localhost:${port}`;
   const client = h2.connect(url, common.mustCall(function() {
@@ -43,10 +34,15 @@ server.listen(0, common.mustCall(function() {
     request.on('end', common.mustCall(function() {
       client.close();
     }));
-    request.on('close', common.mustCall(function() {
-      server.close();
-    }));
     request.end();
     request.resume();
   }));
+  client.on('goaway', common.mustCallAtLeast(1));
+}));
+
+server.once('request', common.mustCall(function(request, response) {
+  response.on('finish', common.mustCall(function() {
+    session.close();
+  }));
+  response.end();
 }));
