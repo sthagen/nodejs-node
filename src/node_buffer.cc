@@ -721,23 +721,35 @@ void StringWrite(const FunctionCallbackInfo<Value>& args) {
 }
 
 void SlowByteLengthUtf8(const FunctionCallbackInfo<Value>& args) {
-  Environment* env = Environment::GetCurrent(args);
   CHECK(args[0]->IsString());
 
   // Fast case: avoid StringBytes on UTF8 string. Jump to v8.
-  args.GetReturnValue().Set(args[0].As<String>()->Utf8Length(env->isolate()));
+  args.GetReturnValue().Set(
+      args[0].As<String>()->Utf8Length(args.GetIsolate()));
 }
 
-uint32_t FastByteLengthUtf8(Local<Value> receiver,
-                            const v8::FastOneByteString& source) {
+uint32_t FastByteLengthUtf8(
+    Local<Value> receiver,
+    Local<Value> sourceValue,
+    v8::FastApiCallbackOptions& options) {  // NOLINT(runtime/references)
+  TRACK_V8_FAST_API_CALL("Buffer::FastByteLengthUtf8");
+  auto isolate = options.isolate;
+  HandleScope handleScope(isolate);
+  CHECK(sourceValue->IsString());
+  Local<String> sourceStr = sourceValue.As<String>();
+
+  if (!sourceStr->IsExternalOneByte()) {
+    return sourceStr->Utf8Length(isolate);
+  }
+  auto source = sourceStr->GetExternalOneByteStringResource();
   // For short inputs, the function call overhead to simdutf is maybe
   // not worth it, reserve simdutf for long strings.
-  if (source.length > 128) {
-    return simdutf::utf8_length_from_latin1(source.data, source.length);
+  if (source->length() > 128) {
+    return simdutf::utf8_length_from_latin1(source->data(), source->length());
   }
 
-  uint32_t length = source.length;
-  const auto input = reinterpret_cast<const uint8_t*>(source.data);
+  uint32_t length = source->length();
+  const auto input = reinterpret_cast<const uint8_t*>(source->data());
 
   uint32_t answer = length;
   uint32_t i = 0;
@@ -1255,20 +1267,6 @@ void GetZeroFillToggle(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(Uint32Array::New(ab, 0, 1));
 }
 
-void DetachArrayBuffer(const FunctionCallbackInfo<Value>& args) {
-  Environment* env = Environment::GetCurrent(args);
-  if (args[0]->IsArrayBuffer()) {
-    Local<ArrayBuffer> buf = args[0].As<ArrayBuffer>();
-    if (buf->IsDetachable()) {
-      std::shared_ptr<BackingStore> store = buf->GetBackingStore();
-      if (buf->Detach(Local<Value>()).IsNothing()) {
-        return;
-      }
-      args.GetReturnValue().Set(ArrayBuffer::New(env->isolate(), store));
-    }
-  }
-}
-
 static void Btoa(const FunctionCallbackInfo<Value>& args) {
   CHECK_EQ(args.Length(), 1);
   Environment* env = Environment::GetCurrent(args);
@@ -1558,7 +1556,6 @@ void Initialize(Local<Object> target,
                             &fast_index_of_number);
   SetMethodNoSideEffect(context, target, "indexOfString", IndexOfString);
 
-  SetMethod(context, target, "detachArrayBuffer", DetachArrayBuffer);
   SetMethod(context, target, "copyArrayBuffer", CopyArrayBuffer);
 
   SetMethod(context, target, "swap16", Swap16);
@@ -1668,7 +1665,6 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(StringWrite<UTF8>);
   registry->Register(GetZeroFillToggle);
 
-  registry->Register(DetachArrayBuffer);
   registry->Register(CopyArrayBuffer);
 
   registry->Register(Atob);
