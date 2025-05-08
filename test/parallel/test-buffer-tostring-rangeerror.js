@@ -1,13 +1,18 @@
 'use strict';
-require('../common');
+
+const common = require('../common');
 
 // This test ensures that Node.js throws an Error when trying to convert a
 // large buffer into a string.
 // Regression test for https://github.com/nodejs/node/issues/649.
 
+if (!common.enoughTestMem) {
+  common.skip('skipped due to memory requirements');
+}
+
 const assert = require('assert');
 const {
-  Buffer,
+  SlowBuffer,
   constants: {
     MAX_STRING_LENGTH,
   },
@@ -19,7 +24,7 @@ const message = {
   name: 'Error',
 };
 assert.throws(() => Buffer(len).toString('utf8'), message);
-assert.throws(() => Buffer.allocUnsafeSlow(len).toString('utf8'), message);
+assert.throws(() => SlowBuffer(len).toString('utf8'), message);
 assert.throws(() => Buffer.alloc(len).toString('utf8'), message);
 assert.throws(() => Buffer.allocUnsafe(len).toString('utf8'), message);
 assert.throws(() => Buffer.allocUnsafeSlow(len).toString('utf8'), message);
