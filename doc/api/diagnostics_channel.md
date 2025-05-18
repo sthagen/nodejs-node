@@ -1224,6 +1224,14 @@ Emitted when a stream is started on the client.
 
 Emitted when an error occurs during the processing of a stream on the client.
 
+`http2.client.stream.finish`
+
+* `stream` {ClientHttp2Stream}
+* `headers` {HTTP/2 Headers Object}
+* `flags` {number}
+
+Emitted when a stream is received on the client.
+
 #### Modules
 
 > Stability: 1 - Experimental
@@ -1284,9 +1292,9 @@ Emitted when a `import()` throws an error. See [`error` event][].
 
 `net.client.socket`
 
-* `socket` {net.Socket}
+* `socket` {net.Socket|tls.TLSSocket}
 
-Emitted when a new TCP or pipe client socket is created.
+Emitted when a new TCP or pipe client socket connection is created.
 
 `net.server.socket`
 
