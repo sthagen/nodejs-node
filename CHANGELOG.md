@@ -40,7 +40,8 @@ release.
 </tr>
 <tr>
   <td valign="top">
-<b><a href="doc/changelogs/CHANGELOG_V24.md#24.0.2">24.0.2</a></b><br/>
+<b><a href="doc/changelogs/CHANGELOG_V24.md#24.1.0">24.1.0</a></b><br/>
+<a href="doc/changelogs/CHANGELOG_V24.md#24.0.2">24.0.2</a><br/>
 <a href="doc/changelogs/CHANGELOG_V24.md#24.0.1">24.0.1</a><br/>
 <a href="doc/changelogs/CHANGELOG_V24.md#24.0.0">24.0.0</a><br/>
   </td>
@@ -61,7 +62,8 @@ release.
 <a href="doc/changelogs/CHANGELOG_V23.md#23.0.0">23.0.0</a><br/>
   </td>
   <td valign="top">
-<b><a href="doc/changelogs/CHANGELOG_V22.md#22.15.1">22.15.1</a></b><br/>
+<b><a href="doc/changelogs/CHANGELOG_V22.md#22.16.0">22.16.0</a></b><br/>
+<a href="doc/changelogs/CHANGELOG_V22.md#22.15.1">22.15.1</a><br/>
 <a href="doc/changelogs/CHANGELOG_V22.md#22.15.0">22.15.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V22.md#22.14.0">22.14.0</a><br/>
 <a href="doc/changelogs/CHANGELOG_V22.md#22.13.1">22.13.1</a><br/>

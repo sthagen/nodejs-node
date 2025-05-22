@@ -666,7 +666,9 @@ with REPL instances programmatically.
 
 <!-- YAML
 added: v14.5.0
-deprecated: v24.0.0
+deprecated:
+  - v24.0.0
+  - v22.16.0
 -->
 
 > Stability: 0 - Deprecated. Use [`module.builtinModules`][] instead.
@@ -680,7 +682,7 @@ A list of the names of some Node.js modules, e.g., `'http'`.
 <!-- YAML
 added: v0.1.91
 changes:
-  - version: REPLACEME
+  - version: v24.1.0
     pr-url: https://github.com/nodejs/node/pull/58003
     description: Added the possibility to add/edit/remove multilines
                  while adding a multiline command.
