@@ -2068,12 +2068,15 @@ and `crypto.getFips()` instead.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58532
+    description: End-of-Life.
   - version: v10.0.0
     pr-url: https://github.com/nodejs/node/pull/18418
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Using `assert.fail()` with more than one argument is deprecated. Use
 `assert.fail()` with only one argument or use a different `node:assert` module
@@ -2605,15 +2608,18 @@ Please use `Server.prototype.setSecureContext()` instead.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58533
+    description: End-of-Life.
   - version: v12.0.0
     pr-url: https://github.com/nodejs/node/pull/23329
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Setting the TLS ServerName to an IP address is not permitted by
-[RFC 6066][]. This will be ignored in a future version.
+[RFC 6066][].
 
 ### DEP0124: using `REPLServer.rli`
 
@@ -2705,6 +2711,9 @@ Node.js versions.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58527
+    description: End-of-Life.
   - version: v13.0.0
     pr-url: https://github.com/nodejs/node/pull/27949
     description: Runtime deprecation.
@@ -2713,7 +2722,7 @@ changes:
     description: Documentation-only.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 The `_channel` property of child process objects returned by `spawn()` and
 similar functions is not intended for public use. Use `ChildProcess.channel`
@@ -2764,12 +2773,15 @@ legacy parser.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58528
+    description: End-of-Life.
   - version: v12.5.0
     pr-url: https://github.com/nodejs/node/pull/28021
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Passing a callback to [`worker.terminate()`][] is deprecated. Use the returned
 `Promise` instead, or a listener to the worker's `'exit'` event.
@@ -2807,12 +2819,15 @@ an officially supported API.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58529
+    description: End-of-Life.
   - version: v13.0.0
     pr-url: https://github.com/nodejs/node/pull/29061
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 [`WriteStream.open()`][] and [`ReadStream.open()`][] are undocumented internal
 APIs that do not make sense to use in userland. File streams should always be
@@ -3137,18 +3152,21 @@ an explicit [`"exports"` or `"main"` entry][] with the exact file extension.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58531
+    description: End-of-Life.
   - version: v16.0.0
     pr-url: https://github.com/nodejs/node/pull/37136
     description: Runtime deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-The `'gc'`, `'http2'`, and `'http'` {PerformanceEntry} object types have
+The `'gc'`, `'http2'`, and `'http'` {PerformanceEntry} object types used to have
 additional properties assigned to them that provide additional information.
 These properties are now available within the standard `detail` property
-of the `PerformanceEntry` object. The existing accessors have been
-deprecated and should no longer be used.
+of the `PerformanceEntry` object. The deprecated accessors have been
+removed.
 
 ### DEP0153: `dns.lookup` and `dnsPromises.lookup` options type coercion
 
