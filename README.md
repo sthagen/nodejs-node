@@ -424,7 +424,7 @@ For information about the governance of the Node.js project, see
 * [Qard](https://github.com/Qard) -
   **Stephen Belanger** <<admin@stephenbelanger.com>> (he/him)
 * [RafaelGSS](https://github.com/RafaelGSS) -
-  **Rafael Gonzaga** <<rafael.nunu@hotmail.com>> (he/him)
+  **Rafael Gonzaga** <<rafael.nunu@hotmail.com>> (he/him) - [Support me](https://github.com/sponsors/RafaelGSS)
 * [RaisinTen](https://github.com/RaisinTen) -
   **Darshan Sen** <<raisinten@gmail.com>> (he/him) - [Support me](https://github.com/sponsors/RaisinTen)
 * [richardlau](https://github.com/richardlau) -
@@ -880,6 +880,9 @@ releases on a rotation basis as outlined in the
 * [Datadog](https://www.datadoghq.com/)
   * [bengl](https://github.com/bengl) -
     **Bryan English** <<bryan@bryanenglish.com>> (he/him)
+* [HeroDevs](https://www.herodevs.com/)
+  * [marco-ippolito](https://github.com/marco-ippolito) -
+    **Marco Ippolito** <<marcoippolito54@gmail.com>> (he/him)
 * [NodeSource](https://nodesource.com/)
   * [juanarbol](https://github.com/juanarbol) -
     **Juan José Arboleda** <<soyjuanarbol@gmail.com>> (he/him)
