@@ -373,6 +373,7 @@ class Cipher final {
   static const Cipher AES_128_KW;
   static const Cipher AES_192_KW;
   static const Cipher AES_256_KW;
+  static const Cipher CHACHA20_POLY1305;
 
   struct CipherParams {
     int padding;
@@ -1555,6 +1556,23 @@ DataPointer pbkdf2(const Digest& md,
                    const Buffer<const unsigned char>& salt,
                    uint32_t iterations,
                    size_t length);
+
+#if OPENSSL_VERSION_NUMBER >= 0x30200000L
+#ifndef OPENSSL_NO_ARGON2
+enum class Argon2Type { ARGON2D, ARGON2I, ARGON2ID };
+
+DataPointer argon2(const Buffer<const char>& pass,
+                   const Buffer<const unsigned char>& salt,
+                   uint32_t lanes,
+                   size_t length,
+                   uint32_t memcost,
+                   uint32_t iter,
+                   uint32_t version,
+                   const Buffer<const unsigned char>& secret,
+                   const Buffer<const unsigned char>& ad,
+                   Argon2Type type);
+#endif
+#endif
 
 // ============================================================================
 // Version metadata
