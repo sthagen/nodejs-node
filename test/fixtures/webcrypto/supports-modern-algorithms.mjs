@@ -6,6 +6,7 @@ const pqc = hasOpenSSL(3, 5);
 const shake128 = crypto.getHashes().includes('shake128');
 const shake256 = crypto.getHashes().includes('shake256');
 const chacha = crypto.getCiphers().includes('chacha20-poly1305');
+const ocb = hasOpenSSL(3);
 
 export const vectors = {
   'digest': [
@@ -31,19 +32,31 @@ export const vectors = {
     [pqc, 'ML-DSA-44'],
     [pqc, 'ML-DSA-65'],
     [pqc, 'ML-DSA-87'],
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
     [chacha, 'ChaCha20-Poly1305'],
+    [ocb, { name: 'AES-OCB', length: 128 }],
   ],
   'importKey': [
     [pqc, 'ML-DSA-44'],
     [pqc, 'ML-DSA-65'],
     [pqc, 'ML-DSA-87'],
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
     [chacha, 'ChaCha20-Poly1305'],
+    [ocb, { name: 'AES-OCB', length: 128 }],
   ],
   'exportKey': [
     [pqc, 'ML-DSA-44'],
     [pqc, 'ML-DSA-65'],
     [pqc, 'ML-DSA-87'],
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
     [chacha, 'ChaCha20-Poly1305'],
+    [ocb, 'AES-OCB'],
   ],
   'getPublicKey': [
     [true, 'RSA-OAEP'],
@@ -56,9 +69,15 @@ export const vectors = {
     [true, 'ECDH'],
     [true, 'ECDSA'],
     [pqc, 'ML-DSA-44'],
+    [pqc, 'ML-DSA-65'],
+    [pqc, 'ML-DSA-87'],
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
     [false, 'AES-CTR'],
     [false, 'AES-CBC'],
     [false, 'AES-GCM'],
+    [false, 'AES-OCB'],
     [false, 'AES-KW'],
     [false, 'ChaCha20-Poly1305'],
   ],
@@ -68,5 +87,46 @@ export const vectors = {
     [chacha, { name: 'ChaCha20-Poly1305', iv: Buffer.alloc(12), tagLength: 128 }],
     [false, { name: 'ChaCha20-Poly1305', iv: Buffer.alloc(12), tagLength: 64 }],
     [false, 'ChaCha20-Poly1305'],
-  ]
+    [ocb, { name: 'AES-OCB', iv: Buffer.alloc(15) }],
+    [false, { name: 'AES-OCB', iv: Buffer.alloc(16) }],
+    [ocb, { name: 'AES-OCB', iv: Buffer.alloc(12), tagLength: 128 }],
+    [ocb, { name: 'AES-OCB', iv: Buffer.alloc(12), tagLength: 96 }],
+    [ocb, { name: 'AES-OCB', iv: Buffer.alloc(12), tagLength: 64 }],
+    [false, { name: 'AES-OCB', iv: Buffer.alloc(12), tagLength: 32 }],
+    [false, 'AES-OCB'],
+  ],
+  'encapsulateBits': [
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
+  ],
+  'encapsulateKey': [
+    [pqc, 'ML-KEM-512', 'AES-KW'],
+    [pqc, 'ML-KEM-512', 'AES-GCM'],
+    [pqc, 'ML-KEM-512', 'AES-CTR'],
+    [pqc, 'ML-KEM-512', 'AES-CBC'],
+    [pqc, 'ML-KEM-512', 'ChaCha20-Poly1305'],
+    [pqc, 'ML-KEM-512', 'HKDF'],
+    [pqc, 'ML-KEM-512', 'PBKDF2'],
+    [pqc, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256' }],
+    [pqc, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256', length: 256 }],
+    [false, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256', length: 128 }],
+  ],
+  'decapsulateBits': [
+    [pqc, 'ML-KEM-512'],
+    [pqc, 'ML-KEM-768'],
+    [pqc, 'ML-KEM-1024'],
+  ],
+  'decapsulateKey': [
+    [pqc, 'ML-KEM-512', 'AES-KW'],
+    [pqc, 'ML-KEM-512', 'AES-GCM'],
+    [pqc, 'ML-KEM-512', 'AES-CTR'],
+    [pqc, 'ML-KEM-512', 'AES-CBC'],
+    [pqc, 'ML-KEM-512', 'ChaCha20-Poly1305'],
+    [pqc, 'ML-KEM-512', 'HKDF'],
+    [pqc, 'ML-KEM-512', 'PBKDF2'],
+    [pqc, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256' }],
+    [pqc, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256', length: 256 }],
+    [false, 'ML-KEM-512', { name: 'HMAC', hash: 'SHA-256', length: 128 }],
+  ],
 };

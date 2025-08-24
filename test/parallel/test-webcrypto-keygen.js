@@ -173,6 +173,19 @@ if (!process.features.openssl_is_boringssl) {
   common.printSkipMessage('Skipping unsupported test cases');
 }
 
+if (hasOpenSSL(3)) {
+  vectors['AES-OCB'] = {
+    algorithm: { length: 256 },
+    result: 'CryptoKey',
+    usages: [
+      'encrypt',
+      'decrypt',
+      'wrapKey',
+      'unwrapKey',
+    ],
+  };
+}
+
 if (hasOpenSSL(3, 5)) {
   for (const name of ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87']) {
     vectors[name] = {
@@ -614,9 +627,6 @@ if (hasOpenSSL(3, 5)) {
         case 'SHA-256': length = 512; break;
         case 'SHA-384': length = 1024; break;
         case 'SHA-512': length = 1024; break;
-        case 'SHA3-256': length = 1088; break;
-        case 'SHA3-384': length = 832; break;
-        case 'SHA3-512': length = 576; break;
       }
     }
 
@@ -642,20 +652,24 @@ if (hasOpenSSL(3, 5)) {
   }
 
   const kTests = [
-    [ undefined, 'SHA-1', ['sign', 'verify']],
-    [ undefined, 'SHA-256', ['sign', 'verify']],
-    [ undefined, 'SHA-384', ['sign', 'verify']],
-    [ undefined, 'SHA-512', ['sign', 'verify']],
-    [ 128, 'SHA-256', ['sign', 'verify']],
-    [ 1024, 'SHA-512', ['sign', 'verify']],
+    [undefined, 'SHA-1', ['sign', 'verify']],
+    [undefined, 'SHA-256', ['sign', 'verify']],
+    [undefined, 'SHA-384', ['sign', 'verify']],
+    [undefined, 'SHA-512', ['sign', 'verify']],
+    [128, 'SHA-256', ['sign', 'verify']],
+    [1024, 'SHA-512', ['sign', 'verify']],
   ];
 
   if (!process.features.openssl_is_boringssl) {
     kTests.push(
-
-      [ undefined, 'SHA3-256', ['sign', 'verify']],
-      [ undefined, 'SHA3-384', ['sign', 'verify']],
-      [ undefined, 'SHA3-512', ['sign', 'verify']],
+      [256, 'SHA3-256', ['sign', 'verify']],
+      [384, 'SHA3-384', ['sign', 'verify']],
+      [512, 'SHA3-512', ['sign', 'verify']],
+      // This interaction is not defined for now.
+      // https://github.com/WICG/webcrypto-modern-algos/issues/23
+      // [undefined, 'SHA3-256', ['sign', 'verify']],
+      // [undefined, 'SHA3-384', ['sign', 'verify']],
+      // [undefined, 'SHA3-512', ['sign', 'verify']],
     );
   } else {
     common.printSkipMessage('Skipping unsupported SHA-3 test cases');
@@ -786,6 +800,51 @@ if (hasOpenSSL(3, 5)) {
   const kTests = ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'];
 
   const tests = kTests.map((name) => test(name, ['sign'], ['verify']));
+
+  Promise.all(tests).then(common.mustCall());
+}
+
+// Test ML-KEM Key Generation
+if (hasOpenSSL(3, 5)) {
+  async function test(
+    name,
+    privateUsages,
+    publicUsages = privateUsages) {
+
+    let usages = privateUsages;
+    if (publicUsages !== privateUsages)
+      usages = usages.concat(publicUsages);
+
+    const { publicKey, privateKey } = await subtle.generateKey({
+      name,
+    }, true, usages);
+
+    assert(publicKey);
+    assert(privateKey);
+    assert(isCryptoKey(publicKey));
+    assert(isCryptoKey(privateKey));
+
+    assert.strictEqual(publicKey.type, 'public');
+    assert.strictEqual(privateKey.type, 'private');
+    assert.strictEqual(publicKey.toString(), '[object CryptoKey]');
+    assert.strictEqual(privateKey.toString(), '[object CryptoKey]');
+    assert.strictEqual(publicKey.extractable, true);
+    assert.strictEqual(privateKey.extractable, true);
+    assert.deepStrictEqual(publicKey.usages, publicUsages);
+    assert.deepStrictEqual(privateKey.usages, privateUsages);
+    assert.strictEqual(publicKey.algorithm.name, name);
+    assert.strictEqual(privateKey.algorithm.name, name);
+    assert.strictEqual(privateKey.algorithm, privateKey.algorithm);
+    assert.strictEqual(privateKey.usages, privateKey.usages);
+    assert.strictEqual(publicKey.algorithm, publicKey.algorithm);
+    assert.strictEqual(publicKey.usages, publicKey.usages);
+  }
+
+  const kTests = ['ML-KEM-512', 'ML-KEM-768', 'ML-KEM-1024'];
+
+  const tests = kTests.map((name) => test(name,
+                                          ['decapsulateBits', 'decapsulateKey'],
+                                          ['encapsulateBits', 'encapsulateKey']));
 
   Promise.all(tests).then(common.mustCall());
 }

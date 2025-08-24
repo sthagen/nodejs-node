@@ -2162,21 +2162,34 @@ DataPointer EVPKeyPointer::rawPublicKey() const {
 #if OPENSSL_WITH_PQC
 DataPointer EVPKeyPointer::rawSeed() const {
   if (!pkey_) return {};
+
+  // Determine seed length and parameter name based on key type
+  size_t seed_len;
+  const char* param_name;
+
   switch (id()) {
     case EVP_PKEY_ML_DSA_44:
     case EVP_PKEY_ML_DSA_65:
     case EVP_PKEY_ML_DSA_87:
+      seed_len = 32;  // ML-DSA uses 32-byte seeds
+      param_name = OSSL_PKEY_PARAM_ML_DSA_SEED;
+      break;
+    case EVP_PKEY_ML_KEM_512:
+    case EVP_PKEY_ML_KEM_768:
+    case EVP_PKEY_ML_KEM_1024:
+      seed_len = 64;  // ML-KEM uses 64-byte seeds
+      param_name = OSSL_PKEY_PARAM_ML_KEM_SEED;
       break;
     default:
       unreachable();
   }
 
-  size_t seed_len = 32;
   if (auto data = DataPointer::Alloc(seed_len)) {
     const Buffer<unsigned char> buf = data;
     size_t len = data.size();
+
     if (EVP_PKEY_get_octet_string_param(
-            get(), OSSL_PKEY_PARAM_ML_DSA_SEED, buf.data, len, &seed_len) != 1)
+            get(), param_name, buf.data, len, &seed_len) != 1)
       return {};
     return data;
   }
@@ -3028,6 +3041,9 @@ const Cipher Cipher::AES_256_GCM = Cipher::FromNid(NID_aes_256_gcm);
 const Cipher Cipher::AES_128_KW = Cipher::FromNid(NID_id_aes128_wrap);
 const Cipher Cipher::AES_192_KW = Cipher::FromNid(NID_id_aes192_wrap);
 const Cipher Cipher::AES_256_KW = Cipher::FromNid(NID_id_aes256_wrap);
+const Cipher Cipher::AES_128_OCB = Cipher::FromNid(NID_aes_128_ocb);
+const Cipher Cipher::AES_192_OCB = Cipher::FromNid(NID_aes_192_ocb);
+const Cipher Cipher::AES_256_OCB = Cipher::FromNid(NID_aes_256_ocb);
 const Cipher Cipher::CHACHA20_POLY1305 = Cipher::FromNid(NID_chacha20_poly1305);
 
 bool Cipher::isGcmMode() const {
@@ -3228,6 +3244,11 @@ int CipherCtxPointer::getMode() const {
 bool CipherCtxPointer::isGcmMode() const {
   if (!ctx_) return false;
   return getMode() == EVP_CIPH_GCM_MODE;
+}
+
+bool CipherCtxPointer::isOcbMode() const {
+  if (!ctx_) return false;
+  return getMode() == EVP_CIPH_OCB_MODE;
 }
 
 bool CipherCtxPointer::isCcmMode() const {
