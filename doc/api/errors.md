@@ -1996,6 +1996,9 @@ A Node.js API that consumes `file:` URLs (such as certain functions in the
 [`fs`][] module) encountered a file URL with an incompatible path. The exact
 semantics for determining whether a path can be used is platform-dependent.
 
+The thrown error object includes an `input` property that contains the URL object
+of the invalid `file:` URL.
+
 <a id="ERR_INVALID_HANDLE_TYPE"></a>
 
 ### `ERR_INVALID_HANDLE_TYPE`
@@ -2183,8 +2186,8 @@ contains the URL that failed to parse.
 
 ### `ERR_INVALID_URL_PATTERN`
 
-An invalid URLPattern was passed to the [WHATWG][WHATWG URL API] \[`URLPattern`
-constructor]\[`new URLPattern(input)`] to be parsed.
+An invalid URLPattern was passed to the [WHATWG][WHATWG URL API]
+[`URLPattern` constructor][`new URLPattern(input)`] to be parsed.
 
 <a id="ERR_INVALID_URL_SCHEME"></a>
 
@@ -4406,6 +4409,7 @@ An error occurred trying to allocate memory. This should never happen.
 [`net.Socket.write()`]: net.md#socketwritedata-encoding-callback
 [`net`]: net.md
 [`new URL(input)`]: url.md#new-urlinput-base
+[`new URLPattern(input)`]: url.md#new-urlpatternstring-baseurl-options
 [`new URLSearchParams(iterable)`]: url.md#new-urlsearchparamsiterable
 [`package.json`]: packages.md#nodejs-packagejson-field-definitions
 [`postMessage()`]: worker_threads.md#portpostmessagevalue-transferlist
