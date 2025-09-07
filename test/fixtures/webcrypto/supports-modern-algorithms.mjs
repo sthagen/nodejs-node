@@ -8,6 +8,7 @@ const shake128 = crypto.getHashes().includes('shake128');
 const shake256 = crypto.getHashes().includes('shake256');
 const chacha = crypto.getCiphers().includes('chacha20-poly1305');
 const ocb = hasOpenSSL(3);
+const kmac = hasOpenSSL(3);
 
 const { subtle } = globalThis.crypto;
 const X25519 = await subtle.generateKey('X25519', false, ['deriveBits', 'deriveKey']);
@@ -31,9 +32,19 @@ export const vectors = {
     [pqc, 'ML-DSA-44'],
     [pqc, 'ML-DSA-65'],
     [pqc, 'ML-DSA-87'],
+    [pqc, { name: 'ML-DSA-44', context: Buffer.alloc(0) }],
+    [pqc, { name: 'ML-DSA-65', context: Buffer.alloc(0) }],
+    [pqc, { name: 'ML-DSA-87', context: Buffer.alloc(0) }],
+    [pqc, { name: 'ML-DSA-44', context: Buffer.alloc(32) }],
+    [pqc, { name: 'ML-DSA-65', context: Buffer.alloc(32) }],
+    [pqc, { name: 'ML-DSA-87', context: Buffer.alloc(32) }],
     [false, 'Argon2d'],
     [false, 'Argon2i'],
     [false, 'Argon2id'],
+    [false, 'KMAC128'],
+    [false, 'KMAC256'],
+    [kmac, { name: 'KMAC128', length: 256 }],
+    [kmac, { name: 'KMAC256', length: 256 }],
   ],
   'generateKey': [
     [pqc, 'ML-DSA-44'],
@@ -47,6 +58,14 @@ export const vectors = {
     [false, 'Argon2d'],
     [false, 'Argon2i'],
     [false, 'Argon2id'],
+    [kmac, 'KMAC128'],
+    [kmac, 'KMAC256'],
+    [kmac, { name: 'KMAC128', length: 256 }],
+    [kmac, { name: 'KMAC256', length: 128 }],
+    [false, { name: 'KMAC128', length: 0 }],
+    [false, { name: 'KMAC256', length: 0 }],
+    [false, { name: 'KMAC128', length: 1 }],
+    [false, { name: 'KMAC256', length: 1 }],
   ],
   'importKey': [
     [pqc, 'ML-DSA-44'],
@@ -60,6 +79,14 @@ export const vectors = {
     [argon2, 'Argon2d'],
     [argon2, 'Argon2i'],
     [argon2, 'Argon2id'],
+    [kmac, 'KMAC128'],
+    [kmac, 'KMAC256'],
+    [kmac, { name: 'KMAC128', length: 256 }],
+    [kmac, { name: 'KMAC256', length: 128 }],
+    [false, { name: 'KMAC128', length: 0 }],
+    [false, { name: 'KMAC256', length: 0 }],
+    [false, { name: 'KMAC128', length: 1 }],
+    [false, { name: 'KMAC256', length: 1 }],
   ],
   'exportKey': [
     [pqc, 'ML-DSA-44'],
@@ -73,6 +100,8 @@ export const vectors = {
     [false, 'Argon2d'],
     [false, 'Argon2i'],
     [false, 'Argon2id'],
+    [kmac, 'KMAC128'],
+    [kmac, 'KMAC256'],
   ],
   'getPublicKey': [
     [true, 'RSA-OAEP'],
@@ -99,6 +128,8 @@ export const vectors = {
     [false, 'Argon2d'],
     [false, 'Argon2i'],
     [false, 'Argon2id'],
+    [false, 'KMAC128'],
+    [false, 'KMAC256'],
   ],
   'deriveKey': [
     [argon2,

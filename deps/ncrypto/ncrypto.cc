@@ -4288,6 +4288,54 @@ std::optional<EVP_PKEY_CTX*> EVPMDCtxPointer::verifyInit(
   return ctx;
 }
 
+std::optional<EVP_PKEY_CTX*> EVPMDCtxPointer::signInitWithContext(
+    const EVPKeyPointer& key,
+    const Digest& digest,
+    const Buffer<const unsigned char>& context_string) {
+#ifdef OSSL_SIGNATURE_PARAM_CONTEXT_STRING
+  EVP_PKEY_CTX* ctx = nullptr;
+
+  const OSSL_PARAM params[] = {
+      OSSL_PARAM_construct_octet_string(
+          OSSL_SIGNATURE_PARAM_CONTEXT_STRING,
+          const_cast<unsigned char*>(context_string.data),
+          context_string.len),
+      OSSL_PARAM_END};
+
+  if (!EVP_DigestSignInit_ex(
+          ctx_.get(), &ctx, nullptr, nullptr, nullptr, key.get(), params)) {
+    return std::nullopt;
+  }
+  return ctx;
+#else
+  return std::nullopt;
+#endif
+}
+
+std::optional<EVP_PKEY_CTX*> EVPMDCtxPointer::verifyInitWithContext(
+    const EVPKeyPointer& key,
+    const Digest& digest,
+    const Buffer<const unsigned char>& context_string) {
+#ifdef OSSL_SIGNATURE_PARAM_CONTEXT_STRING
+  EVP_PKEY_CTX* ctx = nullptr;
+
+  const OSSL_PARAM params[] = {
+      OSSL_PARAM_construct_octet_string(
+          OSSL_SIGNATURE_PARAM_CONTEXT_STRING,
+          const_cast<unsigned char*>(context_string.data),
+          context_string.len),
+      OSSL_PARAM_END};
+
+  if (!EVP_DigestVerifyInit_ex(
+          ctx_.get(), &ctx, nullptr, nullptr, nullptr, key.get(), params)) {
+    return std::nullopt;
+  }
+  return ctx;
+#else
+  return std::nullopt;
+#endif
+}
+
 DataPointer EVPMDCtxPointer::signOneShot(
     const Buffer<const unsigned char>& buf) const {
   if (!ctx_) return {};
@@ -4412,6 +4460,96 @@ bool HMACCtxPointer::digestInto(Buffer<void>* buf) {
 HMACCtxPointer HMACCtxPointer::New() {
   return HMACCtxPointer(HMAC_CTX_new());
 }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+EVPMacPointer::EVPMacPointer(EVP_MAC* mac) : mac_(mac) {}
+
+EVPMacPointer::EVPMacPointer(EVPMacPointer&& other) noexcept
+    : mac_(std::move(other.mac_)) {}
+
+EVPMacPointer& EVPMacPointer::operator=(EVPMacPointer&& other) noexcept {
+  if (this == &other) return *this;
+  mac_ = std::move(other.mac_);
+  return *this;
+}
+
+EVPMacPointer::~EVPMacPointer() {
+  mac_.reset();
+}
+
+void EVPMacPointer::reset(EVP_MAC* mac) {
+  mac_.reset(mac);
+}
+
+EVP_MAC* EVPMacPointer::release() {
+  return mac_.release();
+}
+
+EVPMacPointer EVPMacPointer::Fetch(const char* algorithm) {
+  return EVPMacPointer(EVP_MAC_fetch(nullptr, algorithm, nullptr));
+}
+
+EVPMacCtxPointer::EVPMacCtxPointer(EVP_MAC_CTX* ctx) : ctx_(ctx) {}
+
+EVPMacCtxPointer::EVPMacCtxPointer(EVPMacCtxPointer&& other) noexcept
+    : ctx_(std::move(other.ctx_)) {}
+
+EVPMacCtxPointer& EVPMacCtxPointer::operator=(
+    EVPMacCtxPointer&& other) noexcept {
+  if (this == &other) return *this;
+  ctx_ = std::move(other.ctx_);
+  return *this;
+}
+
+EVPMacCtxPointer::~EVPMacCtxPointer() {
+  ctx_.reset();
+}
+
+void EVPMacCtxPointer::reset(EVP_MAC_CTX* ctx) {
+  ctx_.reset(ctx);
+}
+
+EVP_MAC_CTX* EVPMacCtxPointer::release() {
+  return ctx_.release();
+}
+
+bool EVPMacCtxPointer::init(const Buffer<const void>& key,
+                            const OSSL_PARAM* params) {
+  if (!ctx_) return false;
+  return EVP_MAC_init(ctx_.get(),
+                      static_cast<const unsigned char*>(key.data),
+                      key.len,
+                      params) == 1;
+}
+
+bool EVPMacCtxPointer::update(const Buffer<const void>& data) {
+  if (!ctx_) return false;
+  return EVP_MAC_update(ctx_.get(),
+                        static_cast<const unsigned char*>(data.data),
+                        data.len) == 1;
+}
+
+DataPointer EVPMacCtxPointer::final(size_t length) {
+  if (!ctx_) return {};
+  auto buf = DataPointer::Alloc(length);
+  if (!buf) return {};
+
+  size_t result_len = length;
+  if (EVP_MAC_final(ctx_.get(),
+                    static_cast<unsigned char*>(buf.get()),
+                    &result_len,
+                    length) != 1) {
+    return {};
+  }
+
+  return buf;
+}
+
+EVPMacCtxPointer EVPMacCtxPointer::New(EVP_MAC* mac) {
+  if (!mac) return EVPMacCtxPointer();
+  return EVPMacCtxPointer(EVP_MAC_CTX_new(mac));
+}
+#endif  // OPENSSL_VERSION_MAJOR >= 3
 
 DataPointer hashDigest(const Buffer<const unsigned char>& buf,
                        const EVP_MD* md) {
