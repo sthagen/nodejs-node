@@ -31,9 +31,6 @@ env:
   PYTHON_VERSION: '3.12'
   FLAKY_TESTS: keep_retrying
   CLANG_VERSION: '19'
-  CC: sccache clang-19
-  CXX: sccache clang++-19
-  SCCACHE_GHA_ENABLED: 'true'
 
 permissions:
   contents: read
@@ -46,18 +43,10 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
         with:
           persist-credentials: false
-      - name: Install Clang ${{ env.CLANG_VERSION }}
-        uses: ./.github/actions/install-clang
-        with:
-          clang-version: ${{ env.CLANG_VERSION }}
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Set up sccache
-        uses: Mozilla-Actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad  # v0.0.9
-        with:
-          version: v0.10.0
       - name: Environment Information
         run: npx envinfo
       - name: Make tarball
@@ -73,13 +62,20 @@ jobs:
         with:
           name: tarballs
           path: tarballs
+          compression-level: 0
   test-tarball-linux:
     needs: build-tarball
     runs-on: ubuntu-24.04
+    env:
+      CC: sccache clang-19
+      CXX: sccache clang++-19
+      SCCACHE_GHA_ENABLED: 'true'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
         with:
           persist-credentials: false
+          sparse-checkout: .github/actions/install-clang
+          sparse-checkout-cone-mode: false
       - name: Install Clang ${{ env.CLANG_VERSION }}
         uses: ./.github/actions/install-clang
         with:
@@ -103,15 +99,19 @@ jobs:
         run: |
           tar xzf tarballs/*.tar.gz -C $RUNNER_TEMP
           echo "TAR_DIR=$RUNNER_TEMP/`basename tarballs/*.tar.gz .tar.gz`" >> $GITHUB_ENV
-      - name: Copy directories needed for testing
-        run: |
-          cp -r tools/eslint $TAR_DIR/tools
-          cp -r tools/eslint-rules $TAR_DIR/tools
       - name: Build
         run: |
-          cd $TAR_DIR
-          make build-ci -j4 V=1
+          make -C "$TAR_DIR" build-ci -j4 V=1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            tools/eslint
+            tools/eslint-rules
+      - name: Move directories needed for testing
+        run: |
+          mv tools/eslint "$TAR_DIR/tools"
+          mv tools/eslint-rules "$TAR_DIR/tools"
       - name: Test
         run: |
-          cd $TAR_DIR
-          make run-ci -j4 V=1 TEST_CI_ARGS="-p dots  --measure-flakiness 9"
+          make -C "$TAR_DIR" run-ci -j4 V=1 TEST_CI_ARGS="-p dots --measure-flakiness 9"
