@@ -157,7 +157,7 @@ Depending on the host platform, the selection of toolchains may vary.
 | ---------------- | -------------------------------------------------------------- |
 | Linux            | GCC >= 12.2 or Clang >= 19.1                                   |
 | Windows          | Visual Studio >= 2022 with the Windows 10 SDK on a 64-bit host |
-| macOS            | Xcode >= 16.3 (Apple LLVM >= 19)                               |
+| macOS            | Xcode >= 16.4 (Apple LLVM >= 19)                               |
 
 ### Official binary platforms and toolchains
 
@@ -166,8 +166,8 @@ Binaries at <https://nodejs.org/download/release/> are produced on:
 | Binary package          | Platform and Toolchain                                        |
 | ----------------------- | ------------------------------------------------------------- |
 | aix-ppc64               | AIX 7.2 TL04 on PPC64BE with GCC 12[^5]                       |
-| darwin-x64              | macOS 13, Xcode 16 with -mmacosx-version-min=13.5             |
-| darwin-arm64 (and .pkg) | macOS 13 (arm64), Xcode 16 with -mmacosx-version-min=13.5     |
+| darwin-x64              | macOS 15, Xcode 16 with -mmacosx-version-min=13.5             |
+| darwin-arm64 (and .pkg) | macOS 15 (arm64), Xcode 16 with -mmacosx-version-min=13.5     |
 | linux-arm64             | RHEL 8 with Clang 19.1 and gcc-toolset-14-libatomic-devel[^6] |
 | linux-ppc64le           | RHEL 8 with Clang 19.1 and gcc-toolset-14-libatomic-devel[^6] |
 | linux-s390x             | RHEL 8 with Clang 19.1 and gcc-toolset-14-libatomic-devel[^6] |
@@ -249,7 +249,7 @@ FreeBSD and OpenBSD users may also need to install `libexecinfo`.
 
 #### macOS prerequisites
 
-* Xcode Command Line Tools >= 16.3 for macOS
+* Xcode Command Line Tools >= 16.4 for macOS
 * [A supported version of Python][Python versions]
   * For test coverage, your Python installation must include pip.
 
