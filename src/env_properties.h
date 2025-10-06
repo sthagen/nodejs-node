@@ -386,8 +386,11 @@
   V(blocklist_constructor_template, v8::FunctionTemplate)                      \
   V(caa_record_template, v8::DictionaryTemplate)                               \
   V(callsite_template, v8::DictionaryTemplate)                                 \
+  V(cipherinfo_detail_template, v8::DictionaryTemplate)                        \
   V(cipherinfo_template, v8::DictionaryTemplate)                               \
   V(cname_record_template, v8::DictionaryTemplate)                             \
+  V(compiled_function_cjs_template, v8::DictionaryTemplate)                    \
+  V(compiled_function_template, v8::DictionaryTemplate)                        \
   V(contextify_global_template, v8::ObjectTemplate)                            \
   V(contextify_wrapper_template, v8::ObjectTemplate)                           \
   V(cpu_usage_template, v8::DictionaryTemplate)                                \
