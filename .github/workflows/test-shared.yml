@@ -76,7 +76,7 @@ jobs:
     name: ${{ github.event_name == 'workflow_dispatch' && 'Skipped job' || 'Build slim tarball' }}
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5.0.1
         if: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           persist-credentials: false
@@ -127,11 +127,11 @@ jobs:
           tar xzf tarballs/*.tar.gz -C "$RUNNER_TEMP"
           echo "TAR_DIR=$RUNNER_TEMP/$(basename tarballs/*.tar.gz .tar.gz)" >> "$GITHUB_ENV"
 
-      - uses: cachix/install-nix-action@456688f15bc354bef6d396e4a35f4f89d40bf2b7  # v31.8.2
+      - uses: cachix/install-nix-action@0b0e072294b088b73964f1d72dfdac0951439dbd  # v31.8.4
         with:
           extra_nix_config: sandbox = true
 
-      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad  # v16
         with:
           name: nodejs
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
