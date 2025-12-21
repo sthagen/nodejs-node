@@ -1,10 +1,10 @@
 arg:
 let
   repo = "https://github.com/NixOS/nixpkgs";
-  rev = "59b6c96beacc898566c9be1052ae806f3835f87d";
+  rev = "f997fa0f94fb1ce55bccb97f60d41412ae8fde4c";
   nixpkgs = import (builtins.fetchTarball {
     url = "${repo}/archive/${rev}.tar.gz";
-    sha256 = "1b8j0xs1z1d13qrb2l5kmrrl5pydwf56a097jyla65f9218n52aj";
+    sha256 = "16x3n08n0ffqn8m2h73vk2wr0ssa8lsfvq2yc1gfd59gsss47n3m";
   }) arg;
 in
 nixpkgs

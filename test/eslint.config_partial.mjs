@@ -146,9 +146,7 @@ export default [
   },
   {
     files: [
-      'test/es-module/**/*.{js,mjs}',
       'test/parallel/**/*.{js,mjs}',
-      'test/sequential/**/*.{js,mjs}',
     ],
     rules: {
       '@stylistic/js/comma-dangle': [
@@ -159,6 +157,24 @@ export default [
           functions: 'only-multiline',
           imports: 'always-multiline',
           objects: 'only-multiline',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'test/es-module/**/*.{js,mjs}',
+      'test/sequential/**/*.{js,mjs}',
+    ],
+    rules: {
+      '@stylistic/js/comma-dangle': [
+        'error',
+        {
+          arrays: 'always-multiline',
+          exports: 'always-multiline',
+          functions: 'only-multiline',
+          imports: 'always-multiline',
+          objects: 'always-multiline',
         },
       ],
     },

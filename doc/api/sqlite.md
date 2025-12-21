@@ -106,6 +106,7 @@ added: v22.5.0
 changes:
   - version:
       - v25.1.0
+      - v24.12.0
     pr-url: https://github.com/nodejs/node/pull/60217
     description: Add `defensive` option.
   - version:
@@ -280,6 +281,7 @@ loading extensions for security reasons.
 <!-- YAML
 added:
   - v25.1.0
+  - v24.12.0
 -->
 
 * `active` {boolean} Whether to set the defensive flag.
@@ -1074,13 +1076,17 @@ Executes the given SQL query, which is expected to not return any rows (e.g., IN
 This function is intended to be used as a template literal tag, not to be
 called directly.
 
-### `sqlTagStore.size()`
+### `sqlTagStore.size`
 
 <!-- YAML
 added: v24.9.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/60246
+    description: Changed from a method to a getter.
 -->
 
-* Returns: {integer} The number of prepared statements currently in the cache.
+* Type: {integer}
 
 A read-only property that returns the number of prepared statements currently in the cache.
 

@@ -89,6 +89,38 @@ callbackFunction((err, ret) => {
 });
 ```
 
+## `util.convertProcessSignalToExitCode(signalCode)`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `signalCode` {string} A signal name (e.g., `'SIGTERM'`, `'SIGKILL'`).
+* Returns: {number|null} The exit code, or `null` if the signal is invalid.
+
+The `util.convertProcessSignalToExitCode()` method converts a signal name to its
+corresponding POSIX exit code. Following the POSIX standard, the exit code
+for a process terminated by a signal is calculated as `128 + signal number`.
+
+```mjs
+import { convertProcessSignalToExitCode } from 'node:util';
+
+console.log(convertProcessSignalToExitCode('SIGTERM')); // 143 (128 + 15)
+console.log(convertProcessSignalToExitCode('SIGKILL')); // 137 (128 + 9)
+console.log(convertProcessSignalToExitCode('INVALID')); // null
+```
+
+```cjs
+const { convertProcessSignalToExitCode } = require('node:util');
+
+console.log(convertProcessSignalToExitCode('SIGTERM')); // 143 (128 + 15)
+console.log(convertProcessSignalToExitCode('SIGKILL')); // 137 (128 + 9)
+console.log(convertProcessSignalToExitCode('INVALID')); // null
+```
+
+This is particularly useful when working with processes to determine
+the exit code based on the signal that terminated the process.
+
 ## `util.debuglog(section[, callback])`
 
 <!-- YAML
@@ -230,7 +262,9 @@ logging when only using `util.debuglog().enabled`.
 <!-- YAML
 added: v0.8.0
 changes:
-  - version: v25.2.0
+  - version:
+      - v25.2.0
+      - v24.12.0
     pr-url: https://github.com/nodejs/node/pull/59982
     description: Add options object with modifyPrototype to conditionally
                  modify the prototype of the deprecated object.
@@ -563,6 +597,9 @@ changes:
 
 Returns an array of call site objects containing the stack of
 the caller function.
+
+Unlike accessing an `error.stack`, the result returned from this API is not
+interfered with `Error.prepareStackTrace`.
 
 ```mjs
 import { getCallSites } from 'node:util';
@@ -3825,7 +3862,7 @@ npx codemod@latest @nodejs/util-is
 [`mime.toString()`]: #mimetostring
 [`mimeParams.entries()`]: #mimeparamsentries
 [`napi_create_external()`]: n-api.md#napi_create_external
-[`target` and `handler`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy#Terminology
+[`target` and `handler`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy#terminology
 [`tty.hasColors()`]: tty.md#writestreamhascolorscount-env
 [`util.diff()`]: #utildiffactual-expected
 [`util.format()`]: #utilformatformat-args
@@ -3836,7 +3873,7 @@ npx codemod@latest @nodejs/util-is
 [`util.types.isSharedArrayBuffer()`]: #utiltypesissharedarraybuffervalue
 [async function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
 [built-in `Error` type]: https://tc39.es/ecma262/#sec-error-objects
-[compare function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Parameters
+[compare function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#parameters
 [constructor]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/constructor
 [default sort]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
 [global symbol registry]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/for
