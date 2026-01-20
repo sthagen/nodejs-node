@@ -79,7 +79,7 @@ class DatabaseOpenConfiguration {
   bool return_arrays_ = false;
   bool allow_bare_named_params_ = true;
   bool allow_unknown_named_params_ = false;
-  bool defensive_ = false;
+  bool defensive_ = true;
 };
 
 class DatabaseSync;
@@ -246,6 +246,7 @@ class StatementSync : public BaseObject {
   bool BindParams(const v8::FunctionCallbackInfo<v8::Value>& args);
   bool BindValue(const v8::Local<v8::Value>& value, const int index);
 
+  friend class DatabaseSync;
   friend class StatementSyncIterator;
   friend class SQLTagStore;
   friend class StatementExecutionHelper;
