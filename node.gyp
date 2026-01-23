@@ -30,6 +30,7 @@
     'node_snapshot_main%': '',
     'node_use_amaro%': 'true',
     'node_use_bundled_v8%': 'true',
+    'node_use_lief%': 'false',
     'node_use_node_snapshot%': 'false',
     'node_use_openssl%': 'true',
     'node_use_quic%': 'false',
@@ -142,6 +143,7 @@
       'src/node_report_module.cc',
       'src/node_report_utils.cc',
       'src/node_sea.cc',
+      'src/node_sea_bin.cc',
       'src/node_serdes.cc',
       'src/node_shadow_realm.cc',
       'src/node_snapshotable.cc',
@@ -997,6 +999,10 @@
           'dependencies': [
             'deps/ncrypto/ncrypto.gyp:ncrypto',
           ],
+        }],
+        [ 'node_use_lief=="true"', {
+          'defines': [ 'HAVE_LIEF=1' ],
+          'dependencies': [ 'deps/LIEF/lief.gyp:liblief' ],
         }],
         [ 'node_use_sqlite=="true"', {
           'sources': [

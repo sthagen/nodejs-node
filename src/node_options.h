@@ -176,6 +176,7 @@ class EnvironmentOptions : public Options {
   bool cpu_prof = false;
   bool experimental_network_inspection = false;
   bool experimental_worker_inspection = false;
+  bool experimental_storage_inspection = false;
   bool experimental_inspector_network_resource = false;
   std::string heap_prof_dir;
   std::string heap_prof_name;
@@ -340,6 +341,7 @@ class PerProcessOptions : public Options {
   std::string experimental_sea_config;
   std::string run;
 
+  std::string build_sea;
 #ifdef NODE_HAVE_I18N_SUPPORT
   std::string icu_data_dir;
 #endif
