@@ -58,9 +58,7 @@ icu_versions = json.loads((tools_path / 'icu' / 'icu_versions.json').read_text(e
 maglev_enabled_architectures = ('x64', 'arm', 'arm64', 's390x')
 
 # builtins may be removed later if they have been disabled by options
-shareable_builtins = {'cjs_module_lexer/lexer': 'deps/cjs-module-lexer/lexer.js',
-                     'cjs_module_lexer/dist/lexer': 'deps/cjs-module-lexer/dist/lexer.js',
-                     'undici/undici': 'deps/undici/undici.js',
+shareable_builtins = {'undici/undici': 'deps/undici/undici.js',
                      'amaro/dist/index': 'deps/amaro/dist/index.js'
 }
 
@@ -556,7 +554,6 @@ shared_optgroup.add_argument('--shared-simdutf-libpath',
     dest='shared_simdutf_libpath',
     help='a directory to search for the shared simdutf DLL')
 
-
 shared_optgroup.add_argument('--shared-ada',
     action='store_true',
     dest='shared_ada',
@@ -578,6 +575,28 @@ shared_optgroup.add_argument('--shared-ada-libpath',
     action='store',
     dest='shared_ada_libpath',
     help='a directory to search for the shared ada DLL')
+
+shared_optgroup.add_argument('--shared-merve',
+    action='store_true',
+    dest='shared_merve',
+    default=None,
+    help='link to a shared merve DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-merve-includes',
+    action='store',
+    dest='shared_merve_includes',
+    help='directory containing merve header files')
+
+shared_optgroup.add_argument('--shared-merve-libname',
+    action='store',
+    dest='shared_merve_libname',
+    default='merve',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-merve-libpath',
+    action='store',
+    dest='shared_merve_libpath',
+    help='a directory to search for the shared merve DLL')
 
 shared_optgroup.add_argument('--shared-brotli',
     action='store_true',
@@ -1969,7 +1988,7 @@ def configure_library(lib, output, pkgname=None):
 
 
 def configure_v8(o, configs):
-  set_configuration_variable(configs, 'v8_enable_v8_checks', release=1, debug=0)
+  set_configuration_variable(configs, 'v8_enable_v8_checks', release=0, debug=1)
 
   o['variables']['v8_enable_webassembly'] = 0 if options.v8_lite_mode else 1
   o['variables']['v8_enable_javascript_promise_hooks'] = 1
@@ -2558,6 +2577,7 @@ configure_library('brotli', output, pkgname=['libbrotlidec', 'libbrotlienc'])
 configure_library('cares', output, pkgname='libcares')
 configure_library('gtest', output)
 configure_library('hdr_histogram', output)
+configure_library('merve', output)
 configure_library('nbytes', output)
 configure_library('nghttp2', output, pkgname='libnghttp2')
 configure_library('nghttp3', output, pkgname='libnghttp3')
@@ -2600,11 +2620,10 @@ config_release_vars = configurations['Release']['variables']
 del configurations['Release']['variables']
 config_debug_vars = configurations['Debug']['variables']
 del configurations['Debug']['variables']
-output['conditions'].append(['build_type=="Release"', {
-  'variables': config_release_vars,
-}, {
-  'variables': config_debug_vars,
-}])
+if options.debug:
+  variables = variables | config_debug_vars
+else:
+  variables = variables | config_release_vars
 
 # make_global_settings should be a root level element too
 if 'make_global_settings' in output:
