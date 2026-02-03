@@ -680,7 +680,7 @@ When the number of connections reaches the `server.maxConnections` threshold:
 
 1. If the process is not running in cluster mode, Node.js will close the connection.
 
-2. If the process is running in cluster mode, Node.js will, by default, route the connection to another worker process. To close the connection instead, set \[`server.dropMaxConnection`]\[] to `true`.
+2. If the process is running in cluster mode, Node.js will, by default, route the connection to another worker process. To close the connection instead, set [`server.dropMaxConnection`][] to `true`.
 
 It is not recommended to use this option once a socket has been sent to a child
 with [`child_process.fork()`][].
@@ -747,7 +747,7 @@ it to interact with the client.
 <!-- YAML
 added: v0.3.4
 changes:
-  - version: REPLACEME
+  - version: v25.6.0
     pr-url: https://github.com/nodejs/node/pull/61503
     description: Added `typeOfService` option.
   - version: v15.14.0
@@ -1468,7 +1468,7 @@ The optional `callback` parameter will be added as a one-time listener for the
 ### `socket.getTypeOfService()`
 
 <!-- YAML
-added: REPLACEME
+added: v25.6.0
 -->
 
 * Returns: {integer} The current TOS value.
@@ -1487,7 +1487,7 @@ should verify platform-specific semantics.
 ### `socket.setTypeOfService(tos)`
 
 <!-- YAML
-added: REPLACEME
+added: v25.6.0
 -->
 
 * `tos` {integer} The TOS value to set (0-255).
@@ -2056,6 +2056,7 @@ net.isIPv6('fhqwhgads'); // returns false
 [`new net.Socket(options)`]: #new-netsocketoptions
 [`readable.setEncoding()`]: stream.md#readablesetencodingencoding
 [`server.close()`]: #serverclosecallback
+[`server.dropMaxConnection`]: #serverdropmaxconnection
 [`server.listen()`]: #serverlisten
 [`server.listen(handle)`]: #serverlistenhandle-backlog-callback
 [`server.listen(options)`]: #serverlistenoptions-callback
