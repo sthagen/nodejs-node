@@ -259,12 +259,13 @@ changes:
     * `'strip'` Only strip type annotations without performing the transformation of TypeScript features.
   * `sourceUrl` {string}  Specifies the source url used in the source map.
 * Returns: {string} The code with type annotations stripped.
-  `module.stripTypeScriptTypes()` removes type annotations from TypeScript code. It
-  can be used to strip type annotations from TypeScript code before running it
-  with `vm.runInContext()` or `vm.compileFunction()`.
-  By default, it will throw an error if the code contains TypeScript features
-  that require transformation such as `Enums`,
-  see [type-stripping][] for more information.
+
+`module.stripTypeScriptTypes()` removes type annotations from TypeScript code. It
+can be used to strip type annotations from TypeScript code before running it
+with `vm.runInContext()` or `vm.compileFunction()`.
+
+By default, it will throw an error if the code contains TypeScript features
+that require transformation, such as `enum`s. See [type-stripping][] for more information.
 
 _WARNING_: The output of this function should not be considered stable across Node.js versions,
 due to changes in the TypeScript parser.
