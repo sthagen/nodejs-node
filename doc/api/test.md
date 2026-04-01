@@ -3563,6 +3563,44 @@ Emitted when no more tests are queued for execution in watch mode.
 
 Emitted when one or more tests are restarted due to a file change in watch mode.
 
+## `getTestContext()`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* Returns: {TestContext|SuiteContext|undefined}
+
+Returns the [`TestContext`][] or [`SuiteContext`][] object associated with the
+currently executing test or suite, or `undefined` if called outside of a test or
+suite. This function can be used to access context information from within the
+test or suite function or any async operations within them.
+
+```mjs
+import { getTestContext } from 'node:test';
+
+test('example test', async () => {
+  const ctx = getTestContext();
+  console.log(`Running test: ${ctx.name}`);
+});
+
+describe('example suite', () => {
+  const ctx = getTestContext();
+  console.log(`Running suite: ${ctx.name}`);
+});
+```
+
+When called from a test, returns a [`TestContext`][].
+When called from a suite, returns a [`SuiteContext`][].
+
+If called from outside a test or suite (e.g., at the top level of a module or in
+a setTimeout callback after execution has completed), this function returns
+`undefined`.
+
+When called from within a hook (before, beforeEach, after, afterEach), this
+function returns the context of the test or suite that the hook is associated
+with.
+
 ## Class: `TestContext`
 
 <!-- YAML
@@ -3875,7 +3913,9 @@ added: v25.0.0
 
 * Type: {number}
 
-Number of times the test has been attempted.
+The attempt number of the test. This value is zero-based, so the first attempt is `0`,
+the second attempt is `1`, and so on. This property is useful in conjunction with the
+`--test-rerun-failures` option to determine which attempt the test is currently running.
 
 ### `context.workerId`
 
@@ -4229,6 +4269,45 @@ added:
 * Type: {AbortSignal}
 
 Can be used to abort test subtasks when the test has been aborted.
+
+### `context.passed`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* Type: {boolean}
+
+Indicates whether the suite and all of its subtests have passed.
+
+### `context.attempt`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* Type: {number}
+
+The attempt number of the suite. This value is zero-based, so the first attempt is `0`,
+the second attempt is `1`, and so on. This property is useful in conjunction with the
+`--test-rerun-failures` option to determine the attempt number of the current run.
+
+### `context.diagnostic(message)`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `message` {string} A diagnostic message to output.
+
+Output a diagnostic message. This is typically used for logging information
+about the current suite or its tests.
+
+```js
+test.describe('my suite', (suite) => {
+  suite.diagnostic('Suite diagnostic message');
+});
+```
 
 [TAP]: https://testanything.org/
 [`--experimental-test-coverage`]: cli.md#--experimental-test-coverage
