@@ -754,40 +754,36 @@ vm.measureMemory();
 added:
 - v22.2.0
 - v20.15.0
+changes:
+  - version:
+    - REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/62132
+    description: Node.js now automatically disables the trap handler when there is not
+                 enough virtual memory available at startup to allocate one cage.
 -->
 
-By default, Node.js enables trap-handler-based WebAssembly bound
-checks. As a result, V8 does not need to insert inline bound checks
-in the code compiled from WebAssembly which may speed up WebAssembly
-execution significantly, but this optimization requires allocating
-a big virtual memory cage (currently 10GB). If the Node.js process
-does not have access to a large enough virtual memory address space
-due to system configurations or hardware limitations, users won't
-be able to run any WebAssembly that involves allocation in this
-virtual memory cage and will see an out-of-memory error.
+Node.js enables V8's trap-handler-based WebAssembly bound checks on 64-bit platforms,
+which significantly improves WebAssembly performance by eliminating the need for
+inline bound checks. This optimization requires allocating a large virtual memory
+cage per WebAssembly memory instance (currently typically 8GB for 32-bit WebAssembly memory,
+16GB for 64-bit WebAssembly memory) to trap out-of-bound accesses. On most 64-bit
+platforms, the virtual memory address space is usually large enough (around 128TB)
+to accommodate typical WebAssembly usages, but if the machine has manual limits
+on virtual memory (e.g. through `ulimit -v`), WebAssembly memory allocation is
+more likely to fail with `WebAssembly.Memory(): could not allocate memory`.
 
-```console
-$ ulimit -v 5000000
-$ node -p "new WebAssembly.Memory({ initial: 10, maximum: 100 });"
-[eval]:1
-new WebAssembly.Memory({ initial: 10, maximum: 100 });
-^
+At startup, Node.js automatically checks whether there is enough virtual memory
+available to allocate at least one cage, and if not, the trap-handler optimization
+is automatically disabled so that WebAssembly can still run using inline
+bound checks (with less optimal performance). But if the application needs to create
+many WebAssembly memory instances and the machine still configures a relatively high
+limit on virtual memory, allocation of WebAssembly memory instances may still fail
+more quickly than expected due to the raised virtual memory usage.
 
-RangeError: WebAssembly.Memory(): could not allocate memory
-    at [eval]:1:1
-    at runScriptInThisContext (node:internal/vm:209:10)
-    at node:internal/process/execution:118:14
-    at [eval]-wrapper:6:24
-    at runScript (node:internal/process/execution:101:62)
-    at evalScript (node:internal/process/execution:136:3)
-    at node:internal/main/eval_string:49:3
-
-```
-
-`--disable-wasm-trap-handler` disables this optimization so that
-users can at least run WebAssembly (with less optimal performance)
-when the virtual memory address space available to their Node.js
-process is lower than what the V8 WebAssembly memory cage needs.
+`--disable-wasm-trap-handler` fully disables this optimization so that WebAssembly memory
+instances always use inline bound checks instead of reserving large virtual memory cages.
+This allows more instances to be created when the virtual memory address space available
+to the Node.js process is limited.
 
 ### `--disallow-code-generation-from-strings`
 
@@ -2784,6 +2780,38 @@ changes:
 Configures the test runner to only execute top level tests that have the `only`
 option set. This flag is not necessary when test isolation is disabled.
 
+### `--test-random-seed`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Set the seed used to randomize test execution order. This applies to both test
+file execution order and queued tests within each file. Providing this flag
+enables randomization implicitly, even without `--test-randomize`.
+
+The value must be an integer between `0` and `4294967295`.
+
+This flag cannot be used with `--watch` or `--test-rerun-failures`.
+
+### `--test-randomize`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Randomize test execution order. This applies to both test file execution order
+and queued tests within each file. This can help detect tests that rely on
+shared state or execution order.
+
+The seed used for randomization is printed in the test summary and can be
+reused with `--test-random-seed`.
+
+For detailed behavior and examples, see
+[randomizing tests execution order][].
+
+This flag cannot be used with `--watch` or `--test-rerun-failures`.
+
 ### `--test-reporter`
 
 <!-- YAML
@@ -3702,6 +3730,8 @@ one is included in the list below.
 * `--test-isolation`
 * `--test-name-pattern`
 * `--test-only`
+* `--test-random-seed`
+* `--test-randomize`
 * `--test-reporter-destination`
 * `--test-reporter`
 * `--test-rerun-failures`
@@ -4286,6 +4316,7 @@ node --stack-trace-limit=12 -p -e "Error.stackTraceLimit" # prints 12
 [libuv threadpool documentation]: https://docs.libuv.org/en/latest/threadpool.html
 [module compile cache]: module.md#module-compile-cache
 [preloading asynchronous module customization hooks]: module.md#registration-of-asynchronous-customization-hooks
+[randomizing tests execution order]: test.md#randomizing-tests-execution-order
 [remote code execution]: https://www.owasp.org/index.php/Code_Injection
 [running tests from the command line]: test.md#running-tests-from-the-command-line
 [scavenge garbage collector]: https://v8.dev/blog/orinoco-parallel-scavenger
