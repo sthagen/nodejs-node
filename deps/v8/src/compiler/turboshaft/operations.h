@@ -526,7 +526,7 @@ class InputsRepFactory {
   };
 };
 
-struct __attribute__((packed))  EffectDimensions {
+struct __attribute__((packed)) EffectDimensions {
   // Produced by loads, consumed by operations that should not move before loads
   // because they change memory.
   bool load_heap_memory : 1;
