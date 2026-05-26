@@ -225,6 +225,14 @@ parser.add_argument("--enable-thin-lto",
     help="Enable compiling with thin lto of a binary. This feature is only available "
          "on windows.")
 
+parser.add_argument("--lto-jobs",
+    action="store",
+    dest="lto_jobs",
+    default=None,
+    help="Set the number of parallel LTO code generation jobs during linking. "
+         "Defaults to the number of CPU cores. Lower values reduce peak memory "
+         "usage at the cost of longer link times. Only effective with LTO enabled.")
+
 parser.add_argument("--link-module",
     action="append",
     dest="linked_module",
@@ -1064,6 +1072,12 @@ parser.add_argument('--experimental-quic',
     dest='experimental_quic',
     default=None,
     help='build with experimental QUIC support')
+
+parser.add_argument('--experimental-dtls',
+    action='store_true',
+    dest='experimental_dtls',
+    default=None,
+    help='build with experimental DTLS support')
 
 parser.add_argument('--ninja',
     action='store_true',
@@ -1951,17 +1965,28 @@ def configure_node(o):
     msvc_dir = target_arch  # 'x64' or 'arm64'
 
     vc_tools_dir = os.environ.get('VCToolsInstallDir', '')
-    if vc_tools_dir:
-      clang_profile_lib = os.path.join(vc_tools_dir, 'lib', msvc_dir, lib_name)
-      if os.path.isfile(clang_profile_lib):
-        o['variables']['clang_profile_lib'] = clang_profile_lib
-      else:
-        raise Exception(
-          f'PGO profile runtime library not found at {clang_profile_lib}. '
-          'Ensure the ClangCL toolset is installed.')
-    else:
+    if not vc_tools_dir:
       raise Exception(
         'VCToolsInstallDir not set. Run from a Visual Studio command prompt.')
+
+    # Primary location: VS2026 and VS2022 x64
+    candidates = [os.path.join(vc_tools_dir, 'lib', msvc_dir, lib_name)]
+
+    # Secondary location: VS2022 arm64 fallback
+    clang_major = options.clang_cl.split('.', 1)[0]
+    candidates.append(os.path.normpath(os.path.join(
+      vc_tools_dir, '..', '..', 'Llvm', msvc_dir,
+      'lib', 'clang', clang_major, 'lib', 'windows', lib_name)))
+
+    clang_profile_lib = next(
+      (p for p in candidates if os.path.isfile(p)), None)
+    if clang_profile_lib:
+      o['variables']['clang_profile_lib'] = clang_profile_lib
+    else:
+      raise Exception(
+        f'PGO profile runtime library {lib_name} not found. Searched:\n  ' +
+        '\n  '.join(candidates) +
+        '\nEnsure the ClangCL toolset is installed.')
 
   if flavor != 'win' and options.enable_thin_lto:
     raise Exception(
@@ -1995,6 +2020,7 @@ def configure_node(o):
 
   o['variables']['enable_lto'] = b(options.enable_lto)
   o['variables']['enable_thin_lto'] = b(options.enable_thin_lto)
+  o['variables']['lto_jobs'] = options.lto_jobs or ''
 
   if options.node_use_large_pages or options.node_use_large_pages_script_lld:
     warn('''The `--use-largepages` and `--use-largepages-script-lld` options
@@ -2351,6 +2377,10 @@ def configure_ffi(o):
 
 def configure_quic(o):
   o['variables']['node_use_quic'] = b(options.experimental_quic and
+                                      not options.without_ssl)
+
+def configure_dtls(o):
+  o['variables']['node_use_dtls'] = b(options.experimental_dtls and
                                       not options.without_ssl)
 
 def configure_static(o):
@@ -2811,6 +2841,7 @@ configure_library('zstd', output, pkgname='libzstd')
 configure_v8(output, configurations)
 configure_openssl(output)
 configure_quic(output)
+configure_dtls(output)
 configure_intl(output)
 configure_static(output)
 configure_inspector(output)

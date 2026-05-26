@@ -17,7 +17,10 @@ using v8::Array;
 using v8::ArrayBuffer;
 using v8::ArrayBufferView;
 using v8::BackingStore;
+using v8::BackingStoreInitializationMode;
+using v8::BackingStoreOnFailureMode;
 using v8::BigInt;
+using v8::Isolate;
 using v8::Just;
 using v8::Local;
 using v8::Maybe;
@@ -89,14 +92,14 @@ Store::Store(std::unique_ptr<BackingStore> store, size_t length, size_t offset)
 }
 
 Maybe<Store> Store::From(Local<ArrayBuffer> buffer) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  Isolate* isolate = Isolate::GetCurrent();
   Environment* env = Environment::GetCurrent(isolate->GetCurrentContext());
   auto length = buffer->ByteLength();
   auto dest = ArrayBuffer::NewBackingStore(
       isolate,
       length,
-      v8::BackingStoreInitializationMode::kUninitialized,
-      v8::BackingStoreOnFailureMode::kReturnNull);
+      BackingStoreInitializationMode::kUninitialized,
+      BackingStoreOnFailureMode::kReturnNull);
   if (!dest) {
     THROW_ERR_MEMORY_ALLOCATION_FAILED(env);
     return Nothing<Store>();
@@ -108,15 +111,15 @@ Maybe<Store> Store::From(Local<ArrayBuffer> buffer) {
 }
 
 Maybe<Store> Store::From(Local<ArrayBufferView> view) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  Isolate* isolate = Isolate::GetCurrent();
   Environment* env = Environment::GetCurrent(isolate->GetCurrentContext());
   auto length = view->ByteLength();
   auto offset = view->ByteOffset();
   auto dest = ArrayBuffer::NewBackingStore(
       isolate,
       length,
-      v8::BackingStoreInitializationMode::kUninitialized,
-      v8::BackingStoreOnFailureMode::kReturnNull);
+      BackingStoreInitializationMode::kUninitialized,
+      BackingStoreOnFailureMode::kReturnNull);
   if (!dest) {
     THROW_ERR_MEMORY_ALLOCATION_FAILED(env);
     return Nothing<Store>();
@@ -130,24 +133,38 @@ Maybe<Store> Store::From(Local<ArrayBufferView> view) {
 }
 
 Store Store::CopyFrom(Local<ArrayBuffer> buffer) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  Isolate* isolate = Isolate::GetCurrent();
   auto backing = buffer->GetBackingStore();
   auto length = buffer->ByteLength();
   auto dest = ArrayBuffer::NewBackingStore(
-      isolate, length, v8::BackingStoreInitializationMode::kUninitialized);
+      isolate,
+      length,
+      BackingStoreInitializationMode::kUninitialized,
+      BackingStoreOnFailureMode::kReturnNull);
+  if (!dest) {
+    THROW_ERR_MEMORY_ALLOCATION_FAILED(Environment::GetCurrent(isolate));
+    return Store();
+  }
   // copy content
   memcpy(dest->Data(), backing->Data(), length);
   return Store(std::move(dest), length, 0);
 }
 
 Store Store::CopyFrom(Local<ArrayBufferView> view) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  Isolate* isolate = Isolate::GetCurrent();
   auto backing = view->Buffer()->GetBackingStore();
   auto length = view->ByteLength();
   auto offset = view->ByteOffset();
   auto dest = ArrayBuffer::NewBackingStore(
-      isolate, length, v8::BackingStoreInitializationMode::kUninitialized);
+      isolate,
+      length,
+      BackingStoreInitializationMode::kUninitialized,
+      BackingStoreOnFailureMode::kReturnNull);
   // copy content
+  if (!dest) {
+    THROW_ERR_MEMORY_ALLOCATION_FAILED(Environment::GetCurrent(isolate));
+    return Store();
+  }
   memcpy(dest->Data(), static_cast<char*>(backing->Data()) + offset, length);
   return Store(std::move(dest), length, 0);
 }
@@ -348,12 +365,12 @@ std::optional<int> QuicError::get_crypto_error() const {
 
 MaybeLocal<Value> QuicError::ToV8Value(Environment* env) const {
   if ((type() == Type::TRANSPORT && code() == NGTCP2_NO_ERROR) ||
-      (type() == Type::APPLICATION && code() == NGHTTP3_H3_NO_ERROR) ||
+      (type() == Type::APPLICATION &&
+       (code() == 0 || code() == NGHTTP3_H3_NO_ERROR)) ||
       type() == Type::IDLE_CLOSE) {
-    // Note that we only return undefined for *known* no-error application
-    // codes. It is possible that other application types use other specific
-    // no-error codes, but since we don't know which application is being used,
-    // we'll just return the error code value for those below.
+    // Application code 0 is the default no-error code for raw QUIC
+    // applications (DefaultApplication::GetNoErrorCode() returns 0).
+    // NGHTTP3_H3_NO_ERROR (0x100) is the HTTP/3 no-error code.
     // Idle close is always clean — the session timed out normally.
     return Undefined(env->isolate());
   }
