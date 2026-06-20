@@ -4058,6 +4058,9 @@ that are shorter than the default authentication tag length (i.e., shorter than
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/63966
+    description: Runtime deprecation.
   - version:
     - v22.4.0
     - v20.16.0
@@ -4065,7 +4068,7 @@ changes:
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only
+Type: Runtime
 
 OpenSSL 3 has deprecated support for custom engines with a recommendation to
 switch to its new provider model. The `clientCertEngine` option for
@@ -4262,7 +4265,9 @@ an internal nodejs implementation rather than a public facing API, use `node:str
 
 <!-- YAML
 changes:
-  - version: v24.2.0
+  - version:
+     - v24.2.0
+     - v22.23.0
     pr-url: https://github.com/nodejs/node/pull/58293
     description: End-of-Life.
   - version:
@@ -4489,6 +4494,9 @@ const server = http2.createSecureServer({
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/63188
+    description: End-of-Life.
   - version: v26.0.0
     pr-url: https://github.com/nodejs/node/pull/62453
     description: Runtime deprecation.
@@ -4499,23 +4507,17 @@ changes:
     description: Documentation-only deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
-Passing a [`CryptoKey`][] to `node:crypto` functions is deprecated and
-will throw an error in a future version. This includes
-[`crypto.createPublicKey()`][], [`crypto.createPrivateKey()`][],
-[`crypto.sign()`][], [`crypto.verify()`][],
-[`crypto.publicEncrypt()`][], [`crypto.publicDecrypt()`][],
-[`crypto.privateEncrypt()`][], [`crypto.privateDecrypt()`][],
-[`Sign.prototype.sign()`][], [`Verify.prototype.verify()`][],
-[`crypto.createHmac()`][], [`crypto.createCipheriv()`][],
-[`crypto.createDecipheriv()`][], [`crypto.encapsulate()`][], and
-[`crypto.decapsulate()`][].
+Passing a [`CryptoKey`][] to `node:crypto` functions is no longer supported.
 
 ### DEP0204: `KeyObject.from()` with non-extractable `CryptoKey`
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/63188
+    description: End-of-Life.
   - version: v26.0.0
     pr-url: https://github.com/nodejs/node/pull/62453
     description: Runtime deprecation.
@@ -4526,10 +4528,10 @@ changes:
     description: Documentation-only deprecation.
 -->
 
-Type: Runtime
+Type: End-of-Life
 
 Passing a non-extractable [`CryptoKey`][] to [`KeyObject.from()`][] is
-deprecated and will throw an error in a future version.
+no longer supported.
 
 ### DEP0205: `module.register()`
 
@@ -4562,12 +4564,15 @@ removed in a future version of Node.js.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/63624
+    description: Runtime deprecation.
   - version: v26.2.0
     pr-url: https://github.com/nodejs/node/pull/63121
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only
+Type: Runtime
 
 Calling `hmac.digest()` more than once returns an empty buffer instead of
 throwing an error. This behavior is inconsistent with `hash.digest()` and
@@ -4655,9 +4660,7 @@ successfully before the response closed.
 [`ReadStream.open()`]: fs.md#class-fsreadstream
 [`Server.getConnections()`]: net.md#servergetconnectionscallback
 [`Server.listen({fd: <number>})`]: net.md#serverlistenhandle-backlog-callback
-[`Sign.prototype.sign()`]: crypto.md#signsignprivatekey-outputencoding
 [`String.prototype.toWellFormed`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toWellFormed
-[`Verify.prototype.verify()`]: crypto.md#verifyverifyobject-signature-signatureencoding
 [`WriteStream.open()`]: fs.md#class-fswritestream
 [`assert`]: assert.md
 [`asyncResource.runInAsyncScope()`]: async_context.md#asyncresourceruninasyncscopefn-thisarg-args
@@ -4675,21 +4678,11 @@ successfully before the response closed.
 [`crypto.createDecipheriv()`]: crypto.md#cryptocreatedecipherivalgorithm-key-iv-options
 [`crypto.createHash()`]: crypto.md#cryptocreatehashalgorithm-options
 [`crypto.createHmac()`]: crypto.md#cryptocreatehmacalgorithm-key-options
-[`crypto.createPrivateKey()`]: crypto.md#cryptocreateprivatekeykey
-[`crypto.createPublicKey()`]: crypto.md#cryptocreatepublickeykey
-[`crypto.decapsulate()`]: crypto.md#cryptodecapsulatekey-ciphertext-callback
-[`crypto.encapsulate()`]: crypto.md#cryptoencapsulatekey-callback
 [`crypto.fips`]: crypto.md#cryptofips
 [`crypto.pbkdf2()`]: crypto.md#cryptopbkdf2password-salt-iterations-keylen-digest-callback
-[`crypto.privateDecrypt()`]: crypto.md#cryptoprivatedecryptprivatekey-buffer
-[`crypto.privateEncrypt()`]: crypto.md#cryptoprivateencryptprivatekey-buffer
-[`crypto.publicDecrypt()`]: crypto.md#cryptopublicdecryptkey-buffer
-[`crypto.publicEncrypt()`]: crypto.md#cryptopublicencryptkey-buffer
 [`crypto.randomBytes()`]: crypto.md#cryptorandombytessize-callback
 [`crypto.scrypt()`]: crypto.md#cryptoscryptpassword-salt-keylen-options-callback
 [`crypto.setEngine()`]: crypto.md#cryptosetengineengine-flags
-[`crypto.sign()`]: crypto.md#cryptosignalgorithm-data-key-callback
-[`crypto.verify()`]: crypto.md#cryptoverifyalgorithm-data-key-signature-callback
 [`decipher.final()`]: crypto.md#decipherfinaloutputencoding
 [`decipher.setAuthTag()`]: crypto.md#deciphersetauthtagbuffer-encoding
 [`dirent.parentPath`]: fs.md#direntparentpath
