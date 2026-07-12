@@ -2479,10 +2479,7 @@ added: v8.4.0
 
 * `callback` {Function}
 
-Stops the server from establishing new sessions. This does not prevent new
-request streams from being created due to the persistent nature of HTTP/2
-sessions. To gracefully shut down the server, call [`http2session.close()`][] on
-all active sessions.
+Stops the server from establishing new sessions and streams.
 
 If `callback` is provided, it is not invoked until all active sessions have been
 closed, although the server has already stopped allowing new sessions. See
@@ -2720,11 +2717,15 @@ server.on('stream', (stream, headers, flags) => {
 
 <!-- YAML
 added: v8.4.0
+changes:
+  - version: v13.0.0
+    pr-url: https://github.com/nodejs/node/pull/27558
+    description: The default timeout changed from 120s to 0 (no timeout).
 -->
 
 The `'timeout'` event is emitted when there is no activity on the Server for
 a given number of milliseconds set using `http2secureServer.setTimeout()`.
-**Default:** 2 minutes.
+**Default:** 0 (no timeout)
 
 #### Event: `'unknownProtocol'`
 
@@ -2763,10 +2764,7 @@ added: v8.4.0
 
 * `callback` {Function}
 
-Stops the server from establishing new sessions. This does not prevent new
-request streams from being created due to the persistent nature of HTTP/2
-sessions. To gracefully shut down the server, call [`http2session.close()`][] on
-all active sessions.
+Stops the server from establishing new sessions and streams.
 
 If `callback` is provided, it is not invoked until all active sessions have been
 closed, although the server has already stopped allowing new sessions. See
@@ -4416,6 +4414,9 @@ added: v8.4.0
 This method adds HTTP trailing headers (a header but at the end of the
 message) to the response.
 
+Trailers must be added before calling [`response.end()`][]; trailers added
+afterwards are silently dropped.
+
 Attempting to set a header field name or value that contains invalid characters
 will result in a [`TypeError`][] being thrown.
 
@@ -5106,7 +5107,6 @@ you need to implement any fall-back behavior yourself.
 [`http2.Server`]: #class-http2server
 [`http2.createSecureServer()`]: #http2createsecureserveroptions-onrequesthandler
 [`http2.createServer()`]: #http2createserveroptions-onrequesthandler
-[`http2session.close()`]: #http2sessionclosecallback
 [`http2stream.pushStream()`]: #http2streampushstreamheaders-options-callback
 [`import()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import
 [`net.Server.close()`]: net.md#serverclosecallback
