@@ -154,7 +154,6 @@ class EnvironmentOptions : public Options {
   bool allow_wasi = false;
   bool allow_ffi = false;
   bool allow_worker_threads = false;
-  bool experimental_repl_await = true;
   bool experimental_vm_modules = EXPERIMENTALS_DEFAULT_VALUE;
   bool async_context_frame = true;
   bool expose_internals = false;
@@ -334,7 +333,11 @@ class PerProcessOptions : public Options {
 
   std::string title;
   std::string trace_event_categories;
+#if defined(V8_USE_PERFETTO)
+  std::string trace_event_file_pattern = "node_trace.${rotation}.pftrace";
+#else
   std::string trace_event_file_pattern = "node_trace.${rotation}.log";
+#endif
   int64_t v8_thread_pool_size = 4;
   bool zero_fill_all_buffers = false;
   bool debug_arraybuffer_allocations = false;

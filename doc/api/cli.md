@@ -2079,14 +2079,6 @@ added: v21.2.0
 
 Disable exposition of [Navigator API][] on the global scope.
 
-### `--no-experimental-repl-await`
-
-<!-- YAML
-added: v16.6.0
--->
-
-Use this flag to disable top-level await in REPL.
-
 ### `--no-experimental-require-module`
 
 <!-- YAML
@@ -2705,6 +2697,9 @@ The following environment variables are set when running a script with `--run`:
   `--run` is used to run `test`, the value of this variable will be `test`.
 * `NODE_RUN_PACKAGE_JSON_PATH`: The path to the `package.json` that is being
   processed.
+
+Environment variables loaded from a file with [`--env-file`][] are not applied
+to the command executed by `--run`.
 
 ### `--secure-heap-min=n`
 
@@ -3866,7 +3861,6 @@ one is included in the list below.
 * `--no-async-context-frame`
 * `--no-deprecation`
 * `--no-experimental-global-navigator`
-* `--no-experimental-repl-await`
 * `--no-experimental-sqlite`
 * `--no-experimental-strip-types`
 * `--no-experimental-websocket`

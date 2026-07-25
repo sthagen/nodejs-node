@@ -196,7 +196,7 @@ changes:
                  strings anymore.
 -->
 
-* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable|Stream}
+* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable}
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `'utf8'`
   * `signal` {AbortSignal|undefined} allows aborting an in-progress writeFile. **Default:** `undefined`
@@ -400,7 +400,7 @@ added:
     reached, whichever comes first. **Default:** read until EOF.
   * `chunkSize` {number} Size in bytes of the buffer allocated for each
     read operation. **Default:** `131072` (128 KB).
-* Returns: {AsyncIterable\<Uint8Array\[]>}
+* Returns: {AsyncIterable} whose chunks fulfill with {Uint8Array\[]}
 
 Return the file contents as an async iterable using the
 [`node:stream/iter`][] pull model. Reads are performed in `chunkSize`-byte
@@ -475,7 +475,7 @@ added:
     iterator. **Default:** read until EOF.
   * `chunkSize` {number} Size in bytes of the buffer allocated for each
     read operation. **Default:** `131072` (128 KB).
-* Returns: {Iterable\<Uint8Array\[]>}
+* Returns: {Iterable} whose chunks return {Uint8Array\[]}
 
 Synchronous counterpart of [`filehandle.pull()`][]. Returns a sync iterable
 that reads the file using synchronous I/O on the main thread. Reads are
@@ -1007,7 +1007,7 @@ changes:
                  strings anymore.
 -->
 
-* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable|Stream}
+* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable}
 * `options` {Object|string}
   * `encoding` {string|null} The expected character encoding when `data` is a
     string. **Default:** `'utf8'`
@@ -1238,10 +1238,15 @@ changes:
     - v20.10.0
     pr-url: https://github.com/nodejs/node/pull/50095
     description: The `flush` option is now supported.
+  - version:
+      - v15.14.0
+      - v14.18.0
+    pr-url: https://github.com/nodejs/node/pull/37490
+    description: The `data` argument supports `AsyncIterable`, `Iterable`, and `Stream`.
 -->
 
 * `path` {string|Buffer|URL|FileHandle} filename or {FileHandle}
-* `data` {string|Buffer}
+* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable}
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `'utf8'`
   * `mode` {integer} **Default:** `0o666`
@@ -1251,7 +1256,7 @@ changes:
 * Returns: {Promise} Fulfills with `undefined` upon success.
 
 Asynchronously append data to a file, creating the file if it does not yet
-exist. `data` can be a string or a {Buffer}.
+`data` can be a string, a buffer, an {AsyncIterable}, or an {Iterable} object.
 
 If `options` is a string, then it specifies the `encoding`.
 
@@ -2265,7 +2270,7 @@ changes:
 -->
 
 * `file` {string|Buffer|URL|FileHandle} filename or `FileHandle`
-* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable|Stream}
+* `data` {string|Buffer|TypedArray|DataView|AsyncIterable|Iterable}
 * `options` {Object|string}
   * `encoding` {string|null} **Default:** `'utf8'`
   * `mode` {integer} **Default:** `0o666`
@@ -9325,7 +9330,7 @@ the file contents.
 [`minimatch`]: https://github.com/isaacs/minimatch
 [`node:stream/iter`]: stream_iter.md
 [`statfs.bsize`]: #statfsbsize
-[`stream/iter pipeTo()`]: stream_iter.md#pipetosource-transforms-writer
+[`stream/iter pipeTo()`]: stream_iter.md#pipetosource-transforms-writer-options
 [`stream/iter pull()`]: stream_iter.md#pullsource-transforms-options
 [`stream/iter pullSync()`]: stream_iter.md#pullsyncsource-transforms
 [`util.promisify()`]: util.md#utilpromisifyoriginal
