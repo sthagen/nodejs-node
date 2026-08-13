@@ -52,6 +52,32 @@ static_assert(
     CheckLimitIndices(),
     "Each kLimitMapping entry's sqlite_limit_id must match its index");
 
+// Mapping from JavaScript counter names to SQLite statement status constants
+struct StatusInfo {
+  std::string_view js_name;
+  int sqlite_status_id;
+};
+
+// SQLITE_STMTSTATUS_FILTER_HIT and SQLITE_STMTSTATUS_FILTER_MISS require
+// SQLite >= 3.38.0. Older shared-library builds omit the two counters.
+#if SQLITE_VERSION_NUMBER >= 3038000
+#define NODE_SQLITE_HAS_FILTER_STATUS 1
+#endif
+
+inline constexpr auto kStatusMapping = std::to_array<StatusInfo>({
+    {"fullscanStep", SQLITE_STMTSTATUS_FULLSCAN_STEP},
+    {"sort", SQLITE_STMTSTATUS_SORT},
+    {"autoindex", SQLITE_STMTSTATUS_AUTOINDEX},
+    {"vmStep", SQLITE_STMTSTATUS_VM_STEP},
+    {"reprepare", SQLITE_STMTSTATUS_REPREPARE},
+    {"run", SQLITE_STMTSTATUS_RUN},
+#ifdef NODE_SQLITE_HAS_FILTER_STATUS
+    {"filterMiss", SQLITE_STMTSTATUS_FILTER_MISS},
+    {"filterHit", SQLITE_STMTSTATUS_FILTER_HIT},
+#endif
+    {"memused", SQLITE_STMTSTATUS_MEMUSED},
+});
+
 class DatabaseOpenConfiguration {
  public:
   explicit DatabaseOpenConfiguration(std::string&& location)
@@ -134,6 +160,12 @@ class StatementSyncIterator;
 class StatementSync;
 class BackupJob;
 class Session;
+
+inline void FinalizeStatement(sqlite3_stmt* stmt) {
+  sqlite3_finalize(stmt);
+}
+
+using StatementPtr = DeleteFnPtr<sqlite3_stmt, FinalizeStatement>;
 
 class StatementExecutionHelper {
  public:
@@ -263,13 +295,13 @@ class StatementSync : public BaseObject {
   StatementSync(Environment* env,
                 v8::Local<v8::Object> object,
                 BaseObjectPtr<DatabaseSync> db,
-                sqlite3_stmt* stmt);
+                StatementPtr stmt);
   void MemoryInfo(MemoryTracker* tracker) const override;
   static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
       Environment* env);
   static BaseObjectPtr<StatementSync> Create(Environment* env,
                                              BaseObjectPtr<DatabaseSync> db,
-                                             sqlite3_stmt* stmt);
+                                             StatementPtr stmt);
   static void All(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Iterate(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Get(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -278,6 +310,8 @@ class StatementSync : public BaseObject {
   static void SourceSQLGetter(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void ExpandedSQLGetter(
       const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void Stat(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void ResetStats(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void SetAllowBareNamedParameters(
       const v8::FunctionCallbackInfo<v8::Value>& args);
   static void SetAllowUnknownNamedParameters(
@@ -299,7 +333,7 @@ class StatementSync : public BaseObject {
   ~StatementSync() override;
   void Close();
   BaseObjectPtr<DatabaseSync> db_;
-  sqlite3_stmt* statement_;
+  StatementPtr statement_;
   bool return_arrays_ = false;
   bool use_big_ints_;
   bool allow_bare_named_params_;

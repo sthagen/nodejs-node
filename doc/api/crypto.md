@@ -5341,6 +5341,9 @@ An array of supported digest functions can be retrieved using
 added: v0.11.14
 changes:
   - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65073
+    description: The `mgf1Hash` option was added.
+  - version: REPLACEME
     pr-url: https://github.com/nodejs/node/pull/63188
     description: Passing a CryptoKey as `privateKey` is no longer supported.
   - version:
@@ -5370,8 +5373,11 @@ changes:
 <!--lint disable maximum-line-length remark-lint-->
 
 * `privateKey` {Object|string|ArrayBuffer|Buffer|TypedArray|DataView|KeyObject|URL}
-  * `oaepHash` {string} The hash function to use for OAEP padding and MGF1.
-    **Default:** `'sha1'`
+  * `oaepHash` {string} The hash function to use for OAEP padding and, unless
+    `mgf1Hash` is set, MGF1. **Default:** `'sha1'`
+  * `mgf1Hash` {string} The hash function to use for the MGF1 mask generation
+    function of OAEP padding. If not specified, the value of `oaepHash` is used.
+    This allows the OAEP digest and the MGF1 digest to differ.
   * `oaepLabel` {string|ArrayBuffer|Buffer|TypedArray|DataView} The label to
     use for OAEP padding. If not specified, no label is used.
   * `padding` {crypto.constants} An optional padding value defined in
@@ -5492,6 +5498,9 @@ be passed instead of a public key.
 added: v0.11.14
 changes:
   - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65073
+    description: The `mgf1Hash` option was added.
+  - version: REPLACEME
     pr-url: https://github.com/nodejs/node/pull/63188
     description: Passing a CryptoKey as `key` is no longer supported.
   - version: v15.0.0
@@ -5516,8 +5525,11 @@ changes:
 * `key` {Object|string|ArrayBuffer|Buffer|TypedArray|DataView|KeyObject}
   * `key` {string|ArrayBuffer|Buffer|TypedArray|DataView|KeyObject}
     A PEM encoded public or private key, or {KeyObject}.
-  * `oaepHash` {string} The hash function to use for OAEP padding and MGF1.
-    **Default:** `'sha1'`
+  * `oaepHash` {string} The hash function to use for OAEP padding and, unless
+    `mgf1Hash` is set, MGF1. **Default:** `'sha1'`
+  * `mgf1Hash` {string} The hash function to use for the MGF1 mask generation
+    function of OAEP padding. If not specified, the value of `oaepHash` is used.
+    This allows the OAEP digest and the MGF1 digest to differ.
   * `oaepLabel` {string|ArrayBuffer|Buffer|TypedArray|DataView} The label to
     use for OAEP padding. If not specified, no label is used.
   * `passphrase` {string|ArrayBuffer|Buffer|TypedArray|DataView} An optional
@@ -5660,9 +5672,12 @@ changes:
 
 * `buffer` {ArrayBuffer|Buffer|TypedArray|DataView} Must be supplied. The
   size of the provided `buffer` must not be larger than `2**31 - 1`.
-* `offset` {number} **Default:** `0`
-* `size` {number} **Default:** `buffer.length - offset`. The `size` must
-  not be larger than `2**31 - 1`.
+* `offset` {number} The start position, in elements for a `TypedArray` and in
+  bytes for an `ArrayBuffer` or `DataView`. **Default:** `0`
+* `size` {number} The amount to fill, in the same units as `offset`.
+  **Default:** `buffer.length - offset` for a `TypedArray`, or
+  `buffer.byteLength - offset` for an `ArrayBuffer` or `DataView`. The `size`
+  must not be larger than `2**31 - 1`.
 * `callback` {Function} `function(err, buf) {}`.
 
 This function is similar to [`crypto.randomBytes()`][] but requires the first
@@ -5797,9 +5812,12 @@ changes:
 
 * `buffer` {ArrayBuffer|Buffer|TypedArray|DataView} Must be supplied. The
   size of the provided `buffer` must not be larger than `2**31 - 1`.
-* `offset` {number} **Default:** `0`
-* `size` {number} **Default:** `buffer.length - offset`. The `size` must
-  not be larger than `2**31 - 1`.
+* `offset` {number} The start position, in elements for a `TypedArray` and in
+  bytes for an `ArrayBuffer` or `DataView`. **Default:** `0`
+* `size` {number} The amount to fill, in the same units as `offset`.
+  **Default:** `buffer.length - offset` for a `TypedArray`, or
+  `buffer.byteLength - offset` for an `ArrayBuffer` or `DataView`. The `size`
+  must not be larger than `2**31 - 1`.
 * Returns: {ArrayBuffer|Buffer|TypedArray|DataView} The object passed as
   `buffer` argument.
 

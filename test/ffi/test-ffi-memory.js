@@ -146,6 +146,41 @@ test('ffi getRawPointer returns raw addresses for byte sources', () => {
   assert.strictEqual(sharedViewPointer, sharedArrayBufferPointer + 2n);
 });
 
+test('ffi rejects detached array buffers and views as pointers', () => {
+  const arrayBuffer = new ArrayBuffer(8);
+  const typedArray = new Uint8Array(arrayBuffer);
+  const dataView = new DataView(arrayBuffer);
+
+  arrayBuffer.transfer();
+
+  assert.throws(() => ffi.exportArrayBuffer(arrayBuffer, 0n, 0), {
+    code: 'ERR_INVALID_ARG_VALUE',
+    message: 'ArrayBuffer is detached',
+  });
+
+  for (const [value, rawPointerMessage, argumentMessage] of [
+    [
+      arrayBuffer,
+      'ArrayBuffer is detached',
+      'Argument 0 is a detached ArrayBuffer',
+    ],
+    ...[typedArray, dataView].map((view) => [
+      view,
+      'ArrayBufferView is backed by a detached ArrayBuffer',
+      'Argument 0 is an ArrayBufferView backed by a detached ArrayBuffer',
+    ]),
+  ]) {
+    assert.throws(() => ffi.getRawPointer(value), {
+      code: 'ERR_INVALID_ARG_VALUE',
+      message: rawPointerMessage,
+    });
+    assert.throws(() => symbols.pointer_to_usize(value), {
+      code: 'ERR_INVALID_ARG_VALUE',
+      message: argumentMessage,
+    });
+  }
+});
+
 test('ffi exportString and exportBuffer copy data into native memory', () => {
   withAllocations(common.mustCall((alloc) => {
     const stringPtr = alloc(16);
@@ -251,6 +286,23 @@ test('ffi validates memory access arguments', () => {
     assert.throws(() => ffi.exportArrayBufferView('bad', ptr, 4), { code: 'ERR_INVALID_ARG_TYPE' });
     assert.throws(() => ffi.exportArrayBufferView(new Uint8Array([1]), ptr, -1), { code: 'ERR_OUT_OF_RANGE' });
     assert.throws(() => ffi.exportArrayBufferView(new Uint8Array([1, 2]), ptr, 1), { code: 'ERR_OUT_OF_RANGE' });
+    ffi.exportArrayBufferView(new Uint8Array(new SharedArrayBuffer(1)), ptr, 1);
+
+    const detachedArrayBuffer = new ArrayBuffer(1);
+    detachedArrayBuffer.transfer();
+    assert.throws(() => ffi.exportArrayBuffer(detachedArrayBuffer, ptr, 1), {
+      code: 'ERR_INVALID_ARG_VALUE',
+    });
+
+    for (const View of [Uint8Array, DataView]) {
+      const arrayBuffer = new ArrayBuffer(1);
+      const view = new View(arrayBuffer);
+      arrayBuffer.transfer();
+      assert.throws(() => ffi.exportArrayBufferView(view, ptr, 1), {
+        code: 'ERR_INVALID_ARG_VALUE',
+      });
+    }
+
     assert.throws(() => ffi.toBuffer(maxPointer, 8), /pointer and length exceed the platform address range/);
     assert.throws(() => ffi.toArrayBuffer(maxPointer, 8), /pointer and length exceed the platform address range/);
     assert.throws(() => ffi.toBuffer(1n, bufferConstants.MAX_LENGTH + 1), { code: 'ERR_BUFFER_TOO_LARGE' });

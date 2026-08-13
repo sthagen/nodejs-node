@@ -317,6 +317,29 @@ test('sql error messages are descriptive', () => {
   });
 });
 
+test('rejects SQL that contains no statements', () => {
+  const expectedError = {
+    code: 'ERR_INVALID_ARG_VALUE',
+    message: /contains no statements/,
+  };
+
+  for (const method of ['run', 'get', 'all', 'iterate']) {
+    assert.throws(() => {
+      // eslint-disable-next-line no-unused-expressions
+      sql[method]`-- comment`;
+    }, expectedError);
+
+    assert.throws(() => {
+      // eslint-disable-next-line no-unused-expressions
+      sql[method]``;
+    }, expectedError);
+  }
+
+  // A rejected statement must not be cached, so a later valid query with the
+  // same tag store still works.
+  assert.strictEqual(sql.run`INSERT INTO foo (text) VALUES (${'bob'})`.changes, 1);
+});
+
 test('a tag store keeps the database alive by itself', () => {
   const sql = new DatabaseSync(':memory:').createTagStore();
 
@@ -347,4 +370,21 @@ test('tag store prevents circular reference leaks', async () => {
     // Memory should not grow significantly (allow 50% margin for noise)
     return after < before * 1.5;
   }, 20);
+});
+
+test('cached statements are finalized when the database is closed', () => {
+  const db = new DatabaseSync(':memory:');
+  const sql = db.createTagStore();
+
+  db.exec('CREATE TABLE foo (id INTEGER PRIMARY KEY)');
+  db.exec('INSERT INTO foo (id) VALUES (1)');
+  assert.deepStrictEqual(sql.all`SELECT id FROM foo`, [{ __proto__: null, id: 1 }]);
+
+  db.close();
+  db.open();
+
+  assert.throws(() => sql.all`SELECT id FROM foo`, {
+    code: 'ERR_SQLITE_ERROR',
+    message: /no such table/i,
+  });
 });

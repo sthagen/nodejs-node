@@ -79,6 +79,28 @@ suite('StatementSync.prototype.get()', () => {
       message: /statement has been finalized/,
     });
   });
+
+  test('surfaces a deferred SQLite error from reset() even though a row was already built', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec(`
+      PRAGMA foreign_keys = ON;
+      PRAGMA defer_foreign_keys = ON;
+      CREATE TABLE parent(id INTEGER PRIMARY KEY);
+      CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id));
+    `);
+    // The FK check is deferred until the implicit transaction commits, which
+    // happens inside reset() here because RETURNING leaves the statement's
+    // VDBE running after the row is produced.
+    const stmt = db.prepare(
+      'INSERT INTO child (parent_id) VALUES (999) RETURNING id'
+    );
+    t.assert.throws(() => {
+      stmt.get();
+    }, {
+      code: 'ERR_SQLITE_ERROR',
+      message: /FOREIGN KEY constraint failed/,
+    });
+  });
 });
 
 suite('StatementSync.prototype.all()', () => {
@@ -142,6 +164,25 @@ suite('StatementSync.prototype.all()', () => {
     }, {
       code: 'ERR_INVALID_STATE',
       message: /statement has been finalized/,
+    });
+  });
+
+  test('surfaces a deferred SQLite error from reset() even though the array was already built', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec(`
+      PRAGMA foreign_keys = ON;
+      PRAGMA defer_foreign_keys = ON;
+      CREATE TABLE parent(id INTEGER PRIMARY KEY);
+      CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id));
+    `);
+    const stmt = db.prepare(
+      'INSERT INTO child (parent_id) VALUES (999) RETURNING id'
+    );
+    t.assert.throws(() => {
+      stmt.all();
+    }, {
+      code: 'ERR_SQLITE_ERROR',
+      message: /FOREIGN KEY constraint failed/,
     });
   });
 });
@@ -322,6 +363,41 @@ suite('StatementSync.prototype.iterate()', () => {
       message: /statement has been finalized/,
     });
   });
+
+  test('does not replay results after the iterator is naturally exhausted', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec(`
+      CREATE TABLE test(key TEXT);
+      INSERT INTO test (key) VALUES ('key1');
+    `);
+    const it = db.prepare('SELECT * FROM test').iterate();
+    t.assert.deepStrictEqual(it.next(), {
+      __proto__: null, done: false, value: { __proto__: null, key: 'key1' },
+    });
+    t.assert.deepStrictEqual(
+      it.next(), { __proto__: null, done: true, value: null });
+    // Calling next() again on an exhausted iterator must keep reporting
+    // done, not silently reset the statement and replay from row 1.
+    t.assert.deepStrictEqual(
+      it.next(), { __proto__: null, done: true, value: null });
+  });
+
+  test('propagates a pending exception when the loop body throws mid-iteration', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec(`
+      CREATE TABLE test(key TEXT);
+      INSERT INTO test (key) VALUES ('key1');
+      INSERT INTO test (key) VALUES ('key2');
+    `);
+    const stmt = db.prepare('SELECT * FROM test');
+    const userError = new Error('boom');
+    t.assert.throws(() => {
+      // eslint-disable-next-line no-unused-vars
+      for (const row of stmt.iterate()) {
+        throw userError;
+      }
+    }, (err) => err === userError);
+  });
 });
 
 suite('StatementSync.prototype.run()', () => {
@@ -482,6 +558,212 @@ suite('StatementSync.prototype.expandedSQL', () => {
     const stmt = db.prepare('CREATE TABLE storage(key TEXT, val TEXT)');
     stmt.close();
     t.assert.throws(() => stmt.expandedSQL, {
+      code: 'ERR_INVALID_STATE',
+      message: /statement has been finalized/,
+    });
+  });
+});
+
+suite('StatementSync.prototype.stat()', () => {
+  const counters = [
+    'fullscanStep', 'sort', 'autoindex', 'vmStep', 'reprepare',
+    'run', 'memused',
+  ];
+
+  // 'filterMiss' and 'filterHit' map to SQLITE_STMTSTATUS_FILTER_MISS and
+  // SQLITE_STMTSTATUS_FILTER_HIT, which were added in SQLite 3.38.0. Builds
+  // using an older shared SQLite do not expose them.
+  const [major, minor] = process.versions.sqlite.split('.').map(Number);
+  const hasFilterCounters = major > 3 || (major === 3 && minor >= 38);
+
+  if (hasFilterCounters) {
+    counters.push('filterMiss', 'filterHit');
+  }
+
+  test('returns a number for every valid counter', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const stmt = db.prepare('SELECT * FROM data');
+    for (const counter of counters) {
+      t.assert.strictEqual(typeof stmt.stat(counter), 'number');
+    }
+  });
+
+  test('counts virtual machine steps and runs after execution', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const insert = db.prepare('INSERT INTO data (key, val) VALUES (?, ?)');
+    for (let i = 1; i <= 5; i++) {
+      insert.run(i, `val-${i}`);
+    }
+    const stmt = db.prepare('SELECT * FROM data');
+    t.assert.strictEqual(stmt.stat('run'), 0);
+    t.assert.strictEqual(stmt.stat('vmStep'), 0);
+    stmt.all();
+    t.assert.strictEqual(stmt.stat('run'), 1);
+    t.assert.ok(stmt.stat('vmStep') > 0);
+    t.assert.ok(stmt.stat('memused') > 0);
+  });
+
+  test('detects full table scans', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const insert = db.prepare('INSERT INTO data (key, val) VALUES (?, ?)');
+    for (let i = 1; i <= 10; i++) {
+      insert.run(i, `val-${i}`);
+    }
+
+    // Filtering on a non-indexed column forces a full table scan.
+    const scan = db.prepare('SELECT * FROM data WHERE val = ?');
+    scan.all('val-5');
+    t.assert.ok(scan.stat('fullscanStep') > 0);
+
+    // Filtering on the primary key uses the index; no full scan occurs.
+    const indexed = db.prepare('SELECT * FROM data WHERE key = ?');
+    indexed.all(5);
+    t.assert.strictEqual(indexed.stat('fullscanStep'), 0);
+  });
+
+  test('reading a counter does not reset it', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const stmt = db.prepare('SELECT * FROM data');
+    stmt.all();
+    const first = stmt.stat('run');
+    t.assert.strictEqual(stmt.stat('run'), first);
+  });
+
+  test('throws if the counter argument is not a string', (t) => {
+    using db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    t.assert.throws(() => stmt.stat(), {
+      code: 'ERR_INVALID_ARG_TYPE',
+      message: /The "counter" argument must be a string/,
+    });
+    t.assert.throws(() => stmt.stat(42), {
+      code: 'ERR_INVALID_ARG_TYPE',
+      message: /The "counter" argument must be a string/,
+    });
+  });
+
+  test('throws if the counter name is unknown', (t) => {
+    using db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    t.assert.throws(() => stmt.stat('nope'), {
+      code: 'ERR_INVALID_ARG_VALUE',
+      message: /The "counter" argument is not a valid statistic name/,
+    });
+  });
+
+  test('throws if the statement is finalized', (t) => {
+    const db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    db.close();
+    t.assert.throws(() => stmt.stat('run'), {
+      code: 'ERR_INVALID_STATE',
+      message: /statement has been finalized/,
+    });
+  });
+});
+
+suite('StatementSync.prototype.resetStats()', () => {
+  test('returns undefined', (t) => {
+    using db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    t.assert.strictEqual(stmt.resetStats(), undefined);
+  });
+
+  // The column name cache is keyed on the reprepare counter, which
+  // resetStats() zeroes. A later re-prepare must not be able to make the
+  // counter match the cached generation again and reuse stale names.
+  test('invalidates cached iterator column names', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(a); INSERT INTO data VALUES (1)');
+    const stmt = db.prepare('SELECT * FROM data');
+
+    db.exec('ALTER TABLE data RENAME COLUMN a TO b');
+    stmt.iterate().toArray();
+    stmt.resetStats();
+    db.exec('ALTER TABLE data RENAME COLUMN b TO c');
+
+    t.assert.deepStrictEqual(stmt.iterate().toArray(), [
+      { __proto__: null, c: 1 },
+    ]);
+  });
+
+  test('invalidates the cache when the column count grows', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE t(a); INSERT INTO t VALUES (1)');
+    const stmt = db.prepare('SELECT * FROM t');
+
+    db.exec('ALTER TABLE t ADD COLUMN b DEFAULT 2');
+    stmt.iterate().toArray();
+    stmt.resetStats();
+    db.exec('ALTER TABLE t ADD COLUMN c DEFAULT 3');
+
+    t.assert.deepStrictEqual(stmt.iterate().toArray(), [
+      { __proto__: null, a: 1, b: 2, c: 3 },
+    ]);
+  });
+
+  test('does not reset memused', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE t(a); INSERT INTO t VALUES (1),(2),(3)');
+    const stmt = db.prepare('SELECT * FROM t ORDER BY a');
+    stmt.all();
+
+    // The memused counter reports current memory usage rather than an
+    // accumulated total, so SQLite ignores the reset flag for it.
+    const before = stmt.stat('memused');
+    t.assert.ok(before > 0);
+    stmt.resetStats();
+    t.assert.strictEqual(stmt.stat('memused'), before);
+  });
+
+  test('clears every counter', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const insert = db.prepare('INSERT INTO data (key, val) VALUES (?, ?)');
+    for (let i = 1; i <= 5; i++) {
+      insert.run(i, `val-${i}`);
+    }
+
+    // Force a full table scan so more than one counter is non-zero.
+    const stmt = db.prepare('SELECT * FROM data WHERE val = ?');
+    stmt.all('val-3');
+    t.assert.ok(stmt.stat('run') > 0);
+    t.assert.ok(stmt.stat('vmStep') > 0);
+    t.assert.ok(stmt.stat('fullscanStep') > 0);
+
+    stmt.resetStats();
+    t.assert.strictEqual(stmt.stat('run'), 0);
+    t.assert.strictEqual(stmt.stat('vmStep'), 0);
+    t.assert.strictEqual(stmt.stat('fullscanStep'), 0);
+  });
+
+  test('counters accumulate again after a reset', (t) => {
+    using db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE data(key INTEGER PRIMARY KEY, val TEXT) STRICT;');
+    const stmt = db.prepare('SELECT * FROM data');
+    stmt.all();
+    stmt.resetStats();
+    t.assert.strictEqual(stmt.stat('run'), 0);
+    stmt.all();
+    t.assert.strictEqual(stmt.stat('run'), 1);
+  });
+
+  test('is a no-op when no counters have been incremented', (t) => {
+    using db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    stmt.resetStats();
+    t.assert.strictEqual(stmt.stat('run'), 0);
+  });
+
+  test('throws if the statement is finalized', (t) => {
+    const db = new DatabaseSync(':memory:');
+    const stmt = db.prepare('SELECT 1');
+    db.close();
+    t.assert.throws(() => stmt.resetStats(), {
       code: 'ERR_INVALID_STATE',
       message: /statement has been finalized/,
     });
