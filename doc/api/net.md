@@ -99,7 +99,7 @@ Adds a rule to block the given IP address.
 ### `blockList.addAddresses(addresses[, type])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `addresses` {string\[]|net.SocketAddress\[]} An array of IPv4 or IPv6
@@ -114,7 +114,7 @@ are inserted under a single internal lock acquisition.
 ### `blockList.addCIDR(cidr)`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `cidr` {string} An IPv4 or IPv6 subnet in CIDR notation (e.g.
@@ -128,7 +128,7 @@ the parsed network address, prefix length, and family.
 ### `blockList.addCIDRs(cidrs)`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `cidrs` {string\[]} An array of IPv4 or IPv6 subnets in CIDR notation.
@@ -202,7 +202,7 @@ console.log(blockList.check('::ffff:123.123.123.123', 'ipv6')); // Prints: true
 ### `blockList.clear()`
 
 <!--
-added: REPLACEME
+added: v26.8.0
 -->
 
 Clears all rules from the `BlockList`.
@@ -245,7 +245,7 @@ added:
 ### `BlockList.PRIVATE_RANGES`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * Type: {string\[]}
@@ -277,7 +277,7 @@ console.log(blockList.check('8.8.8.8'));       // Prints: false
 ### `blockList.removeAddress(address[, type])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `address` {string|net.SocketAddress} An IPv4 or IPv6 address.
@@ -290,7 +290,7 @@ specified address does not exist, this is a no-op.
 ### `blockList.removeCIDR(cidr)`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `cidr` {string} An IPv4 or IPv6 subnet in CIDR notation (e.g.
@@ -304,7 +304,7 @@ and family. If the specified subnet does not exist, this is a no-op.
 ### `blockList.removeRange(start, end[, type])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `start` {string|net.SocketAddress} The starting IPv4 or IPv6 address in the
@@ -319,7 +319,7 @@ If the specified range does not exist, this is a no-op.
 ### `blockList.removeSubnet(net, prefix[, type])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * `net` {string|net.SocketAddress} The network IPv4 or IPv6 address.
@@ -347,7 +347,7 @@ The list of rules added to the blocklist.
 ### `blockList.size`
 
 <!-- YAML
-added: REPLACEME
+added: v26.8.0
 -->
 
 * Type: {number}
@@ -784,6 +784,11 @@ If `handle` is specified, the server adopts that pre-bound socket. Otherwise, if
 Otherwise, if `path` is specified, it behaves the same as
 [`server.listen(path[, backlog][, callback])`][`server.listen(path)`].
 If none of them is specified, an error will be thrown.
+
+> Using the `signal` option to destroy a long-lived server as a resource cleanup
+> mechanism is deprecated. The `signal` option remains appropriate for
+> cancellation, externally propagated aborts, and timeouts. See
+> [DEP0209](deprecations.md#dep0209-using-abortsignal-to-dispose-of-resources).
 
 If `exclusive` is `false` (default), then cluster workers will use the same
 underlying handle, allowing connection handling duties to be shared. When
@@ -1452,15 +1457,15 @@ added: v0.1.90
 * `error` {Object}
 * Returns: {net.Socket}
 
-Ensures that no more I/O activity happens on this socket.
+Ensures that no more I/O activity happens on the current connection.
 Destroys the stream and closes the connection.
 
 See [`writable.destroy()`][] for further details.
 
 ### `socket.destroyed`
 
-* Type: {boolean} Indicates if the connection is destroyed or not. Once a
-  connection is destroyed no further data can be transferred using it.
+* Type: {boolean} Indicates if the connection is destroyed or not. No further
+  data can be transferred using a destroyed connection.
 
 See [`writable.destroyed`][] for further details.
 
@@ -1939,7 +1944,9 @@ added:
  - v26.4.0
  - v24.19.0
 changes:
-  - version: v26.7.0
+  - version:
+     - v26.7.0
+     - v24.20.0
     pr-url: https://github.com/nodejs/node/pull/64399
     description: The `path` option is supported.
 -->
@@ -1968,7 +1975,9 @@ added:
  - v26.4.0
  - v24.19.0
 changes:
-  - version: v26.7.0
+  - version:
+     - v26.7.0
+     - v24.20.0
     pr-url: https://github.com/nodejs/node/pull/64399
     description: The bound path is returned for a pipe bind.
 -->
@@ -1983,7 +1992,9 @@ OS-assigned ephemeral port.
 ### `boundSocket.isPipe`
 
 <!-- YAML
-added: v26.7.0
+added:
+ - v26.7.0
+ - v24.20.0
 -->
 
 * {boolean}
@@ -2443,12 +2454,13 @@ added: v0.3.0
 * `input` {string}
 * Returns: {integer}
 
-Returns `6` if `input` is an IPv6 address. Returns `4` if `input` is an IPv4
-address in [dot-decimal notation][] with no leading zeroes. Otherwise, returns
-`0`.
+Returns `6` if `input` is an IPv6 address, including an IPv4-mapped IPv6 address.
+Returns `4` if `input` is an IPv4 address in [dot-decimal notation][] with no
+leading zeroes. Otherwise, returns `0`.
 
 ```js
 net.isIP('::1'); // returns 6
+net.isIP('::ffff:127.0.0.1'); // returns 6
 net.isIP('127.0.0.1'); // returns 4
 net.isIP('127.000.000.001'); // returns 0
 net.isIP('127.0.0.1/24'); // returns 0
@@ -2483,10 +2495,12 @@ added: v0.3.0
 * `input` {string}
 * Returns: {boolean}
 
-Returns `true` if `input` is an IPv6 address. Otherwise, returns `false`.
+Returns `true` if `input` is an IPv6 address, including an IPv4-mapped IPv6 address.
+Otherwise, returns `false`.
 
 ```js
 net.isIPv6('::1'); // returns true
+net.isIPv6('::ffff:127.0.0.1'); // returns true
 net.isIPv6('fhqwhgads'); // returns false
 ```
 

@@ -2007,7 +2007,9 @@ has less than 64 KiB of data because no `highWaterMark` option is provided to
 ##### `readable[Symbol.for('Stream.toAsyncStreamable')]()`
 
 <!-- YAML
-added: v26.1.0
+added:
+ - v26.1.0
+ - v24.20.0
 -->
 
 > Stability: 1 - Experimental
@@ -3569,6 +3571,10 @@ changes:
 
 Attaches an AbortSignal to a readable or writable stream. This lets code
 control stream destruction using an `AbortController`.
+
+> Stability: 0 - Deprecated. Using [`stream.addAbortSignal()`][] to destroy
+> long-lived stream resources is documentation-only deprecated. See
+> [DEP0209](deprecations.md#dep0209-using-abortsignal-to-dispose-of-resources).
 
 Calling `abort` on the `AbortController` corresponding to the passed
 `AbortSignal` will behave the same way as calling `.destroy(new AbortError())`

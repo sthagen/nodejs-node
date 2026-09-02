@@ -201,7 +201,8 @@ class EnvironmentOptions : public Options {
   DEFINE_BOOL_FIELD(enable_source_maps) = false;
   DEFINE_BOOL_FIELD(experimental_addon_modules) = true;
   DEFINE_BOOL_FIELD(experimental_eventsource) = EXPERIMENTALS_DEFAULT_VALUE;
-  DEFINE_BOOL_FIELD(experimental_ffi) = EXPERIMENTALS_DEFAULT_VALUE;
+  DEFINE_BOOL_FIELD(experimental_ffi) = HAVE_FFI;
+  DEFINE_BOOL_FIELD(experimental_web_worker) = EXPERIMENTALS_DEFAULT_VALUE;
   DEFINE_BOOL_FIELD(experimental_websocket) = true;
   DEFINE_BOOL_FIELD(experimental_sqlite) = HAVE_SQLITE;
   DEFINE_BOOL_FIELD(experimental_stream_iter) = EXPERIMENTALS_DEFAULT_VALUE;
@@ -408,7 +409,9 @@ class PerProcessOptions : public Options {
   DEFINE_BOOL_FIELD(use_openssl_ca) = false;
   DEFINE_BOOL_FIELD(use_bundled_ca) = false;
   DEFINE_BOOL_FIELD(enable_fips_crypto) = false;
+  DEFINE_BOOL_FIELD(enable_fips_indicator_events) = false;
   DEFINE_BOOL_FIELD(force_fips_crypto) = false;
+  std::string force_fips_crypto_policy = "provider";
 #endif  // HAVE_OPENSSL
 #if OPENSSL_VERSION_MAJOR >= 3
   DEFINE_BOOL_FIELD(openssl_legacy_provider) = false;
@@ -419,6 +422,9 @@ class PerProcessOptions : public Options {
   DEFINE_BOOL_FIELD(report_on_fatalerror) = false;
   DEFINE_BOOL_FIELD(report_compact) = false;
   DEFINE_BOOL_FIELD(trace_sigint) = false;
+  // Tracks whether `--run` was passed, since an empty `run` is ambiguous
+  // between "not passed" and "passed without a script name" (lists scripts).
+  DEFINE_BOOL_FIELD(has_run) = false;
 
   inline PerIsolateOptions* get_per_isolate_options();
   void CheckOptions(std::vector<std::string>* errors,

@@ -32,10 +32,10 @@ using v8::Local;
 using v8::LocalVector;
 using v8::Maybe;
 using v8::MaybeLocal;
-using v8::Null;
 using v8::Object;
 using v8::PropertyAttribute;
 using v8::ReadOnly;
+using v8::Signature;
 using v8::String;
 using v8::TryCatch;
 using v8::Value;
@@ -324,7 +324,9 @@ MaybeLocal<Function> DynamicLibrary::CreateFunction(
     maybe_ret = Function::New(context,
                               use_sb ? DynamicLibrary::InvokeFunctionSB
                                      : DynamicLibrary::InvokeFunction,
-                              info->object());
+                              info->object(),
+                              0,
+                              v8::ConstructorBehavior::kThrow);
   }
 
   Local<Function> ret;
@@ -377,8 +379,11 @@ MaybeLocal<Function> DynamicLibrary::CreateFunction(
     // (strings, Buffers, ArrayBuffers, and ArrayBufferViews).
     if (has_ptr_args) {
       Local<Function> slow_fn;
-      if (!Function::New(
-               context, DynamicLibrary::InvokeFunction, info->object())
+      if (!Function::New(context,
+                         DynamicLibrary::InvokeFunction,
+                         info->object(),
+                         0,
+                         v8::ConstructorBehavior::kThrow)
                .ToLocal(&slow_fn)) {
         return MaybeLocal<Function>();
       }
@@ -710,13 +715,11 @@ void DynamicLibrary::InvokeCallback(ffi_cif* cif,
   size_t expected_args = cb->args.size();
   LocalVector<Value> callback_args(isolate, expected_args);
 
+  // libffi always points `args[i]` at its own storage for the value of
+  // argument `i`, so the slot pointers themselves are never null. A NULL
+  // pointer argument surfaces as the BigInt `0n` via ToJSArgument.
   for (size_t i = 0; i < expected_args; i++) {
-    if (args[i] == nullptr) {
-      callback_args[i] = Null(isolate);
-      continue;
-    } else {
-      callback_args[i] = ToJSArgument(isolate, cb->args[i], args[i]);
-    }
+    callback_args[i] = ToJSArgument(isolate, cb->args[i], args[i]);
   }
 
   TryCatch try_catch(isolate);
@@ -1236,16 +1239,19 @@ Local<FunctionTemplate> DynamicLibrary::GetConstructorTemplate(
     tmpl = NewFunctionTemplate(isolate, DynamicLibrary::New);
     tmpl->InstanceTemplate()->SetInternalFieldCount(
         DynamicLibrary::kInternalFieldCount);
+    Local<Signature> signature = Signature::New(isolate, tmpl);
 
     tmpl->InstanceTemplate()->SetAccessorProperty(
         env->path_string(),
-        FunctionTemplate::New(env->isolate(), DynamicLibrary::GetPath),
+        FunctionTemplate::New(
+            isolate, DynamicLibrary::GetPath, Local<Value>(), signature),
         Local<FunctionTemplate>(),
         attributes);
 
     tmpl->InstanceTemplate()->SetAccessorProperty(
         FIXED_ONE_BYTE_STRING(isolate, "symbols"),
-        FunctionTemplate::New(env->isolate(), DynamicLibrary::GetSymbols),
+        FunctionTemplate::New(
+            isolate, DynamicLibrary::GetSymbols, Local<Value>(), signature),
         Local<FunctionTemplate>(),
         attributes);
 
@@ -1255,7 +1261,8 @@ Local<FunctionTemplate> DynamicLibrary::GetConstructorTemplate(
     // reason.
     tmpl->PrototypeTemplate()->SetAccessorProperty(
         FIXED_ONE_BYTE_STRING(isolate, "functions"),
-        FunctionTemplate::New(env->isolate(), DynamicLibrary::GetFunctions),
+        FunctionTemplate::New(
+            isolate, DynamicLibrary::GetFunctions, Local<Value>(), signature),
         Local<FunctionTemplate>(),
         static_cast<PropertyAttribute>(ReadOnly));
 

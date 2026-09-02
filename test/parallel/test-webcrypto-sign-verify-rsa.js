@@ -227,22 +227,26 @@ async function testSaltLength(keyLength, hash, hLen) {
 
   const signature = await subtle.sign(
     { name: 'RSA-PSS', saltLength: max }, privateKey, data);
-  await assert.rejects(
-    subtle.sign({ name: 'RSA-PSS', saltLength: max + 1 }, privateKey, data), (err) => {
-      assert.strictEqual(err.name, 'OperationError');
-      assert.strictEqual(err.cause?.code, 'ERR_OUT_OF_RANGE');
-      assert.strictEqual(err.cause?.message, `The value of "algorithm.saltLength" is out of range. It must be >= 0 && <= ${max}. Received ${max + 1}`);
-      return true;
-    });
-  await subtle.verify(
-    { name: 'RSA-PSS', saltLength: max }, publicKey, signature, data);
-  await assert.rejects(
-    subtle.verify({ name: 'RSA-PSS', saltLength: max + 1 }, publicKey, signature, data), (err) => {
-      assert.strictEqual(err.name, 'OperationError');
-      assert.strictEqual(err.cause?.code, 'ERR_OUT_OF_RANGE');
-      assert.strictEqual(err.cause?.message, `The value of "algorithm.saltLength" is out of range. It must be >= 0 && <= ${max}. Received ${max + 1}`);
-      return true;
-    });
+  assert.strictEqual(await subtle.verify(
+    { name: 'RSA-PSS', saltLength: max }, publicKey, signature, data), true);
+
+  for (const saltLength of [max + 1, 0x7fffffff]) {
+    await assert.rejects(
+      subtle.sign({ name: 'RSA-PSS', saltLength }, privateKey, data), {
+        name: 'OperationError',
+      });
+    assert.strictEqual(await subtle.verify(
+      { name: 'RSA-PSS', saltLength }, publicKey, signature, data), false);
+  }
+
+  for (const saltLength of [0x80000000, 0xffffffff]) {
+    await assert.rejects(
+      subtle.sign({ name: 'RSA-PSS', saltLength }, privateKey, data), {
+        name: 'OperationError',
+      });
+    assert.strictEqual(await subtle.verify(
+      { name: 'RSA-PSS', saltLength }, publicKey, signature, data), false);
+  }
 }
 
 (async function() {
@@ -258,18 +262,6 @@ async function testSaltLength(keyLength, hash, hLen) {
     variations.push(rejectsSha1Signing && vector.hash === 'SHA-1' ?
       testFipsSignRejected(vector) : testSign(vector));
   });
-
-  if (fips3) {
-    variations.push(assert.rejects(
-      subtle.generateKey({
-        name: 'RSA-PSS',
-        modulusLength: 1024,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: 'SHA-256',
-      }, false, ['sign', 'verify']),
-      (err) => err.name === 'OperationError' &&
-               err.cause?.code === 'ERR_OSSL_RSA_INVALID_MODULUS'));
-  }
 
   for (const keyLength of fips3 ? [2048] : [1024, 2048]) {
     for (const [hash, hLen] of [

@@ -202,8 +202,8 @@ added: v26.1.0
 When using the [Permission Model][], the process will not be able to use FFI
 APIs by default. Attempts to use FFI APIs will throw an `ERR_ACCESS_DENIED`
 exception unless the user explicitly passes the `--allow-ffi` flag when
-starting Node.js. The [`node:ffi`][] module also requires the
-`--experimental-ffi` flag and is only available in builds with FFI support.
+starting Node.js. The [`node:ffi`][] module is only available in builds with
+FFI support.
 
 Example:
 
@@ -213,7 +213,7 @@ const lib = new DynamicLibrary(`./mylib.${suffix}`);
 ```
 
 ```console
-$ node --permission --experimental-ffi index.js
+$ node --permission index.js
 Error: Access to this API has been restricted. Use --allow-ffi to manage permissions.
     at node:internal/main/run_main_module:17:47 {
   code: 'ERR_ACCESS_DENIED',
@@ -751,7 +751,9 @@ added:
   - v21.3.0
   - v20.11.0
 changes:
-  - version: v26.7.0
+  - version:
+     - v26.7.0
+     - v24.20.0
     pr-url: https://github.com/nodejs/node/pull/64742
     description: The `--disable-warning` flag is now stable.
 -->
@@ -885,6 +887,17 @@ added: v6.0.0
 Enable [FIPS mode][] at startup. With OpenSSL 3, a configured provider named
 `fips` must be available and initialize successfully. With OpenSSL 1.1.1,
 Node.js must be built against a FIPS-capable OpenSSL.
+
+### `--enable-fips-indicator-events`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Publish OpenSSL FIPS indicator results to the
+[`'crypto.fips.indicator'`][] diagnostics channel. This option requires OpenSSL
+3.4 or later. It does not enable [FIPS mode][] or change whether an operation
+is permitted.
 
 ### `--enable-source-maps`
 
@@ -1268,18 +1281,6 @@ added:
 
 Enable exposition of [EventSource Web API][] on the global scope.
 
-### `--experimental-ffi`
-
-<!-- YAML
-added: v26.1.0
--->
-
-> Stability: 1 - Experimental
-
-Enable the experimental [`node:ffi`][] module.
-
-This flag is only available in builds with FFI support.
-
 ### `--experimental-import-meta-resolve`
 
 <!-- YAML
@@ -1368,7 +1369,9 @@ Enable experimental support for the network inspection with Chrome DevTools.
 ### `--experimental-package-map=<path>`
 
 <!-- YAML
-added: v26.4.0
+added:
+ - v26.4.0
+ - v24.20.0
 -->
 
 > Stability: 1 - Experimental
@@ -1393,7 +1396,9 @@ added:
   - v22.0.0
   - v20.17.0
 changes:
-  - version: v26.5.0
+  - version:
+     - v26.5.0
+     - v24.20.0
     pr-url: https://github.com/nodejs/node/pull/64154
     description: Print the top-level awaits without evaluating the modules.
 -->
@@ -1452,6 +1457,7 @@ Enable experimental support for storage inspection
 <!-- YAML
 added:
  - v25.9.0
+ - v24.20.0
 -->
 
 > Stability: 1 - Experimental
@@ -1563,6 +1569,14 @@ changes:
 
 Enable experimental WebAssembly System Interface (WASI) support.
 
+### `--experimental-web-worker`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+Enable experimental support for the Web Worker API.
+
 ### `--experimental-worker-inspection`
 
 <!-- YAML
@@ -1583,14 +1597,31 @@ added: v12.12.0
 
 Disable loading native addons that are not [context-aware][].
 
-### `--force-fips`
+### `--force-fips[=mode]`
 
 <!-- YAML
 added: v6.0.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65645
+    description: Added the optional `provider` and `strict` modes.
 -->
 
 Enable [FIPS mode][] at startup and prevent it from being disabled from script
 code. The same OpenSSL requirements as [`--enable-fips`][] apply.
+
+An optional mode can be specified using `--force-fips=mode`:
+
+* `provider`: Preserve the OpenSSL FIPS provider's configured handling of
+  non-approved operations. This is the current default when the mode is
+  omitted.
+* `strict`: Reject non-approved operations reported through the OpenSSL FIPS
+  indicator callback. This mode requires OpenSSL 3.4 or later.
+
+The `strict` mode only covers operations reported through the callback for
+OpenSSL's default library context. It does not cover native addons that use
+another `OSSL_LIB_CTX` or another copy of `libcrypto`, nor operation-specific
+indicators that do not invoke the callback.
 
 ### `--force-node-api-uncaught-exceptions-policy`
 
@@ -2090,6 +2121,18 @@ changes:
 
 Disable using [syntax detection][] to determine module type.
 
+### `--no-experimental-ffi`
+
+<!-- YAML
+added: v26.1.0
+-->
+
+> Stability: 1 - Experimental
+
+Disable the experimental [`node:ffi`][] module.
+
+This flag is only available in builds with FFI support.
+
 ### `--no-experimental-global-navigator`
 
 <!-- YAML
@@ -2138,14 +2181,6 @@ changes:
 -->
 
 Disable the experimental [`node:sqlite`][] module.
-
-### `--no-experimental-websocket`
-
-<!-- YAML
-added: v22.0.0
--->
-
-Disable exposition of {WebSocket} on the global scope.
 
 ### `--no-experimental-webstorage`
 
@@ -2361,7 +2396,9 @@ following permissions are restricted:
 ### `--permission-audit`
 
 <!-- YAML
-added: v25.8.0
+added:
+ - v25.8.0
+ - v24.20.0
 -->
 
 Enable audit mode for the permission model. When enabled, permission checks
@@ -2677,6 +2714,9 @@ forked processes, or clustered processes.
 <!-- YAML
 added: v22.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/64606
+    description: Passing `--run` without a command lists the available scripts.
   - version: v22.3.0
     pr-url: https://github.com/nodejs/node/pull/53032
     description: NODE_RUN_SCRIPT_NAME environment variable is added.
@@ -2692,6 +2732,15 @@ changes:
 
 This runs a specified command from a package.json's `"scripts"` object.
 If a missing `"command"` is provided, it will list the available scripts.
+
+Passing `--run` without a command lists the available scripts and exits
+with a non-zero exit code:
+
+```console
+$ node --run
+Available scripts are:
+  test: node --test
+```
 
 `--run` will traverse up to the root directory and finds a `package.json`
 file to run the command from.
@@ -3478,19 +3527,21 @@ When both are set, `--use-env-proxy` takes precedence.
 added:
  - v13.6.0
  - v12.17.0
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65389
+    description: This option is now a no-op.
 -->
 
-Re-map the Node.js static code to large memory pages at startup. If supported on
-the target system, this will cause the Node.js static code to be moved onto 2
-MiB pages instead of 4 KiB pages.
+This option is no longer supported and a no-op. It used to re-map the Node.js
+static code to large memory pages at startup.
 
-The following values are valid for `mode`:
+It still accepts the following values for compatibility:
 
 * `off`: No mapping will be attempted. This is the default.
-* `on`: If supported by the OS, mapping will be attempted. Failure to map will
-  be ignored and a message will be printed to standard error.
-* `silent`: If supported by the OS, mapping will be attempted. Failure to map
-  will be ignored and will not be reported.
+* `on`: No mapping will be attempted and a message will be printed to
+  standard error stating it's no longer supported.
+* `silent`: Same as `off`.
 
 ### `--use-system-ca`
 
@@ -3726,8 +3777,18 @@ Enable the [module compile cache][] for the Node.js instance. See the documentat
 
 ### `NODE_COMPILE_CACHE_PORTABLE=1`
 
-When set to 1, the [module compile cache][]  can be reused across different directory
-locations as long as the module layout relative to the cache directory remains the same.
+When set to 1, the [module compile cache][] can be reused across different directory
+locations as long as the module layout relative to the cache directory remains the same,
+and by any user (the cache subdirectory is not suffixed with the creating user's uid).
+
+### `NODE_COMPILE_CACHE_READONLY=1`
+
+<!-- YAML
+added: v26.8.0
+-->
+
+When set to 1, the [module compile cache][] only reads existing entries from
+its directory: nothing is written to it and it is not created if missing.
 
 ### `NODE_DEBUG=module[,…]`
 
@@ -3862,6 +3923,7 @@ one is included in the list below.
 * `--disable-warning`
 * `--disable-wasm-trap-handler`
 * `--dns-result-order`
+* `--enable-fips-indicator-events`
 * `--enable-fips`
 * `--enable-network-family-autoselection`
 * `--enable-source-maps`
@@ -3871,7 +3933,6 @@ one is included in the list below.
 * `--experimental-detect-module`
 * `--experimental-dtls`
 * `--experimental-eventsource`
-* `--experimental-ffi`
 * `--experimental-import-meta-resolve`
 * `--experimental-import-text`
 * `--experimental-json-modules`
@@ -3880,6 +3941,7 @@ one is included in the list below.
 * `--experimental-package-map`
 * `--experimental-print-required-tla`
 * `--experimental-quic`
+* `--experimental-repl-await`
 * `--experimental-require-module`
 * `--experimental-shadow-realm`
 * `--experimental-specifier-resolution`
@@ -3889,6 +3951,8 @@ one is included in the list below.
 * `--experimental-vfs`
 * `--experimental-vm-modules`
 * `--experimental-wasi-unstable-preview1`
+* `--experimental-web-worker`
+* `--experimental-websocket`
 * `--force-context-aware`
 * `--force-fips`
 * `--force-node-api-uncaught-exceptions-policy`
@@ -3916,10 +3980,10 @@ one is included in the list below.
 * `--no-addons`
 * `--no-async-context-frame`
 * `--no-deprecation`
+* `--no-experimental-ffi`
 * `--no-experimental-global-navigator`
 * `--no-experimental-sqlite`
 * `--no-experimental-strip-types`
-* `--no-experimental-websocket`
 * `--no-experimental-webstorage`
 * `--no-extra-info-on-fatal-exception`
 * `--no-force-async-hooks-checks`
@@ -4268,8 +4332,15 @@ added: v6.11.0
 Load an OpenSSL configuration file on startup. The file can be used as part of
 a [FIPS mode][] configuration.
 
+If the variable is set to an empty value, Node.js starts without loading any
+OpenSSL configuration file. This is a way past a default configuration file
+that exists but cannot be read, for example when `/etc/ssl` is not accessible
+to the user Node.js runs as, which is otherwise fatal at startup. No
+configuration is applied in that case, including any [FIPS mode][] setup the
+file would have performed.
+
 If the [`--openssl-config`][] command-line option is used, the environment
-variable is ignored.
+variable is ignored, and an empty value has no effect.
 
 ### `SSL_CERT_DIR=dir`
 
@@ -4491,6 +4562,7 @@ node --stack-trace-limit=12 -p -e "Error.stackTraceLimit" # prints 12
 [V8 Inspector integration for Node.js]: debugger.md#v8-inspector-integration-for-nodejs
 [V8 JavaScript code coverage]: https://v8project.blogspot.com/2017/12/javascript-code-coverage.html
 [`"type"`]: packages.md#type
+[`'crypto.fips.indicator'`]: diagnostics_channel.md#event-cryptofipsindicator
 [`--allow-addons`]: #--allow-addons
 [`--allow-child-process`]: #--allow-child-process
 [`--allow-fs-read`]: #--allow-fs-read
@@ -4553,11 +4625,11 @@ node --stack-trace-limit=12 -p -e "Error.stackTraceLimit" # prints 12
 [conditional exports]: packages.md#conditional-exports
 [context-aware]: addons.md#context-aware-addons
 [debugger]: debugger.md
-[debugging security implications]: https://nodejs.org/en/docs/guides/debugging-getting-started/#security-implications
+[debugging security implications]: https://nodejs.org/learn/getting-started/debugging#security-implications
 [deprecation warnings]: deprecations.md#list-of-deprecated-apis
 [dtls documentation]: dtls.md
 [emit_warning]: process.md#processemitwarningwarning-options
-[environment_variables]: #environment-variables_1
+[environment_variables]: #environment-variables-1
 [filtering tests by name]: test.md#filtering-tests-by-name
 [global setup and teardown]: test.md#global-setup-and-teardown
 [jitless]: https://v8.dev/blog/jitless
@@ -4569,7 +4641,7 @@ node --stack-trace-limit=12 -p -e "Error.stackTraceLimit" # prints 12
 [running tests from the command line]: test.md#running-tests-from-the-command-line
 [scavenge garbage collector]: https://v8.dev/blog/orinoco-parallel-scavenger
 [security warning]: #warning-binding-inspector-to-a-public-ipport-combination-is-insecure
-[semi-space]: https://www.memorymanagement.org/glossary/s.html#semi.space
+[semi-space]: https://v8.dev/blog/trash-talk#minor-gc
 [single executable application]: single-executable-applications.md
 [snapshot testing]: test.md#snapshot-testing
 [syntax detection]: packages.md#syntax-detection

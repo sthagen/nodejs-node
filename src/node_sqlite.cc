@@ -5,7 +5,9 @@
 #include "env-inl.h"
 #include "memory_tracker-inl.h"
 #include "node.h"
+#include "node_diagnostics_channel.h"
 #include "node_errors.h"
+#include "node_external_reference.h"
 #include "node_mem-inl.h"
 #include "node_url.h"
 #include "simdutf.h"
@@ -23,6 +25,7 @@ namespace sqlite {
 
 using v8::Array;
 using v8::ArrayBuffer;
+using v8::BackingStore;
 using v8::BackingStoreInitializationMode;
 using v8::BackingStoreOnFailureMode;
 using v8::BigInt;
@@ -79,6 +82,48 @@ inline MaybeLocal<String> Utf8StringMaybeOneByte(Isolate* isolate,
       isolate, input.data(), NewStringType::kNormal, len);
 }
 
+BindingData::BindingData(Realm* realm, Local<Object> wrap)
+    : BaseObject(realm, wrap) {
+  MakeWeak();
+}
+
+void BindingData::MemoryInfo(MemoryTracker* tracker) const {
+  tracker->TrackFieldWithSize("open_databases",
+                              open_databases.size() * sizeof(DatabaseSync*),
+                              "open_databases");
+}
+
+void BindingData::CreatePerContextProperties(Local<Object> target,
+                                             Local<Value> unused,
+                                             Local<Context> context,
+                                             void* priv) {
+  Realm* realm = Realm::GetCurrent(context);
+  Environment* env = realm->env();
+  Realm* principal = env->principal_realm();
+
+  if (principal->GetBindingData<BindingData>() != nullptr) return;
+
+  principal->AddBindingData<BindingData>(target);
+}
+
+inline MaybeLocal<Value> IntegerToValue(Isolate* isolate,
+                                        sqlite3_int64 value,
+                                        bool use_big_ints) {
+  if (use_big_ints) {
+    return BigInt::New(isolate, value);
+  }
+
+  if (value < -kMaxSafeJsInteger || value > kMaxSafeJsInteger) {
+    THROW_ERR_OUT_OF_RANGE(
+        isolate,
+        "Value is too large to be represented as a JavaScript number: %" PRId64,
+        value);
+    return MaybeLocal<Value>();
+  }
+
+  return Number::New(isolate, value);
+}
+
 #define CHECK_ERROR_OR_THROW(isolate, db, expr, expected, ret)                 \
   do {                                                                         \
     int r_ = (expr);                                                           \
@@ -107,21 +152,52 @@ inline MaybeLocal<String> Utf8StringMaybeOneByte(Isolate* isolate,
     }                                                                          \
   } while (0)
 
+// SQLite requires that an authorizer callback not modify the connection that
+// invoked it. Preparing and stepping statements both count as modifying it.
+// See https://www.sqlite.org/c3ref/set_authorizer.html.
+#define THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db)                             \
+  THROW_AND_RETURN_ON_BAD_STATE(                                               \
+      (env),                                                                   \
+      (db)->IsInAuthorizerCallback(),                                          \
+      "database cannot be accessed from an authorizer callback")
+
+// Finalizing a busy statement from an authorizer can release its locks and
+// change the outer statement's outcome.
+#define THROW_AND_RETURN_IF_BUSY_IN_AUTHORIZER(env, stmt)                      \
+  THROW_AND_RETURN_ON_BAD_STATE(                                               \
+      (env),                                                                   \
+      (stmt)->db_->IsInAuthorizerCallback() &&                                 \
+          sqlite3_stmt_busy((stmt)->statement_.get()),                         \
+      "database cannot be accessed from an authorizer callback")
+
+// SQLite's session module reaches back into JavaScript from inside the
+// pre-update hook, while it is still walking the connection's session list and
+// reading the table it found there. Deleting a session frees memory that walk
+// is still using, so no callback may close one.
+#define THROW_AND_RETURN_IF_SESSION_IN_CALLBACK(env, session)                  \
+  THROW_AND_RETURN_ON_BAD_STATE(                                               \
+      (env),                                                                   \
+      (session)->database_->IsInCallback(),                                    \
+      "session cannot be closed while in a callback")
+
+// A statement's virtual machine cannot be reentered while sqlite3_step() is
+// running it. Finalizing it frees the VM outright, and re-running it resets the
+// VM mid-execution; both are use-after-free rather than merely a contract
+// violation. Callbacks that SQLite invokes during execution are therefore
+// barred from reaching the statement being stepped, though other statements on
+// the connection stay usable.
+#define THROW_AND_RETURN_IF_STEPPING(env, stmt)                                \
+  THROW_AND_RETURN_ON_BAD_STATE(                                               \
+      (env),                                                                   \
+      (stmt)->db_->IsSteppingStatement((stmt)->statement_.get()),              \
+      "statement is already being executed")
+
 #define SQLITE_VALUE_TO_JS(from, isolate, use_big_int_args, result, ...)       \
   do {                                                                         \
     switch (sqlite3_##from##_type(__VA_ARGS__)) {                              \
       case SQLITE_INTEGER: {                                                   \
         sqlite3_int64 val = sqlite3_##from##_int64(__VA_ARGS__);               \
-        if ((use_big_int_args)) {                                              \
-          (result) = BigInt::New((isolate), val);                              \
-        } else if (std::abs(val) <= kMaxSafeJsInteger) {                       \
-          (result) = Number::New((isolate), val);                              \
-        } else {                                                               \
-          THROW_ERR_OUT_OF_RANGE((isolate),                                    \
-                                 "Value is too large to be represented as a "  \
-                                 "JavaScript number: %" PRId64,                \
-                                 val);                                         \
-        }                                                                      \
+        (result) = IntegerToValue((isolate), val, (use_big_int_args));         \
         break;                                                                 \
       }                                                                        \
       case SQLITE_FLOAT: {                                                     \
@@ -528,11 +604,13 @@ class BackupJob : public ThreadPoolWork {
   void ScheduleBackup() {
     Isolate* isolate = env()->isolate();
     HandleScope handle_scope(isolate);
+    sqlite3* dest_raw = nullptr;
     backup_status_ = sqlite3_open_v2(
         destination_name_.c_str(),
-        &dest_,
+        &dest_raw,
         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_URI,
         nullptr);
+    dest_.reset(dest_raw);
     Local<Promise::Resolver> resolver =
         Local<Promise::Resolver>::New(env()->isolate(), resolver_);
     if (backup_status_ != SQLITE_OK) {
@@ -540,9 +618,11 @@ class BackupJob : public ThreadPoolWork {
       return;
     }
 
-    backup_ = sqlite3_backup_init(
-        dest_, dest_db_.c_str(), source_->Connection(), source_db_.c_str());
-    if (backup_ == nullptr) {
+    backup_.reset(sqlite3_backup_init(dest_.get(),
+                                      dest_db_.c_str(),
+                                      source_->Connection(),
+                                      source_db_.c_str()));
+    if (!backup_) {
       HandleBackupError(resolver);
       return;
     }
@@ -551,7 +631,7 @@ class BackupJob : public ThreadPoolWork {
   }
 
   void DoThreadPoolWork() override {
-    backup_status_ = sqlite3_backup_step(backup_, pages_);
+    backup_status_ = sqlite3_backup_step(backup_.get(), pages_);
   }
 
   void AfterThreadPoolWork(int status) override {
@@ -565,8 +645,8 @@ class BackupJob : public ThreadPoolWork {
       return;
     }
 
-    int total_pages = sqlite3_backup_pagecount(backup_);
-    int remaining_pages = sqlite3_backup_remaining(backup_);
+    int total_pages = sqlite3_backup_pagecount(backup_.get());
+    int remaining_pages = sqlite3_backup_remaining(backup_.get());
     if (remaining_pages != 0) {
       Local<Function> fn =
           Local<Function>::New(env()->isolate(), progressFunc_);
@@ -624,21 +704,19 @@ class BackupJob : public ThreadPoolWork {
 
   void Cleanup() {
     if (backup_) {
-      sqlite3_backup_finish(backup_);
-      backup_ = nullptr;
+      sqlite3_backup_finish(backup_.release());
     }
 
     if (dest_) {
-      backup_status_ = sqlite3_errcode(dest_);
-      sqlite3_close_v2(dest_);
-      dest_ = nullptr;
+      backup_status_ = sqlite3_errcode(dest_.get());
+      dest_.reset();
     }
   }
 
  private:
   void HandleBackupError(Local<Promise::Resolver> resolver) {
     Local<Object> e;
-    if (!CreateSQLiteError(env()->isolate(), dest_).ToLocal(&e)) {
+    if (!CreateSQLiteError(env()->isolate(), dest_.get()).ToLocal(&e)) {
       Finalize();
       delete this;
       return;
@@ -668,8 +746,14 @@ class BackupJob : public ThreadPoolWork {
   BaseObjectPtr<DatabaseSync> source_;
   Global<Promise::Resolver> resolver_;
   Global<Function> progressFunc_;
-  sqlite3* dest_ = nullptr;
-  sqlite3_backup* backup_ = nullptr;
+  struct Sqlite3Deleter {
+    void operator()(sqlite3* db) const { sqlite3_close_v2(db); }
+  };
+  struct BackupDeleter {
+    void operator()(sqlite3_backup* b) const { sqlite3_backup_finish(b); }
+  };
+  std::unique_ptr<sqlite3, Sqlite3Deleter> dest_;
+  std::unique_ptr<sqlite3_backup, BackupDeleter> backup_;
   int pages_;
   int backup_status_ = SQLITE_OK;
   std::string source_db_;
@@ -840,6 +924,12 @@ Intercepted DatabaseSyncLimits::LimitsSetter(
     return Intercepted::kYes;
   }
 
+  if (limits->database_->IsInAuthorizerCallback()) {
+    THROW_ERR_INVALID_STATE(
+        env, "database cannot be accessed from an authorizer callback");
+    return Intercepted::kYes;
+  }
+
   if (!value->IsNumber()) {
     THROW_ERR_INVALID_ARG_TYPE(
         isolate, "Limit value must be a non-negative integer or Infinity.");
@@ -925,10 +1015,12 @@ DatabaseSync::DatabaseSync(Environment* env,
                            bool allow_load_extension)
     : BaseObject(env, object), open_config_(std::move(open_config)) {
   MakeWeak();
-  connection_ = nullptr;
   allow_load_extension_ = allow_load_extension;
   enable_load_extension_ = allow_load_extension;
   ignore_next_sqlite_error_ = false;
+
+  BindingData* binding = env->principal_realm()->GetBindingData<BindingData>();
+  if (binding != nullptr) binding->open_databases.insert(this);
 
   if (open) {
     Open();
@@ -943,6 +1035,15 @@ void DatabaseSync::RemoveBackup(BackupJob* job) {
   backups_.erase(job);
 }
 
+std::vector<BaseObjectPtr<Session>> DatabaseSync::PinSessions() const {
+  std::vector<BaseObjectPtr<Session>> pinned;
+  pinned.reserve(sessions_.size());
+  for (Session* session : sessions_) {
+    pinned.emplace_back(session);
+  }
+  return pinned;
+}
+
 void DatabaseSync::DeleteSessions() {
   // all attached sessions need to be deleted before the database is closed
   // https://www.sqlite.org/session/sqlite3session_create.html
@@ -952,13 +1053,16 @@ void DatabaseSync::DeleteSessions() {
 }
 
 DatabaseSync::~DatabaseSync() {
+  BindingData* binding =
+      env()->principal_realm()->GetBindingData<BindingData>();
+  if (binding != nullptr) binding->open_databases.erase(this);
+
   FinalizeBackups();
 
   if (IsOpen()) {
     FinalizeStatements();
     DeleteSessions();
-    sqlite3_close_v2(connection_);
-    connection_ = nullptr;
+    connection_.reset();
   }
 }
 
@@ -981,9 +1085,8 @@ bool DatabaseSync::Open() {
   // database in an open state.
   bool opened = false;
   auto reset_connection_on_failure = OnScopeLeave([&]() {
-    if (!opened && connection_ != nullptr) {
-      sqlite3_close_v2(connection_);
-      connection_ = nullptr;
+    if (!opened) {
+      connection_.reset();
     }
   });
 
@@ -992,18 +1095,20 @@ bool DatabaseSync::Open() {
   int flags = open_config_.get_read_only()
                   ? SQLITE_OPEN_READONLY
                   : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+  sqlite3* raw_conn = nullptr;
   int r = sqlite3_open_v2(open_config_.location().c_str(),
-                          &connection_,
+                          &raw_conn,
                           flags | default_flags,
                           nullptr);
+  connection_.reset(raw_conn);
   CHECK_ERROR_OR_THROW(env()->isolate(), this, r, SQLITE_OK, false);
 
-  r = sqlite3_db_config(connection_,
+  r = sqlite3_db_config(connection_.get(),
                         SQLITE_DBCONFIG_DQS_DML,
                         static_cast<int>(open_config_.get_enable_dqs()),
                         nullptr);
   CHECK_ERROR_OR_THROW(env()->isolate(), this, r, SQLITE_OK, false);
-  r = sqlite3_db_config(connection_,
+  r = sqlite3_db_config(connection_.get(),
                         SQLITE_DBCONFIG_DQS_DDL,
                         static_cast<int>(open_config_.get_enable_dqs()),
                         nullptr);
@@ -1011,7 +1116,7 @@ bool DatabaseSync::Open() {
 
   int foreign_keys_enabled;
   r = sqlite3_db_config(
-      connection_,
+      connection_.get(),
       SQLITE_DBCONFIG_ENABLE_FKEY,
       static_cast<int>(open_config_.get_enable_foreign_keys()),
       &foreign_keys_enabled);
@@ -1019,20 +1124,20 @@ bool DatabaseSync::Open() {
   CHECK_EQ(foreign_keys_enabled, open_config_.get_enable_foreign_keys());
 
   int defensive_enabled;
-  r = sqlite3_db_config(connection_,
+  r = sqlite3_db_config(connection_.get(),
                         SQLITE_DBCONFIG_DEFENSIVE,
                         static_cast<int>(open_config_.get_enable_defensive()),
                         &defensive_enabled);
   CHECK_ERROR_OR_THROW(env()->isolate(), this, r, SQLITE_OK, false);
   CHECK_EQ(defensive_enabled, open_config_.get_enable_defensive());
 
-  sqlite3_busy_timeout(connection_, open_config_.get_timeout());
+  sqlite3_busy_timeout(connection_.get(), open_config_.get_timeout());
 
   // Apply initial limits
   for (const auto& [js_name, sqlite_limit_id] : kLimitMapping) {
     const auto& limit_value = open_config_.initial_limits()[sqlite_limit_id];
     if (limit_value.has_value()) {
-      sqlite3_limit(connection_, sqlite_limit_id, *limit_value);
+      sqlite3_limit(connection_.get(), sqlite_limit_id, *limit_value);
     }
   }
 
@@ -1044,13 +1149,34 @@ bool DatabaseSync::Open() {
       return false;
     }
     const int load_extension_ret = sqlite3_db_config(
-        connection_, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+        connection_.get(), SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
     CHECK_ERROR_OR_THROW(
         env()->isolate(), this, load_extension_ret, SQLITE_OK, false);
   }
 
+  trace_channel_ = diagnostics_channel::Channel::Get(env(), "sqlite.db.query");
+  if (trace_channel_ && trace_channel_->HasSubscribers()) {
+    sqlite3_trace_v2(
+        connection_.get(), SQLITE_TRACE_PROFILE, TraceCallback, this);
+  }
+
   opened = true;
   return true;
+}
+
+void DatabaseSync::EnableTracing() {
+  if (!IsOpen()) return;
+  if (!trace_channel_) {
+    trace_channel_ =
+        diagnostics_channel::Channel::Get(env(), "sqlite.db.query");
+  }
+  sqlite3_trace_v2(
+      connection_.get(), SQLITE_TRACE_PROFILE, TraceCallback, this);
+}
+
+void DatabaseSync::DisableTracing() {
+  if (!IsOpen()) return;
+  sqlite3_trace_v2(connection_.get(), 0, nullptr, nullptr);
 }
 
 void DatabaseSync::FinalizeBackups() {
@@ -1078,7 +1204,7 @@ inline bool DatabaseSync::IsOpen() {
 }
 
 inline sqlite3* DatabaseSync::Connection() {
-  return connection_;
+  return connection_.get();
 }
 
 void DatabaseSync::SetIgnoreNextSQLiteError(bool ignore) {
@@ -1097,6 +1223,7 @@ void DatabaseSync::CreateTagStore(const FunctionCallbackInfo<Value>& args) {
     THROW_ERR_INVALID_STATE(env, "database is not open");
     return;
   }
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
   int capacity = 1000;
   if (args.Length() > 0 && !args[0]->IsUndefined()) {
     if (!args[0]->IsNumber()) {
@@ -1449,7 +1576,7 @@ void DatabaseSync::IsTransactionGetter(
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
-  args.GetReturnValue().Set(sqlite3_get_autocommit(db->connection_) == 0);
+  args.GetReturnValue().Set(sqlite3_get_autocommit(db->connection_.get()) == 0);
 }
 
 void DatabaseSync::LimitsGetter(const FunctionCallbackInfo<Value>& args) {
@@ -1481,9 +1608,9 @@ void DatabaseSync::Close(const FunctionCallbackInfo<Value>& args) {
       env, db->IsInCallback(), "database cannot be closed while in a callback");
   db->FinalizeStatements();
   db->DeleteSessions();
-  int r = sqlite3_close_v2(db->connection_);
+  int r = sqlite3_close_v2(db->connection_.get());
   CHECK_ERROR_OR_THROW(env->isolate(), db, r, SQLITE_OK, void());
-  db->connection_ = nullptr;
+  db->connection_.release();
 }
 
 void DatabaseSync::Dispose(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -1499,6 +1626,7 @@ void DatabaseSync::Prepare(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   if (!args[0]->IsString()) {
     THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
@@ -1510,6 +1638,7 @@ void DatabaseSync::Prepare(const FunctionCallbackInfo<Value>& args) {
   std::optional<bool> use_big_ints;
   std::optional<bool> allow_bare_named_params;
   std::optional<bool> allow_unknown_named_params;
+  std::optional<bool> persistent;
 
   if (args.Length() > 1 && !args[1]->IsUndefined()) {
     if (!args[1]->IsObject()) {
@@ -1590,11 +1719,34 @@ void DatabaseSync::Prepare(const FunctionCallbackInfo<Value>& args) {
       }
       allow_unknown_named_params = allow_unknown_named_params_v->IsTrue();
     }
+
+    Local<Value> persistent_v;
+    if (!options
+             ->Get(env->context(),
+                   FIXED_ONE_BYTE_STRING(env->isolate(), "persistent"))
+             .ToLocal(&persistent_v)) {
+      return;
+    }
+    if (!persistent_v->IsUndefined()) {
+      if (!persistent_v->IsBoolean()) {
+        THROW_ERR_INVALID_ARG_TYPE(
+            env->isolate(),
+            "The \"options.persistent\" argument must be a boolean.");
+        return;
+      }
+      persistent = persistent_v->IsTrue();
+    }
   }
 
   Utf8Value sql(env->isolate(), args[0].As<String>());
   sqlite3_stmt* s = nullptr;
-  int r = sqlite3_prepare_v2(db->connection_, *sql, -1, &s, nullptr);
+
+  unsigned int prep_flags =
+      persistent.value_or(false) ? SQLITE_PREPARE_PERSISTENT : 0;
+
+  int r = sqlite3_prepare_v3(
+      db->connection_.get(), *sql, -1, prep_flags, &s, nullptr);
+
   StatementPtr stmt_ptr(s);
 
   CHECK_ERROR_OR_THROW(env->isolate(), db, r, SQLITE_OK, void());
@@ -1636,6 +1788,7 @@ void DatabaseSync::Exec(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   if (!args[0]->IsString()) {
     THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
@@ -1651,7 +1804,7 @@ void DatabaseSync::Exec(const FunctionCallbackInfo<Value>& args) {
   BaseObjectPtr<DatabaseSync> guard(db);
 
   Utf8Value sql(env->isolate(), args[0].As<String>());
-  int r = sqlite3_exec(db->connection_, *sql, nullptr, nullptr, nullptr);
+  int r = sqlite3_exec(db->connection_.get(), *sql, nullptr, nullptr, nullptr);
   CHECK_ERROR_OR_THROW(env->isolate(), db, r, SQLITE_OK, void());
 }
 
@@ -1660,6 +1813,7 @@ void DatabaseSync::CustomFunction(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   if (!args[0]->IsString()) {
     THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
@@ -1786,7 +1940,7 @@ void DatabaseSync::CustomFunction(const FunctionCallbackInfo<Value>& args) {
     text_rep |= SQLITE_DIRECTONLY;
   }
 
-  int r = sqlite3_create_function_v2(db->connection_,
+  int r = sqlite3_create_function_v2(db->connection_.get(),
                                      *name,
                                      argc,
                                      text_rep,
@@ -1816,7 +1970,7 @@ void DatabaseSync::Location(const FunctionCallbackInfo<Value>& args) {
   }
 
   const char* db_filename =
-      sqlite3_db_filename(db->connection_, db_name.c_str());
+      sqlite3_db_filename(db->connection_.get(), db_name.c_str());
   if (!db_filename || db_filename[0] == '\0') {
     args.GetReturnValue().Set(Null(env->isolate()));
     return;
@@ -1833,6 +1987,7 @@ void DatabaseSync::Serialize(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   std::string db_name = "main";
   if (!args[0]->IsUndefined()) {
@@ -1846,7 +2001,7 @@ void DatabaseSync::Serialize(const FunctionCallbackInfo<Value>& args) {
 
   sqlite3_int64 size = 0;
   unsigned char* data =
-      sqlite3_serialize(db->connection_, db_name.c_str(), &size, 0);
+      sqlite3_serialize(db->connection_.get(), db_name.c_str(), &size, 0);
 
   if (data == nullptr) {
     if (size == 0) {
@@ -1950,7 +2105,7 @@ void DatabaseSync::Deserialize(const FunctionCallbackInfo<Value>& args) {
   db->FinalizeStatements();
 
   int r = sqlite3_deserialize(
-      db->connection_,
+      db->connection_.get(),
       db_name.c_str(),
       buf,
       byte_length,
@@ -1967,6 +2122,7 @@ void DatabaseSync::AggregateFunction(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
   Utf8Value name(env->isolate(), args[0].As<String>());
   Local<Object> options = args[1].As<Object>();
   Local<Value> start_v;
@@ -2101,7 +2257,7 @@ void DatabaseSync::AggregateFunction(const FunctionCallbackInfo<Value>& args) {
   auto xInverse = !inverseFunc.IsEmpty() ? CustomAggregate::xInverse : nullptr;
   auto xValue = xInverse ? CustomAggregate::xValue : nullptr;
   int r = sqlite3_create_window_function(
-      db->connection_,
+      db->connection_.get(),
       *name,
       argc,
       text_rep,
@@ -2178,9 +2334,11 @@ void DatabaseSync::CreateSession(const FunctionCallbackInfo<Value>& args) {
   DatabaseSync* db;
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   sqlite3_session* pSession;
-  int r = sqlite3session_create(db->connection_, db_name.c_str(), &pSession);
+  int r =
+      sqlite3session_create(db->connection_.get(), db_name.c_str(), &pSession);
   CHECK_ERROR_OR_THROW(env->isolate(), db, r, SQLITE_OK, void());
   bool wrapper_owns_session = false;
   auto delete_session_on_failure = OnScopeLeave([&]() {
@@ -2347,6 +2505,7 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   if (!args[0]->IsUint8Array()) {
     THROW_ERR_INVALID_ARG_TYPE(
@@ -2445,21 +2604,42 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
     }
   }
 
-  // Keep the database alive during sqlite3changeset_apply(), which may
-  // call conflict or filter callbacks that trigger JavaScript execution.
-  // If the JavaScript callback drops all references to the database,
-  // the DatabaseSync could otherwise be garbage-collected while the
-  // callback is still executing, causing a use-after-free.
+  // Keep the database alive in case a callback drops all references to it,
+  // which could otherwise let it be garbage-collected mid-callback.
   BaseObjectPtr<DatabaseSync> guard(db);
 
   ArrayBufferViewContents<uint8_t> buf(args[0]);
+  if (buf.length() > std::numeric_limits<int>::max()) {
+    THROW_ERR_OUT_OF_RANGE(env, "The changeset is too large.");
+    return;
+  }
+
+  // A callback may detach/modify the input buffer mid-apply, so copy it.
+  // With no callbacks, no JS runs during sqlite3changeset_apply(), so no
+  // copy is needed.
+  std::unique_ptr<BackingStore> changeset;
+  if (buf.length() > 0 &&
+      (context.filterCallback || context.conflictCallback)) {
+    changeset = ArrayBuffer::NewBackingStore(
+        env->isolate(),
+        buf.length(),
+        BackingStoreInitializationMode::kUninitialized,
+        BackingStoreOnFailureMode::kReturnNull);
+    if (!changeset) {
+      THROW_ERR_MEMORY_ALLOCATION_FAILED(env);
+      return;
+    }
+    std::memcpy(changeset->Data(), buf.data(), buf.length());
+  }
+
   int r;
   {
     CallbackDepthGuard guard(db);
     r = sqlite3changeset_apply(
-        db->connection_,
-        buf.length(),
-        const_cast<void*>(static_cast<const void*>(buf.data())),
+        db->connection_.get(),
+        static_cast<int>(buf.length()),
+        changeset ? changeset->Data()
+                  : const_cast<void*>(static_cast<const void*>(buf.data())),
         context.filterCallback ? xFilter : nullptr,
         xConflict,
         static_cast<void*>(&context));
@@ -2482,6 +2662,7 @@ void DatabaseSync::EnableLoadExtension(
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   Isolate* isolate = env->isolate();
   if (!args[0]->IsBoolean()) {
@@ -2500,8 +2681,11 @@ void DatabaseSync::EnableLoadExtension(
     return;
   }
   db->enable_load_extension_ = enable;
-  const int load_extension_ret = sqlite3_db_config(
-      db->connection_, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, enable, nullptr);
+  const int load_extension_ret =
+      sqlite3_db_config(db->connection_.get(),
+                        SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION,
+                        enable,
+                        nullptr);
   CHECK_ERROR_OR_THROW(isolate, db, load_extension_ret, SQLITE_OK, void());
 }
 
@@ -2510,6 +2694,7 @@ void DatabaseSync::EnableDefensive(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   Isolate* isolate = env->isolate();
   if (!args[0]->IsBoolean()) {
@@ -2520,8 +2705,10 @@ void DatabaseSync::EnableDefensive(const FunctionCallbackInfo<Value>& args) {
 
   const int enable = args[0].As<Boolean>()->Value();
   int defensive_enabled;
-  const int defensive_ret = sqlite3_db_config(
-      db->connection_, SQLITE_DBCONFIG_DEFENSIVE, enable, &defensive_enabled);
+  const int defensive_ret = sqlite3_db_config(db->connection_.get(),
+                                              SQLITE_DBCONFIG_DEFENSIVE,
+                                              enable,
+                                              &defensive_enabled);
   CHECK_ERROR_OR_THROW(isolate, db, defensive_ret, SQLITE_OK, void());
 }
 
@@ -2530,11 +2717,12 @@ void DatabaseSync::LoadExtension(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
-      env, db->connection_ == nullptr, "database is not open");
+      env, !db->connection_.get(), "database is not open");
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !db->allow_load_extension_, "extension loading is not allowed");
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !db->enable_load_extension_, "extension loading is not allowed");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   if (!args[0]->IsString()) {
     THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
@@ -2551,8 +2739,8 @@ void DatabaseSync::LoadExtension(const FunctionCallbackInfo<Value>& args) {
   THROW_IF_INSUFFICIENT_PERMISSIONS(
       env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
   char* errmsg = nullptr;
-  const int r =
-      sqlite3_load_extension(db->connection_, *path, *entryPoint, &errmsg);
+  const int r = sqlite3_load_extension(
+      db->connection_.get(), *path, *entryPoint, &errmsg);
   if (r != SQLITE_OK) {
     isolate->ThrowException(ERR_LOAD_SQLITE_EXTENSION(isolate, errmsg));
   }
@@ -2563,12 +2751,13 @@ void DatabaseSync::SetAuthorizer(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   Isolate* isolate = env->isolate();
 
   if (args[0]->IsNull()) {
     // Clear the authorizer
-    sqlite3_set_authorizer(db->connection_, nullptr, nullptr);
+    sqlite3_set_authorizer(db->connection_.get(), nullptr, nullptr);
     db->object()->SetInternalField(kAuthorizerCallback, Null(isolate));
     return;
   }
@@ -2584,7 +2773,7 @@ void DatabaseSync::SetAuthorizer(const FunctionCallbackInfo<Value>& args) {
   db->object()->SetInternalField(kAuthorizerCallback, fn);
 
   int r = sqlite3_set_authorizer(
-      db->connection_, DatabaseSync::AuthorizerCallback, db);
+      db->connection_.get(), DatabaseSync::AuthorizerCallback, db);
 
   if (r != SQLITE_OK) {
     CHECK_ERROR_OR_THROW(isolate, db, r, SQLITE_OK, void());
@@ -2599,6 +2788,7 @@ int DatabaseSync::AuthorizerCallback(void* user_data,
                                      const char* param4) {
   DatabaseSync* db = static_cast<DatabaseSync*>(user_data);
   CallbackDepthGuard guard(db);
+  AuthorizerDepthGuard authorizer_guard(db);
   Environment* env = db->env();
   Isolate* isolate = env->isolate();
   HandleScope handle_scope(isolate);
@@ -2666,6 +2856,70 @@ int DatabaseSync::AuthorizerCallback(void* user_data,
   return int_result;
 }
 
+int DatabaseSync::TraceCallback(unsigned int type,
+                                void* user_data,
+                                void* p,
+                                void* x) {
+  if (type != SQLITE_TRACE_PROFILE) {
+    return 0;
+  }
+
+  DatabaseSync* db = static_cast<DatabaseSync*>(user_data);
+  Environment* env = db->env();
+
+  diagnostics_channel::Channel* ch = db->trace_channel_.get();
+  if (ch == nullptr || !ch->HasSubscribers() ||
+      db->AreTraceEventsSuppressed()) {
+    return 0;
+  }
+
+  // Entered before building the payload below, because allocating it can
+  // trigger a garbage collection that SQLite is not prepared for.
+  CallbackDepthGuard guard(db);
+
+  Isolate* isolate = env->isolate();
+  HandleScope handle_scope(isolate);
+
+  char* expanded = sqlite3_expanded_sql(static_cast<sqlite3_stmt*>(p));
+  Local<Value> sql_string;
+  if (expanded != nullptr) {
+    bool ok = String::NewFromUtf8(isolate, expanded).ToLocal(&sql_string);
+    sqlite3_free(expanded);
+    if (!ok) {
+      return 0;
+    }
+  } else {
+    // Fallback to source SQL if expanded is unavailable
+    const char* source = sqlite3_sql(static_cast<sqlite3_stmt*>(p));
+    if (source == nullptr ||
+        !String::NewFromUtf8(isolate, source).ToLocal(&sql_string)) {
+      return 0;
+    }
+  }
+
+  // x points to the estimated statement run time in nanoseconds. A double is
+  // sufficient since 2^53 ns (~104 days) exceeds any realistic query duration.
+  sqlite3_int64 duration_ns = *static_cast<sqlite3_int64*>(x);
+
+  Local<Name> keys[3] = {
+      env->sql_string().As<Name>(),
+      env->database_string().As<Name>(),
+      env->duration_string().As<Name>(),
+  };
+
+  Local<Value> values[3] = {
+      sql_string,
+      db->object(),
+      Number::New(isolate, static_cast<double>(duration_ns)),
+  };
+
+  Local<Object> payload = Object::New(isolate, Null(isolate), keys, values, 3);
+
+  ch->Publish(env, payload);
+
+  return 0;
+}
+
 StatementSync::StatementSync(Environment* env,
                              Local<Object> object,
                              BaseObjectPtr<DatabaseSync> db,
@@ -2693,6 +2947,7 @@ void StatementSync::Close() {
 }
 
 void StatementSync::Finalize() {
+  TraceEventSuppressionGuard trace_guard(db_.get());
   statement_.reset();
   InvalidateColumnNameCache();
 }
@@ -2712,12 +2967,22 @@ void StatementSync::Close(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, stmt->IsFinalized(), "statement has been finalized");
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
+  THROW_AND_RETURN_IF_BUSY_IN_AUTHORIZER(env, stmt);
   stmt->Close();
 }
 
 void StatementSync::Dispose(const FunctionCallbackInfo<Value>& args) {
   StatementSync* stmt;
   ASSIGN_OR_RETURN_UNWRAP(&stmt, args.This());
+  Environment* env = Environment::GetCurrent(args);
+  // Disposal is idempotent, so an already-finalized statement is a no-op even
+  // inside a callback.
+  if (stmt->IsFinalized()) {
+    return;
+  }
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
+  THROW_AND_RETURN_IF_BUSY_IN_AUTHORIZER(env, stmt);
   stmt->Close();
 }
 
@@ -2952,20 +3217,6 @@ MaybeLocal<Value> StatementExecutionHelper::ColumnToValue(Environment* env,
   return js_val;
 }
 
-MaybeLocal<Name> StatementExecutionHelper::ColumnNameToName(Environment* env,
-                                                            sqlite3_stmt* stmt,
-                                                            const int column) {
-  const char* col_name = sqlite3_column_name(stmt, column);
-  if (col_name == nullptr) {
-    THROW_ERR_INVALID_STATE(env, "Cannot get name of column %d", column);
-    return MaybeLocal<Name>();
-  }
-
-  return String::NewFromUtf8(
-             env->isolate(), col_name, NewStringType::kInternalized)
-      .As<Name>();
-}
-
 void StatementSync::MemoryInfo(MemoryTracker* tracker) const {}
 
 Maybe<void> ExtractRowValues(Environment* env,
@@ -2987,10 +3238,11 @@ Maybe<void> ExtractRowValues(Environment* env,
 }
 
 MaybeLocal<Value> StatementExecutionHelper::All(Environment* env,
-                                                DatabaseSync* db,
-                                                sqlite3_stmt* stmt,
-                                                bool return_arrays,
-                                                bool use_big_ints) {
+                                                StatementSync* statement) {
+  DatabaseSync* db = statement->db_.get();
+  sqlite3_stmt* stmt = statement->statement_.get();
+  const bool return_arrays = statement->return_arrays_;
+  const bool use_big_ints = statement->use_big_ints_;
   Isolate* isolate = env->isolate();
   EscapableHandleScope scope(isolate);
   int r;
@@ -2999,6 +3251,7 @@ MaybeLocal<Value> StatementExecutionHelper::All(Environment* env,
   LocalVector<Value> row_values(isolate);
   LocalVector<Name> row_keys(isolate);
 
+  SteppingStatementGuard stepping(db, stmt);
   while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
     if (num_cols == 0) {
       num_cols = sqlite3_column_count(stmt);
@@ -3015,13 +3268,10 @@ MaybeLocal<Value> StatementExecutionHelper::All(Environment* env,
       rows.emplace_back(row_array);
     } else {
       if (row_keys.size() == 0) {
-        row_keys.reserve(num_cols);
-        for (int i = 0; i < num_cols; ++i) {
-          Local<Name> key;
-          if (!ColumnNameToName(env, stmt, i).ToLocal(&key)) {
-            return MaybeLocal<Value>();
-          }
-          row_keys.emplace_back(key);
+        // Reuses the statement's internalized column names instead of
+        // re-interning them on every call.
+        if (!statement->GetCachedColumnNames(&row_keys)) {
+          return MaybeLocal<Value>();
         }
       }
       DCHECK_EQ(row_keys.size(), row_values.size());
@@ -3036,11 +3286,15 @@ MaybeLocal<Value> StatementExecutionHelper::All(Environment* env,
 }
 
 MaybeLocal<Object> StatementExecutionHelper::Run(Environment* env,
-                                                 DatabaseSync* db,
-                                                 sqlite3_stmt* stmt,
-                                                 bool use_big_ints) {
+                                                 StatementSync* statement) {
+  DatabaseSync* db = statement->db_.get();
+  sqlite3_stmt* stmt = statement->statement_.get();
+  const bool use_big_ints = statement->use_big_ints_;
   Isolate* isolate = env->isolate();
   EscapableHandleScope scope(isolate);
+  // Declared before the reset below so that it outlives it: sqlite3_reset()
+  // can run JavaScript through an aggregate's xFinal.
+  SteppingStatementGuard stepping(db, stmt);
   bool needs_reset = true;
   auto reset = OnScopeLeave([&]() {
     if (needs_reset) sqlite3_reset(stmt);
@@ -3061,12 +3315,10 @@ MaybeLocal<Object> StatementExecutionHelper::Run(Environment* env,
   Local<Value> last_insert_rowid_val;
   Local<Value> changes_val;
 
-  if (use_big_ints) {
-    last_insert_rowid_val = BigInt::New(isolate, last_insert_rowid);
-    changes_val = BigInt::New(isolate, changes);
-  } else {
-    last_insert_rowid_val = Number::New(isolate, last_insert_rowid);
-    changes_val = Number::New(isolate, changes);
+  if (!IntegerToValue(isolate, last_insert_rowid, use_big_ints)
+           .ToLocal(&last_insert_rowid_val) ||
+      !IntegerToValue(isolate, changes, use_big_ints).ToLocal(&changes_val)) {
+    return MaybeLocal<Object>();
   }
 
   auto run_result_template = env->sqlite_run_result_template();
@@ -3122,12 +3374,16 @@ BaseObjectPtr<StatementSyncIterator> StatementExecutionHelper::Iterate(
 }
 
 MaybeLocal<Value> StatementExecutionHelper::Get(Environment* env,
-                                                DatabaseSync* db,
-                                                sqlite3_stmt* stmt,
-                                                bool return_arrays,
-                                                bool use_big_ints) {
+                                                StatementSync* statement) {
+  DatabaseSync* db = statement->db_.get();
+  sqlite3_stmt* stmt = statement->statement_.get();
+  const bool return_arrays = statement->return_arrays_;
+  const bool use_big_ints = statement->use_big_ints_;
   Isolate* isolate = env->isolate();
   EscapableHandleScope scope(isolate);
+  // Declared before the reset below so that it outlives it: sqlite3_reset()
+  // can run JavaScript through an aggregate's xFinal.
+  SteppingStatementGuard stepping(db, stmt);
   bool needs_reset = true;
   auto reset = OnScopeLeave([&]() {
     if (needs_reset) sqlite3_reset(stmt);
@@ -3160,13 +3416,10 @@ MaybeLocal<Value> StatementExecutionHelper::Get(Environment* env,
     result = Array::New(isolate, row_values.data(), row_values.size());
   } else {
     LocalVector<Name> keys(isolate);
-    keys.reserve(num_cols);
-    for (int i = 0; i < num_cols; ++i) {
-      Local<Name> key;
-      if (!ColumnNameToName(env, stmt, i).ToLocal(&key)) {
-        return MaybeLocal<Value>();
-      }
-      keys.emplace_back(key);
+    // Reuses the statement's internalized column names instead of
+    // re-interning them on every call.
+    if (!statement->GetCachedColumnNames(&keys)) {
+      return MaybeLocal<Value>();
     }
 
     DCHECK_EQ(keys.size(), row_values.size());
@@ -3184,7 +3437,10 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, stmt->IsFinalized(), "statement has been finalized");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, stmt->db_.get());
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
   Isolate* isolate = env->isolate();
+  SteppingStatementGuard stepping(stmt->db_.get(), stmt->statement_.get());
   int r = stmt->ResetStatement();
   CHECK_ERROR_OR_THROW(isolate, stmt->db_.get(), r, SQLITE_OK, void());
 
@@ -3197,12 +3453,7 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
     if (needs_reset) sqlite3_reset(stmt->statement_.get());
   });
   Local<Value> result;
-  if (StatementExecutionHelper::All(env,
-                                    stmt->db_.get(),
-                                    stmt->statement_.get(),
-                                    stmt->return_arrays_,
-                                    stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::All(env, stmt).ToLocal(&result)) {
     RESET_AND_CHECK(
         isolate, stmt->db_.get(), stmt->statement_.get(), needs_reset, void());
     args.GetReturnValue().Set(result);
@@ -3215,6 +3466,9 @@ void StatementSync::Iterate(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, stmt->IsFinalized(), "statement has been finalized");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, stmt->db_.get());
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
+  SteppingStatementGuard stepping(stmt->db_.get(), stmt->statement_.get());
   int r = stmt->ResetStatement();
   CHECK_ERROR_OR_THROW(env->isolate(), stmt->db_.get(), r, SQLITE_OK, void());
 
@@ -3238,6 +3492,9 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, stmt->IsFinalized(), "statement has been finalized");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, stmt->db_.get());
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
+  SteppingStatementGuard stepping(stmt->db_.get(), stmt->statement_.get());
   int r = stmt->ResetStatement();
   CHECK_ERROR_OR_THROW(env->isolate(), stmt->db_.get(), r, SQLITE_OK, void());
 
@@ -3246,12 +3503,7 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
   }
 
   Local<Value> result;
-  if (StatementExecutionHelper::Get(env,
-                                    stmt->db_.get(),
-                                    stmt->statement_.get(),
-                                    stmt->return_arrays_,
-                                    stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::Get(env, stmt).ToLocal(&result)) {
     args.GetReturnValue().Set(result);
   }
 }
@@ -3262,6 +3514,9 @@ void StatementSync::Run(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, stmt->IsFinalized(), "statement has been finalized");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, stmt->db_.get());
+  THROW_AND_RETURN_IF_STEPPING(env, stmt);
+  SteppingStatementGuard stepping(stmt->db_.get(), stmt->statement_.get());
   int r = stmt->ResetStatement();
   CHECK_ERROR_OR_THROW(env->isolate(), stmt->db_.get(), r, SQLITE_OK, void());
 
@@ -3270,9 +3525,7 @@ void StatementSync::Run(const FunctionCallbackInfo<Value>& args) {
   }
 
   Local<Object> result;
-  if (StatementExecutionHelper::Run(
-          env, stmt->db_.get(), stmt->statement_.get(), stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::Run(env, stmt).ToLocal(&result)) {
     args.GetReturnValue().Set(result);
   }
 }
@@ -3598,6 +3851,7 @@ void SQLTagStore::Run(const FunctionCallbackInfo<Value>& args) {
 
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !session->database_->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, session->database_.get());
 
   BaseObjectPtr<StatementSync> stmt = PrepareStatement(args);
 
@@ -3605,14 +3859,14 @@ void SQLTagStore::Run(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+  THROW_AND_RETURN_IF_STEPPING(env, stmt.get());
+
   if (!ResetAndBindStatement(env, stmt.get(), args)) {
     return;
   }
 
   Local<Object> result;
-  if (StatementExecutionHelper::Run(
-          env, stmt->db_.get(), stmt->statement_.get(), stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::Run(env, stmt.get()).ToLocal(&result)) {
     args.GetReturnValue().Set(result);
   }
 }
@@ -3624,12 +3878,15 @@ void SQLTagStore::Iterate(const FunctionCallbackInfo<Value>& args) {
 
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !session->database_->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, session->database_.get());
 
   BaseObjectPtr<StatementSync> stmt = PrepareStatement(args);
 
   if (!stmt) {
     return;
   }
+
+  THROW_AND_RETURN_IF_STEPPING(env, stmt.get());
 
   if (!ResetAndBindStatement(env, stmt.get(), args)) {
     return;
@@ -3652,6 +3909,7 @@ void SQLTagStore::Get(const FunctionCallbackInfo<Value>& args) {
 
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !session->database_->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, session->database_.get());
 
   BaseObjectPtr<StatementSync> stmt = PrepareStatement(args);
 
@@ -3659,17 +3917,14 @@ void SQLTagStore::Get(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+  THROW_AND_RETURN_IF_STEPPING(env, stmt.get());
+
   if (!ResetAndBindStatement(env, stmt.get(), args)) {
     return;
   }
 
   Local<Value> result;
-  if (StatementExecutionHelper::Get(env,
-                                    stmt->db_.get(),
-                                    stmt->statement_.get(),
-                                    stmt->return_arrays_,
-                                    stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::Get(env, stmt.get()).ToLocal(&result)) {
     args.GetReturnValue().Set(result);
   }
 }
@@ -3681,12 +3936,15 @@ void SQLTagStore::All(const FunctionCallbackInfo<Value>& args) {
 
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !session->database_->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, session->database_.get());
 
   BaseObjectPtr<StatementSync> stmt = PrepareStatement(args);
 
   if (!stmt) {
     return;
   }
+
+  THROW_AND_RETURN_IF_STEPPING(env, stmt.get());
 
   if (!ResetAndBindStatement(env, stmt.get(), args)) {
     return;
@@ -3698,12 +3956,7 @@ void SQLTagStore::All(const FunctionCallbackInfo<Value>& args) {
     if (needs_reset) sqlite3_reset(stmt->statement_.get());
   });
   Local<Value> result;
-  if (StatementExecutionHelper::All(env,
-                                    stmt->db_.get(),
-                                    stmt->statement_.get(),
-                                    stmt->return_arrays_,
-                                    stmt->use_big_ints_)
-          .ToLocal(&result)) {
+  if (StatementExecutionHelper::All(env, stmt.get()).ToLocal(&result)) {
     RESET_AND_CHECK(
         isolate, stmt->db_.get(), stmt->statement_.get(), needs_reset, void());
     args.GetReturnValue().Set(result);
@@ -3713,6 +3966,10 @@ void SQLTagStore::All(const FunctionCallbackInfo<Value>& args) {
 void SQLTagStore::Clear(const FunctionCallbackInfo<Value>& args) {
   SQLTagStore* store;
   ASSIGN_OR_RETURN_UNWRAP(&store, args.This());
+  // Clearing the cache drops strong references to the cached statements but
+  // never finalizes one synchronously, so it touches no SQLite state and stays
+  // available from a callback. Invalidating the cache after a schema change is
+  // a legitimate use of an authorizer.
   store->sql_tags_.Clear();
 }
 
@@ -3766,8 +4023,12 @@ BaseObjectPtr<StatementSync> SQLTagStore::PrepareStatement(
 
   if (stmt == nullptr) {
     sqlite3_stmt* s = nullptr;
-    int r = sqlite3_prepare_v2(
-        session->database_->connection_, sql.data(), sql.size(), &s, nullptr);
+    int r = sqlite3_prepare_v3(session->database_->connection_.get(),
+                               sql.data(),
+                               sql.size(),
+                               SQLITE_PREPARE_PERSISTENT,
+                               &s,
+                               nullptr);
     StatementPtr stmt_ptr(s);
 
     if (r != SQLITE_OK) {
@@ -3922,6 +4183,8 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
 
   auto iter_template = getLazyIterTemplate(env);
 
+  // A drained iterator touches no SQLite state, so it stays usable from a
+  // callback and is checked before the guards below.
   if (iter->done_) {
     MaybeLocal<Value> values[]{
         Boolean::New(isolate, true),
@@ -3935,11 +4198,18 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, iter->stmt_->db_.get());
+  THROW_AND_RETURN_IF_STEPPING(env, iter->stmt_.get());
+
   THROW_AND_RETURN_ON_BAD_STATE(
       env,
       iter->statement_reset_generation_ != iter->stmt_->reset_generation_,
       "iterator was invalidated");
 
+  // sqlite3_reset() can run JavaScript through an aggregate's xFinal, so it
+  // stays inside the guard.
+  SteppingStatementGuard stepping(iter->stmt_->db_.get(),
+                                  iter->stmt_->statement_.get());
   int r = sqlite3_step(iter->stmt_->statement_.get());
   if (r != SQLITE_ROW) {
     CHECK_ERROR_OR_THROW(
@@ -4000,11 +4270,18 @@ void StatementSyncIterator::Return(const FunctionCallbackInfo<Value>& args) {
       env, iter->stmt_->IsFinalized(), "statement has been finalized");
   Isolate* isolate = env->isolate();
 
-  // Unlike Next(), the reset result is intentionally ignored here: Return()
-  // is invoked by the language during abrupt completion (e.g. a `throw`
-  // inside a `for...of` body), and throwing on a deferred SQLite error
-  // would discard the caller's already-pending exception.
-  sqlite3_reset(iter->stmt_->statement_.get());
+  if (!iter->done_) {
+    // A language-invoked return() cannot be reached mid-step, since the loop
+    // body only runs after next() has returned, so these guards only reject an
+    // explicit call from inside a callback.
+    THROW_AND_RETURN_IF_IN_AUTHORIZER(env, iter->stmt_->db_.get());
+    THROW_AND_RETURN_IF_STEPPING(env, iter->stmt_.get());
+    // Unlike Next(), the reset result is intentionally ignored here: Return()
+    // is invoked by the language during abrupt completion (e.g. a `throw`
+    // inside a `for...of` body), and throwing on a deferred SQLite error
+    // would discard the caller's already-pending exception.
+    sqlite3_reset(iter->stmt_->statement_.get());
+  }
   iter->done_ = true;
 
   auto iter_template = getLazyIterTemplate(env);
@@ -4022,7 +4299,7 @@ Session::Session(Environment* env,
                  BaseObjectPtr<DatabaseSync> database,
                  sqlite3_session* session)
     : BaseObject(env, object),
-      session_(session),
+      session_(std::unique_ptr<sqlite3_session, SessionDeleter>(session)),
       database_(std::move(database)) {
   database_->sessions_.insert(this);
   MakeWeak();
@@ -4078,12 +4355,17 @@ void Session::Changeset(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   THROW_AND_RETURN_ON_BAD_STATE(
       env, !session->database_->IsOpen(), "database is not open");
-  THROW_AND_RETURN_ON_BAD_STATE(
-      env, session->session_ == nullptr, "session is not open");
+  THROW_AND_RETURN_ON_BAD_STATE(env, !session->session_, "session is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, session->database_.get());
+
+  session->is_generating_changeset_ = true;
+  auto changeset_guard =
+      OnScopeLeave([&] { session->is_generating_changeset_ = false; });
 
   int nChangeset;
   void* pChangeset;
-  int r = sqliteChangesetFunc(session->session_, &nChangeset, &pChangeset);
+  int r =
+      sqliteChangesetFunc(session->session_.get(), &nChangeset, &pChangeset);
   CHECK_ERROR_OR_THROW(
       env->isolate(), session->database_.get(), r, SQLITE_OK, void());
 
@@ -4106,22 +4388,32 @@ void Session::Close(const FunctionCallbackInfo<Value>& args) {
       env, !session->database_->IsOpen(), "database is not open");
   THROW_AND_RETURN_ON_BAD_STATE(
       env, session->session_ == nullptr, "session is not open");
+  THROW_AND_RETURN_ON_BAD_STATE(
+      env, session->is_generating_changeset_, "session is currently in use");
+  // Checked last: changeset generation runs the authorizer, so both conditions
+  // hold in that case and the more specific message above has to win.
+  THROW_AND_RETURN_IF_SESSION_IN_CALLBACK(env, session);
 
   session->Delete();
 }
 
-void Session::Dispose(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::TryCatch try_catch(args.GetIsolate());
-  Close(args);
-  if (try_catch.HasCaught()) {
-    CHECK(try_catch.CanContinue());
+void Session::Dispose(const FunctionCallbackInfo<Value>& args) {
+  Session* session;
+  ASSIGN_OR_RETURN_UNWRAP(&session, args.This());
+  Environment* env = Environment::GetCurrent(args);
+  if (session->session_ == nullptr) {
+    return;
   }
+  THROW_AND_RETURN_ON_BAD_STATE(
+      env, session->is_generating_changeset_, "session is currently in use");
+  THROW_AND_RETURN_IF_SESSION_IN_CALLBACK(env, session);
+
+  session->Delete();
 }
 
 void Session::Delete() {
-  if (session_ == nullptr) return;
-  sqlite3session_delete(session_);
-  session_ = nullptr;
+  if (!session_) return;
+  session_.reset();
   if (database_) {
     database_->sessions_.erase(this);
   }
@@ -4185,7 +4477,31 @@ static void Initialize(Local<Object> target,
                        Local<Context> context,
                        void* priv) {
   Environment* env = Environment::GetCurrent(context);
+  Realm* realm = env->principal_realm();
   Isolate* isolate = env->isolate();
+
+  // Set up the per-Environment database registry.
+  BindingData::CreatePerContextProperties(target, unused, context, priv);
+
+  // Register a native callback on the sqlite.db.query diagnostic channel so
+  // that SQLite tracing is enabled/disabled as subscribers come and go.
+  auto* diag_binding =
+      realm->GetBindingData<diagnostics_channel::BindingData>();
+  auto* sqlite_bd = realm->GetBindingData<BindingData>();
+  if (diag_binding != nullptr && sqlite_bd != nullptr) {
+    uint32_t idx = diag_binding->GetOrCreateChannelIndex("sqlite.db.query");
+    BaseObjectPtr<BindingData> bd_ptr(sqlite_bd);
+    diag_binding->SetChannelStatusCallback(idx, [bd_ptr](bool is_active) {
+      BindingData* bd = bd_ptr.get();
+      if (bd == nullptr) return;
+      for (DatabaseSync* db : bd->open_databases) {
+        if (is_active)
+          db->EnableTracing();
+        else
+          db->DisableTracing();
+      }
+    });
+  }
   Local<FunctionTemplate> db_tmpl =
       NewFunctionTemplate(isolate, DatabaseSync::New);
   db_tmpl->InstanceTemplate()->SetInternalFieldCount(

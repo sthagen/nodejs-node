@@ -305,7 +305,11 @@ unidirectional (data flows in only one direction). The `quic` module provides
 separate APIs for creating each kind:
 [`session.createBidirectionalStream()`][] and
 [`session.createUnidirectionalStream()`][]. Streams initiated by a remote
-peer are delivered via the [`session.onstream`][] callback.
+peer are delivered via the [`session.onstream`][] callback. When the
+negotiated application protocol supports the stream-level callbacks (e.g.
+HTTP/3) and an `onheaders` callback is configured, incoming streams can
+instead be consumed entirely through it and registering `onstream` is
+optional.
 
 There are two ways to write data to a stream:
 
@@ -409,7 +413,9 @@ A typical client session progresses through these stages:
 
 On the server side, call [`quic.listen()`][] with a callback. The callback
 fires for each incoming session after the TLS handshake begins. Incoming
-streams arrive via the [`session.onstream`][] callback.
+streams arrive via the [`session.onstream`][] callback, or, for HTTP/3
+sessions with an `onheaders` callback configured, directly through that
+callback (see the [minimal HTTP/3 server][] example).
 
 [`session.destroy()`][] is available for immediate teardown — all open streams
 are destroyed and the session is closed without waiting for them to finish.
@@ -536,7 +542,9 @@ a server once.
 ## `quic.listEndpoints([options])`
 
 <!-- YAML
-added: v26.4.0
+added:
+ - v26.4.0
+ - v24.20.0
 -->
 
 * `options` {object}
@@ -551,7 +559,9 @@ endpoints are returned.
 ## `quic.constants`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * {Object}
@@ -689,7 +699,9 @@ True if `endpoint.destroy()` has been called. Read only.
 ### `endpoint.listening`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean}
@@ -699,7 +711,9 @@ True if the endpoint is actively listening for incoming connections. Read only.
 ### `endpoint.maxConnectionsPerHost`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -712,7 +726,9 @@ The valid range is `0` to `65535`.
 ### `endpoint.maxConnectionsTotal`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -930,7 +946,9 @@ A `QuicSession` represents the local side of a QUIC connection.
 ### `session.applicationOptions`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {quic.ApplicationOptions}
@@ -970,7 +988,9 @@ promise will reject with an `ERR_QUIC_TRANSPORT_ERROR` or
 ### `session.opened`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Promise} for an {Object}
@@ -1010,7 +1030,9 @@ A promise that is fulfilled once the session is destroyed.
 ### `session.closing`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean}
@@ -1053,7 +1075,9 @@ True if `session.destroy()` has been called. Read only.
 ### `session.localTransportParams`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {quic.TransportParams|null}
@@ -1075,7 +1099,9 @@ has been destroyed. Read only.
 ### `session.onapplication`
 
 <!-- YAML
-added: v26.4.0
+added:
+ - v26.4.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnApplicationCallback}
@@ -1085,7 +1111,9 @@ The callback to invoke when new application options, e.g. HTTP/3 settings arrive
 ### `session.onerror`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function|undefined}
@@ -1110,6 +1138,15 @@ added: v23.8.0
 
 The callback to invoke when a new stream is initiated by a remote peer. Read/write.
 
+If no `onstream` callback is set and the stream has no other consumer, an
+incoming stream is destroyed on arrival and a warning is emitted. An
+`onheaders` callback counts as a consumer when the negotiated application
+protocol supports it (e.g. HTTP/3), because it is invoked for every incoming
+request stream. Other stream-level callbacks (`ontrailers`, `oninfo`,
+`onwanttrailers`) do not, since they are conditional or outbound-only and
+would leave the stream unobservable. An HTTP/3 server that handles requests
+entirely through `onheaders` does not need to set `onstream`.
+
 ### `session.ondatagram`
 
 <!-- YAML
@@ -1133,7 +1170,9 @@ The callback to invoke when the status of a datagram is updated. Read/write.
 ### `session.onearlyrejected`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function|undefined}
@@ -1190,7 +1229,9 @@ The callback to invoke when the TLS handshake is completed. Read/write.
 ### `session.onnewtoken`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnNewTokenCallback}
@@ -1202,7 +1243,9 @@ the same server to skip address validation. Read/write.
 ### `session.onorigin`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnOriginCallback}
@@ -1214,7 +1257,9 @@ Read/write.
 ### `session.ongoaway`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function}
@@ -1239,7 +1284,9 @@ This callback is only relevant for HTTP/3 sessions. Read/write.
 ### `session.onkeylog`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnKeylogCallback}
@@ -1255,7 +1302,9 @@ Can also be set via the `onkeylog` option in [`quic.connect()`][] or
 ### `session.onqlog`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnQlogCallback}
@@ -1370,7 +1419,9 @@ The local and remote socket addresses associated with the session. Read only.
 ### `session.remoteTransportParams`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {quic.TransportParams|null|undefined}
@@ -1428,7 +1479,9 @@ what this endpoint advertises to the peer as its own maximum.
 ### `session.servername`
 
 <!-- YAML
-added: v26.6.0
+added:
+ - v26.6.0
+ - v24.20.0
 -->
 
 * Type: {string|boolean|null}
@@ -1441,7 +1494,9 @@ had no SNI.
 ### `session.alpnProtocol`
 
 <!-- YAML
-added: v26.6.0
+added:
+ - v26.6.0
+ - v24.20.0
 -->
 
 * Type: {string|null}
@@ -1454,7 +1509,9 @@ unlike `node:tls` where this is optional.
 ### `session.certificate`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {crypto.X509Certificate|undefined}
@@ -1467,7 +1524,9 @@ Returns `undefined` if the session is destroyed.
 ### `session.peerCertificate`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {crypto.X509Certificate|undefined}
@@ -1479,7 +1538,9 @@ destroyed.
 ### `session.ephemeralKeyInfo`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Object|undefined}
@@ -1491,7 +1552,9 @@ The ephemeral key information for the session, with properties such as
 ### `session.maxDatagramSize`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -1506,7 +1569,9 @@ will not be sent.
 ### `session.maxPendingDatagrams`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -1748,7 +1813,9 @@ added: v23.8.0
 ## Class: `QuicError`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 > Stability: 1 - Experimental
@@ -1790,7 +1857,9 @@ the Node.js convention that `error.code` is a string.
 ### `new QuicError(message, options)`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `message` {string} A human-readable description of the error.
@@ -1824,7 +1893,9 @@ console.log(custom.code);    // 'ERR_MY_QUIC_FAILURE'
 ### `error.errorCode`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {bigint}
@@ -1834,7 +1905,9 @@ The numeric QUIC error code carried by this error.
 ### `error.type`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {string}
@@ -1867,7 +1940,9 @@ CONNECTION\_CLOSE with a non-zero error code).
 <!-- YAML
 added: v23.8.0
 changes:
-  - version: v26.2.0
+  - version:
+     - v26.2.0
+     - v24.20.0
     pr-url: https://github.com/nodejs/node/pull/62876
     description: Added the `options` parameter accepting `code` and `reason`.
 -->
@@ -1991,7 +2066,9 @@ stream, which has no readable side to abort.
 ### `stream.early`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean}
@@ -2018,7 +2095,9 @@ or is still pending. Read only.
 ### `stream.budget`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -2046,7 +2125,9 @@ pending. Read only.
 ### `stream.onerror`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function|undefined}
@@ -2092,7 +2173,9 @@ whole stream with [`stream.destroy()`][]. Read/write.
 ### `stream.onstopsending`
 
 <!-- YAML
-added: v26.7.0
+added:
+ - v26.7.0
+ - v24.20.0
 -->
 
 * Type: {quic.OnStreamErrorCallback}
@@ -2107,7 +2190,9 @@ property carries the application error code from the wire frame. Read/write.
 ### `stream.headers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Object|undefined}
@@ -2124,7 +2209,9 @@ arrays. The object has `__proto__: null`.
 ### `stream.onheaders`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function}
@@ -2139,7 +2226,9 @@ Read/write.
 ### `stream.ontrailers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function}
@@ -2152,7 +2241,9 @@ session that does not support headers. Read/write.
 ### `stream.oninfo`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function}
@@ -2167,7 +2258,9 @@ Read/write.
 ### `stream.onwanttrailers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Function}
@@ -2181,7 +2274,9 @@ Read/write.
 ### `stream.pendingTrailers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Object|undefined}
@@ -2195,7 +2290,9 @@ Read/write.
 ### `stream.sendHeaders(headers[, options])`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `headers` {Object} Header object with string keys and string or
@@ -2213,7 +2310,9 @@ headers. Throws `ERR_INVALID_STATE` if the session does not support headers.
 ### `stream.sendInformationalHeaders(headers)`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `headers` {Object} Header object. Must include `:status` with a 1xx
@@ -2226,7 +2325,9 @@ Sends informational (1xx) response headers. Server only. Throws
 ### `stream.sendTrailers(headers)`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `headers` {Object} Trailing header object. Pseudo-headers must not be
@@ -2241,7 +2342,9 @@ does not support headers.
 ### `stream.priority`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Object|null}
@@ -2260,7 +2363,9 @@ reflects the peer's requested priority (e.g., from `PRIORITY_UPDATE` frames).
 ### `stream.setPriority([options])`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `options` {Object}
@@ -2277,7 +2382,9 @@ has been destroyed.
 ### `stream[Symbol.asyncIterator]()`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Returns: {AsyncIterableIterator} yielding {Uint8Array\[]}
@@ -2310,7 +2417,9 @@ await Stream.pipeTo(stream, someWriter);
 ### `stream.writer`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {Object}
@@ -2354,7 +2463,9 @@ themselves before passing the buffer.
 ### `stream.setBody(body)`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `body` {string | ArrayBuffer | SharedArrayBuffer | ArrayBufferView |
@@ -2425,7 +2536,9 @@ added: v23.8.0
 ### `streamStats.bytesAccumulated`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {bigint}
@@ -2487,7 +2600,9 @@ added: v23.8.0
 ### `streamStats.maxBytesAccumulated`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {bigint}
@@ -2543,7 +2658,9 @@ added: v23.8.0
 ### type: `ApplicationOptions`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {Object}
@@ -2668,7 +2785,9 @@ need to specify.
 #### `endpointOptions.disableStatelessReset`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean}
@@ -2682,7 +2801,9 @@ at a different layer.
 #### `endpointOptions.idleTimeout`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -2939,10 +3060,10 @@ The ALPN (Application-Layer Protocol Negotiation) identifier(s).
 For **client** sessions, this is a single string specifying the protocol
 the client wants to use (e.g. `'h3'`).
 
-For **server** sessions, this is an array of protocol names in preference
-order that the server supports (e.g. `['h3', 'h3-29']`). During the TLS
-handshake, the server selects the first protocol from its list that the
-client also supports.
+For **server** sessions, this is a non-empty array of protocol names in
+preference order that the server supports (e.g. `['h3', 'h3-29']`).
+During the TLS handshake, the server selects the first protocol from its
+list that the client also supports.
 
 The negotiated ALPN determines which Application implementation is used
 for the session. `'h3'` and `'h3-*'` variants select the HTTP/3
@@ -2953,7 +3074,9 @@ Default: `'h3'`
 #### `sessionOptions.application`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {quic.ApplicationOptions}
@@ -3010,7 +3133,9 @@ certificates are specified per-identity in the [`sessionOptions.sni`][] map.
 #### `sessionOptions.certificateCompression`
 
 <!-- YAML
-added: v26.6.0
+added:
+ - v26.6.0
+ - v24.20.0
 -->
 
 * Type: {string\[]} One or more of `'zlib'`, `'brotli'`, or `'zstd'`, in
@@ -3058,7 +3183,9 @@ The CRL to use for sessions.
 #### `sessionOptions.enableEarlyData`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean} **Default:** `true`
@@ -3190,7 +3317,9 @@ added: v23.8.0
 #### `sessionOptions.datagramDropPolicy`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {string}
@@ -3236,7 +3365,9 @@ reached, the datagram is dropped and reported as `'abandoned'` via the
 #### `sessionOptions.drainingPeriodMultiplier`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {number}
@@ -3262,7 +3393,9 @@ to complete before timing out.
 #### `sessionOptions.initialRtt`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {bigint|number}
@@ -3279,7 +3412,9 @@ behavior.
 #### `sessionOptions.keepAlive`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {bigint|number}
@@ -3388,7 +3523,9 @@ True to enable TLS tracing output.
 #### `sessionOptions.token` (client only)
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {ArrayBufferView}
@@ -3421,7 +3558,9 @@ Specifies the maximum number of unacknowledged packets a session should allow.
 #### `sessionOptions.rejectUnauthorized`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean} **Default:** `true`
@@ -3435,7 +3574,9 @@ ignored.
 #### `sessionOptions.reuseEndpoint`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * Type: {boolean}
@@ -3498,7 +3639,9 @@ creating a session. The negotiated values can be observed via the
 #### `transportParams.initialSCID`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {string}
@@ -3511,7 +3654,9 @@ available in the `session.localTransportParams` and
 #### `transportParams.originalDCID`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {string}
@@ -3637,7 +3782,9 @@ a datagram that can be _sent_ is determined by the peer's
 #### `transportParams.retrySCID`
 
 <!-- YAML
-added: v26.3.0
+added:
+ - v26.3.0
+ - v24.20.0
 -->
 
 * Type: {string}
@@ -3803,7 +3950,9 @@ added: v23.8.0
 ### Callback: `OnNewTokenCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicSession}
@@ -3813,7 +3962,9 @@ added: v26.2.0
 ### Callback: `OnOriginCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicSession}
@@ -3822,7 +3973,9 @@ added: v26.2.0
 ### Callback: `OnKeylogCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicSession}
@@ -3837,7 +3990,9 @@ the secret value.
 ### Callback: `OnQlogCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicSession}
@@ -3870,7 +4025,9 @@ added: v23.8.0
 ### Callback: `OnHeadersCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicStream}
@@ -3884,7 +4041,9 @@ on the client.
 ### Callback: `OnTrailersCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicStream}
@@ -3895,7 +4054,9 @@ Called when trailing headers are received from the peer.
 ### Callback: `OnInfoCallback`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `this` {quic.QuicStream}
@@ -3907,7 +4068,9 @@ Called when informational (1xx) headers are received from the server
 ## HTTP/3 support
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 When the negotiated ALPN identifier is `'h3'` (or one of the `'h3-*'`
@@ -4008,7 +4171,9 @@ import { listen } from 'node:quic';
 const encoder = new TextEncoder();
 
 const endpoint = await listen((session) => {
-  // The session.onstream callback fires for each new client-initiated stream.
+  // The session.onstream callback fires for each new client-initiated
+  // stream. It is optional here: with `onheaders` configured below,
+  // request streams are consumed through that callback.
 }, {
   sni: { '*': { keys: [defaultKey], certs: [defaultCert] } },
   // ALPN defaults to 'h3'.
@@ -4063,7 +4228,9 @@ Server-side notes:
 ## Performance measurement
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 QUIC sessions, streams, and endpoints emit [`PerformanceEntry`][] objects
@@ -4153,7 +4320,9 @@ Published when an endpoint begins listening for incoming connections.
 ### Channel: `quic.endpoint.connect`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `endpoint` {quic.QuicEndpoint}
@@ -4317,7 +4486,9 @@ of the final statistics at the time of destruction.
 ### Channel: `quic.session.error`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `session` {quic.QuicSession}
@@ -4372,7 +4543,9 @@ Published when a path validation attempt completes.
 ### Channel: `quic.session.new.token`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `token` {Buffer} The NEW\_TOKEN token data.
@@ -4410,7 +4583,9 @@ server. The session is always destroyed immediately after.
 ### Channel: `quic.session.receive.origin`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `origins` {string\[]} The list of origins the server is authoritative for.
@@ -4440,7 +4615,9 @@ Published when the TLS handshake completes.
 ### Channel: `quic.session.goaway`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `session` {quic.QuicSession}
@@ -4454,7 +4631,9 @@ a stream boundary.
 ### Channel: `quic.session.early.rejected`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `session` {quic.QuicSession}
@@ -4466,7 +4645,9 @@ latency regressions when 0-RTT is expected to succeed.
 ### Channel: `quic.stream.closed`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4480,7 +4661,9 @@ of the final statistics at the time of destruction.
 ### Channel: `quic.stream.headers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4495,7 +4678,9 @@ server-side streams, this contains request pseudo-headers (`:method`,
 ### Channel: `quic.stream.trailers`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4507,7 +4692,9 @@ Published when trailing headers are received on a stream.
 ### Channel: `quic.stream.info`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4520,7 +4707,9 @@ Published when informational (1xx) headers are received on a stream
 ### Channel: `quic.stream.reset`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4534,7 +4723,9 @@ for diagnosing application-level issues such as cancelled requests.
 ### Channel: `quic.stream.blocked`
 
 <!-- YAML
-added: v26.2.0
+added:
+ - v26.2.0
+ - v24.20.0
 -->
 
 * `stream` {quic.QuicStream}
@@ -4642,5 +4833,6 @@ throughput issues caused by flow control.
 [`stream.writer`]: #streamwriter
 [`writer.fail()`]: #streamwriter
 [`writer.fail(reason)`]: #streamwriter
+[minimal HTTP/3 server]: #minimal-http3-server
 [qlog]: https://datatracker.ietf.org/doc/draft-ietf-quic-qlog-main-schema/
 [qvis]: https://qvis.quictools.info/

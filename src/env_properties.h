@@ -143,6 +143,7 @@
   V(crypto_rsa_pss_string, "rsa-pss")                                          \
   V(cwd_string, "cwd")                                                         \
   V(data_string, "data")                                                       \
+  V(database_string, "database")                                               \
   V(default_is_true_string, "defaultIsTrue")                                   \
   V(defensive_string, "defensive")                                             \
   V(deserialize_info_string, "deserializeInfo")                                \
@@ -359,6 +360,7 @@
   V(source_map_url_string, "sourceMapURL")                                     \
   V(source_url_string, "sourceURL")                                            \
   V(specifier_string, "specifier")                                             \
+  V(sql_string, "sql")                                                         \
   V(stack_string, "stack")                                                     \
   V(start_string, "start")                                                     \
   V(state_string, "state")                                                     \
@@ -439,6 +441,7 @@
   V(ffi_dynamic_library_constructor_template, v8::FunctionTemplate)            \
   V(ffi_function_constructor_template, v8::FunctionTemplate)                   \
   V(filehandlereadwrap_template, v8::ObjectTemplate)                           \
+  V(fips_indicator_event_template, v8::DictionaryTemplate)                     \
   V(free_list_statistics_template, v8::DictionaryTemplate)                     \
   V(fsreqpromise_constructor_template, v8::ObjectTemplate)                     \
   V(handle_wrap_ctor_template, v8::FunctionTemplate)                           \
@@ -505,6 +508,7 @@
   V(async_hooks_promise_resolve_function, v8::Function)                        \
   V(buffer_prototype_object, v8::Object)                                       \
   V(crypto_internal_cryptokey_constructor, v8::Function)                       \
+  V(crypto_internal_x509_certificate_constructor, v8::Function)                \
   V(crypto_key_object_private_constructor, v8::Function)                       \
   V(crypto_key_object_public_constructor, v8::Function)                        \
   V(crypto_key_object_secret_constructor, v8::Function)                        \

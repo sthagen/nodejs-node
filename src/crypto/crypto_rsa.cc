@@ -38,6 +38,21 @@ using v8::Uint32;
 using v8::Value;
 
 namespace crypto {
+namespace {
+bool IsRsaPssDigestEncodable(const Digest& digest) {
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  const int nid = EVP_MD_type(digest.get());
+  if (nid == NID_undef) return false;
+
+  const ASN1_OBJECT* object = OBJ_nid2obj(nid);
+  return object != nullptr && OBJ_length(object) > 0;
+#else
+  static_cast<void>(digest);
+  return true;
+#endif
+}
+}  // namespace
+
 EVPKeyCtxPointer RsaKeyGenTraits::Setup(RsaKeyPairGenConfig* params) {
   auto ctx = EVPKeyCtxPointer::NewFromID(
       params->params.variant == kKeyVariantRSA_PSS ? EVP_PKEY_RSA_PSS
@@ -58,7 +73,8 @@ EVPKeyCtxPointer RsaKeyGenTraits::Setup(RsaKeyPairGenConfig* params) {
   }
 
   if (params->params.variant == kKeyVariantRSA_PSS) {
-    if (params->params.md && !ctx.setRsaPssKeygenMd(params->params.md)) {
+    if (params->params.md && (!IsRsaPssDigestEncodable(params->params.md) ||
+                              !ctx.setRsaPssKeygenMd(params->params.md))) {
       return {};
     }
 
@@ -71,7 +87,8 @@ EVPKeyCtxPointer RsaKeyGenTraits::Setup(RsaKeyPairGenConfig* params) {
       mgf1_md = params->params.md;
     }
 
-    if (mgf1_md && !ctx.setRsaPssKeygenMgf1Md(mgf1_md)) {
+    if (mgf1_md && (!IsRsaPssDigestEncodable(mgf1_md) ||
+                    !ctx.setRsaPssKeygenMgf1Md(mgf1_md))) {
       return {};
     }
 
@@ -136,18 +153,6 @@ Maybe<void> RsaKeyGenTraits::AdditionalConfig(
 
   params->params.modulus_bits = args[*offset + 1].As<Uint32>()->Value();
   params->params.exponent = args[*offset + 2].As<Uint32>()->Value();
-
-#ifdef OPENSSL_IS_BORINGSSL
-  // BoringSSL hangs indefinitely generating an RSA key with e=1, and for
-  // other invalid exponents (e=0, even values) reports the misleading error
-  // RSA_R_TOO_MANY_ITERATIONS only after running the full keygen loop. Reject
-  // those up-front with a clear error. The constraint here (odd integer >= 3)
-  // matches BoringSSL's own rsa_check_public_key validation.
-  if (params->params.exponent < 3 || (params->params.exponent & 1) == 0) {
-    THROW_ERR_OUT_OF_RANGE(env, "publicExponent is invalid");
-    return Nothing<void>();
-  }
-#endif
 
   *offset += 3;
 

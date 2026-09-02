@@ -9,6 +9,7 @@
 #include "sqlite3.h"
 #include "util.h"
 
+#include <algorithm>
 #include <array>
 #include <list>
 #include <map>
@@ -18,6 +19,13 @@
 #include <vector>
 
 namespace node {
+
+namespace diagnostics_channel {
+class Channel;
+}  // namespace diagnostics_channel
+
+class ExternalReferenceRegistry;
+
 namespace sqlite {
 
 // Mapping from JavaScript property names to SQLite limit constants
@@ -170,28 +178,38 @@ using StatementPtr = DeleteFnPtr<sqlite3_stmt, FinalizeStatement>;
 class StatementExecutionHelper {
  public:
   static v8::MaybeLocal<v8::Value> All(Environment* env,
-                                       DatabaseSync* db,
-                                       sqlite3_stmt* stmt,
-                                       bool return_arrays,
-                                       bool use_big_ints);
+                                       StatementSync* statement);
   static v8::MaybeLocal<v8::Object> Run(Environment* env,
-                                        DatabaseSync* db,
-                                        sqlite3_stmt* stmt,
-                                        bool use_big_ints);
+                                        StatementSync* statement);
   static BaseObjectPtr<StatementSyncIterator> Iterate(
       Environment* env, BaseObjectPtr<StatementSync> stmt);
   static v8::MaybeLocal<v8::Value> ColumnToValue(Environment* env,
                                                  sqlite3_stmt* stmt,
                                                  const int column,
                                                  bool use_big_ints);
-  static v8::MaybeLocal<v8::Name> ColumnNameToName(Environment* env,
-                                                   sqlite3_stmt* stmt,
-                                                   const int column);
   static v8::MaybeLocal<v8::Value> Get(Environment* env,
-                                       DatabaseSync* db,
-                                       sqlite3_stmt* stmt,
-                                       bool return_arrays,
-                                       bool use_big_ints);
+                                       StatementSync* statement);
+};
+
+class DatabaseSync;
+
+class BindingData : public BaseObject {
+ public:
+  SET_BINDING_ID(sqlite_binding_data)
+
+  BindingData(Realm* realm, v8::Local<v8::Object> wrap);
+
+  void MemoryInfo(MemoryTracker* tracker) const override;
+  SET_MEMORY_INFO_NAME(BindingData)
+  SET_SELF_SIZE(BindingData)
+
+  std::unordered_set<DatabaseSync*> open_databases;
+
+  static void CreatePerContextProperties(v8::Local<v8::Object> target,
+                                         v8::Local<v8::Value> unused,
+                                         v8::Local<v8::Context> context,
+                                         void* priv);
+  static void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 };
 
 class DatabaseSync : public BaseObject {
@@ -238,6 +256,10 @@ class DatabaseSync : public BaseObject {
                                 const char* param2,
                                 const char* param3,
                                 const char* param4);
+  static int TraceCallback(unsigned int type,
+                           void* user_data,
+                           void* p,
+                           void* x);
   void FinalizeStatements();
   void RemoveBackup(BackupJob* backup);
   void AddBackup(BackupJob* backup);
@@ -260,10 +282,42 @@ class DatabaseSync : public BaseObject {
   // enable that use case.
   void SetIgnoreNextSQLiteError(bool ignore);
   bool ShouldIgnoreSQLiteError();
+  void EnableTracing();
+  void DisableTracing();
 
   void IncrementCallbackDepth() { ++callback_depth_; }
   void DecrementCallbackDepth() { --callback_depth_; }
   bool IsInCallback() const { return callback_depth_ > 0; }
+
+  // SQLite reaches back into JavaScript from inside its pre-update hook, while
+  // it is still walking this connection's session list. Session objects are
+  // weak, so a garbage collection during such a callback could collect one and
+  // free memory SQLite is still using. Returns a strong reference to every
+  // attached session so that a callback can hold them for its duration.
+  std::vector<BaseObjectPtr<Session>> PinSessions() const;
+
+  // SQLite forbids an authorizer callback from doing anything that modifies
+  // the database connection that invoked it, which includes preparing and
+  // stepping statements. See https://www.sqlite.org/c3ref/set_authorizer.html.
+  void IncrementAuthorizerDepth() { ++authorizer_depth_; }
+  void DecrementAuthorizerDepth() { --authorizer_depth_; }
+  bool IsInAuthorizerCallback() const { return authorizer_depth_ > 0; }
+
+  // A callback must not finalize the statement being stepped. Other statements
+  // are safe unless they are busy during an authorizer callback.
+  void PushSteppingStatement(sqlite3_stmt* stmt) {
+    stepping_statements_.push_back(stmt);
+  }
+  void PopSteppingStatement() { stepping_statements_.pop_back(); }
+  bool IsSteppingStatement(sqlite3_stmt* stmt) const {
+    return std::find(stepping_statements_.begin(),
+                     stepping_statements_.end(),
+                     stmt) != stepping_statements_.end();
+  }
+
+  void IncrementTraceSuppressionDepth() { ++trace_suppression_depth_; }
+  void DecrementTraceSuppressionDepth() { --trace_suppression_depth_; }
+  bool AreTraceEventsSuppressed() const { return trace_suppression_depth_ > 0; }
 
   SET_MEMORY_INFO_NAME(DatabaseSync)
   SET_SELF_SIZE(DatabaseSync)
@@ -276,13 +330,20 @@ class DatabaseSync : public BaseObject {
   DatabaseOpenConfiguration open_config_;
   bool allow_load_extension_;
   bool enable_load_extension_;
-  sqlite3* connection_;
+  struct ConnectionDeleter {
+    void operator()(sqlite3* db) const { sqlite3_close_v2(db); }
+  };
+  std::unique_ptr<sqlite3, ConnectionDeleter> connection_;
   bool ignore_next_sqlite_error_;
   int callback_depth_ = 0;
+  int authorizer_depth_ = 0;
+  int trace_suppression_depth_ = 0;
+  std::vector<sqlite3_stmt*> stepping_statements_;
 
   std::set<BackupJob*> backups_;
   std::unordered_set<Session*> sessions_;
   std::unordered_set<StatementSync*> statements_;
+  BaseObjectPtr<diagnostics_channel::Channel> trace_channel_;
 
   friend class DatabaseSyncLimits;
   friend class Session;
@@ -401,8 +462,12 @@ class Session : public BaseObject {
 
  private:
   void Delete();
-  sqlite3_session* session_;
+  struct SessionDeleter {
+    void operator()(sqlite3_session* s) const { sqlite3session_delete(s); }
+  };
+  std::unique_ptr<sqlite3_session, SessionDeleter> session_;
   BaseObjectPtr<DatabaseSync> database_;  // The Parent Database
+  bool is_generating_changeset_ = false;
 
   friend class DatabaseSync;
 };
@@ -447,14 +512,59 @@ class SQLTagStore : public BaseObject {
   friend class StatementExecutionHelper;
 };
 
+// Guards a window in which SQLite hands control back to JavaScript. Construct
+// it before allocating anything on the V8 heap, since the pinned sessions
+// below are what keep a garbage collection during that window safe.
 class CallbackDepthGuard {
  public:
-  explicit CallbackDepthGuard(DatabaseSync* db) : db_(db) {
+  explicit CallbackDepthGuard(DatabaseSync* db)
+      : db_(db), pinned_sessions_(db->PinSessions()) {
     db_->IncrementCallbackDepth();
   }
   ~CallbackDepthGuard() { db_->DecrementCallbackDepth(); }
   CallbackDepthGuard(const CallbackDepthGuard&) = delete;
   CallbackDepthGuard& operator=(const CallbackDepthGuard&) = delete;
+
+ private:
+  DatabaseSync* db_;
+  std::vector<BaseObjectPtr<Session>> pinned_sessions_;
+};
+
+class TraceEventSuppressionGuard {
+ public:
+  explicit TraceEventSuppressionGuard(DatabaseSync* db) : db_(db) {
+    db_->IncrementTraceSuppressionDepth();
+  }
+  ~TraceEventSuppressionGuard() { db_->DecrementTraceSuppressionDepth(); }
+  TraceEventSuppressionGuard(const TraceEventSuppressionGuard&) = delete;
+  TraceEventSuppressionGuard& operator=(const TraceEventSuppressionGuard&) =
+      delete;
+
+ private:
+  DatabaseSync* db_;
+};
+
+class SteppingStatementGuard {
+ public:
+  SteppingStatementGuard(DatabaseSync* db, sqlite3_stmt* stmt) : db_(db) {
+    db_->PushSteppingStatement(stmt);
+  }
+  ~SteppingStatementGuard() { db_->PopSteppingStatement(); }
+  SteppingStatementGuard(const SteppingStatementGuard&) = delete;
+  SteppingStatementGuard& operator=(const SteppingStatementGuard&) = delete;
+
+ private:
+  DatabaseSync* db_;
+};
+
+class AuthorizerDepthGuard {
+ public:
+  explicit AuthorizerDepthGuard(DatabaseSync* db) : db_(db) {
+    db_->IncrementAuthorizerDepth();
+  }
+  ~AuthorizerDepthGuard() { db_->DecrementAuthorizerDepth(); }
+  AuthorizerDepthGuard(const AuthorizerDepthGuard&) = delete;
+  AuthorizerDepthGuard& operator=(const AuthorizerDepthGuard&) = delete;
 
  private:
   DatabaseSync* db_;

@@ -1,4 +1,4 @@
-// Flags: --experimental-ffi --expose-internals
+// Flags: --expose-internals --allow-natives-syntax
 'use strict';
 
 const common = require('../common');
@@ -70,6 +70,35 @@ test('fast FFI buffer arguments reject invalid values', () => {
   }
 });
 
+test('optimized pointer arguments reject direct SharedArrayBuffers', () => {
+  const lib = new ffi.DynamicLibrary(libraryPath);
+  const firstByte = lib.getFunction('first_byte', {
+    arguments: ['pointer'],
+    return: 'u8',
+  });
+  const regular = new ArrayBuffer(1);
+  const shared = new SharedArrayBuffer(1);
+  const expected = { code: 'ERR_INVALID_ARG_VALUE' };
+
+  function callFirstByte(value) {
+    return firstByte(value);
+  }
+
+  try {
+    assert.throws(() => callFirstByte(shared), expected);
+
+    eval('%PrepareFunctionForOptimization(callFirstByte)');
+    callFirstByte(regular);
+    callFirstByte(regular);
+    eval('%OptimizeFunctionOnNextCall(callFirstByte)');
+    callFirstByte(regular);
+
+    assert.throws(() => callFirstByte(shared), expected);
+  } finally {
+    lib.close();
+  }
+});
+
 test('fast FFI string buffers survive reentrant callbacks', {
   // Bundled libffi callbacks crash on SmartOS.
   skip: common.isSunOS,
@@ -92,6 +121,24 @@ test('fast FFI string buffers survive reentrant callbacks', {
     assert.strictEqual(nestedLength, 12);
   } finally {
     lib.unregisterCallback(callback);
+    lib.close();
+  }
+});
+
+test('fast FFI refreshes cached temporary string buffers', () => {
+  const lib = new ffi.DynamicLibrary(libraryPath);
+  const overwriteString = lib.getFunction('overwrite_string', {
+    arguments: ['string', 'i32', 'u64'],
+    return: 'u8',
+  });
+
+  try {
+    const mutated = overwriteString('hello', 0x79, 1n);
+    assert.strictEqual(mutated, 0x79);
+
+    const refreshed = overwriteString('hello', 0x79, 0n);
+    assert.strictEqual(refreshed, 0x68);
+  } finally {
     lib.close();
   }
 });

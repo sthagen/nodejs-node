@@ -195,45 +195,16 @@ void Session::Application::CollectSessionTicketAppData(
 SessionTicket::AppData::Status
 Session::Application::ExtractSessionTicketAppData(
     const SessionTicket::AppData& app_data, Flag flag) {
-  // By default we do not have any application data to retrieve.
+  // CollectSessionTicketAppData writes just the type byte, so all this can
+  // check is that the ticket came from the same application type.
+  auto data = app_data.Get();
+  if (!data || data->len != 1 ||
+      static_cast<uint8_t>(data->base[0]) != static_cast<uint8_t>(type())) {
+    return SessionTicket::AppData::Status::TICKET_IGNORE_RENEW;
+  }
   return flag == Flag::STATUS_RENEW
              ? SessionTicket::AppData::Status::TICKET_USE_RENEW
              : SessionTicket::AppData::Status::TICKET_USE;
-}
-
-std::optional<PendingTicketAppData> Session::Application::ParseTicketData(
-    const uv_buf_t& data) {
-  if (data.len == 0 || data.base == nullptr) return std::nullopt;
-  auto app_type =
-      static_cast<Type>(reinterpret_cast<const uint8_t*>(data.base)[0]);
-  switch (app_type) {
-    case Type::DEFAULT:
-      return DefaultTicketData{};
-    case Type::HTTP3:
-      return ParseHttp3TicketData(data);
-    default:
-      return std::nullopt;
-  }
-}
-
-bool Session::Application::ValidateTicketData(
-    const PendingTicketAppData& data, const Application_Options& options) {
-  if (std::holds_alternative<Http3TicketData>(data)) {
-    // TODO(@jasnell): This validation probably belongs in http3.cc but keeping
-    // it here for now.
-    const auto& ticket = std::get<Http3TicketData>(data);
-    return options.max_field_section_size >= ticket.max_field_section_size &&
-           options.qpack_max_dtable_capacity >=
-               ticket.qpack_max_dtable_capacity &&
-           options.qpack_encoder_max_dtable_capacity >=
-               ticket.qpack_encoder_max_dtable_capacity &&
-           options.qpack_blocked_streams >= ticket.qpack_blocked_streams &&
-           (!ticket.enable_connect_protocol ||
-            options.enable_connect_protocol) &&
-           (!ticket.enable_datagrams || options.enable_datagrams);
-  }
-  // DefaultTicketData always validates.
-  return true;
 }
 
 void Session::Application::ReceiveStreamClose(Stream* stream,
@@ -252,6 +223,12 @@ void Session::Application::ReceiveStreamReset(Stream* stream,
                                               uint64_t final_size,
                                               QuicError&& error) {
   stream->ReceiveStreamReset(final_size, std::move(error));
+}
+
+void Session::Application::ReturnConnectionCredit(size_t datalen) {
+  if (datalen == 0 || session().is_destroyed()) return;
+  Session::SendPendingDataScope send_scope(&session());
+  session().ExtendOffset(datalen);
 }
 
 // ============================================================================
@@ -280,6 +257,11 @@ class DefaultApplication final : public Session::Application {
     return NGTCP2_INTERNAL_ERROR;
   }
 
+  // Raw QUIC has no "request rejected" semantic; reuse the no-error code.
+  error_code GetRequestRejectedCode() const override {
+    return GetNoErrorCode();
+  }
+
   void EarlyDataRejected() override {
     // Destroy all open streams — ngtcp2 has already discarded their
     // internal state when it rejected the early data. Use the
@@ -290,10 +272,6 @@ class DefaultApplication final : public Session::Application {
     if (!session().is_destroyed()) {
       session().EmitEarlyDataRejected();
     }
-  }
-
-  bool ApplySessionTicketData(const PendingTicketAppData& data) override {
-    return std::holds_alternative<DefaultTicketData>(data);
   }
 
   bool ReceiveStreamOpen(stream_id id) override {
@@ -311,6 +289,22 @@ class DefaultApplication final : public Session::Application {
                          void* stream_user_data) override {
     BaseObjectPtr<Stream> stream;
     if (stream_user_data == nullptr) {
+      // A locally-initiated stream only exists because we created it, so a
+      // missing Stream means we already destroyed it. Data the peer had put in
+      // flight must not resurrect it as a bogus "incoming" stream. Discard it
+      // and return its credit instead. The is_destroyed() check must come
+      // first: an earlier callback in this same ngtcp2 batch may have
+      // destroyed the session, after which none of this may be touched.
+      if (!session().is_destroyed() &&
+          ngtcp2_conn_is_local_stream(session(), id)) {
+        Debug(&session(),
+              "Discarding %zu bytes for destroyed local stream %" PRIi64,
+              datalen,
+              id);
+        ReturnConnectionCredit(datalen);
+        return true;
+      }
+
       // This is the first time we're seeing this stream. Implicitly create it.
       stream = session().CreateStream(id);
       if (!stream || session().is_destroyed()) [[unlikely]] {
@@ -319,9 +313,11 @@ class DefaultApplication final : public Session::Application {
         return false;
       }
 
-      // The stream was created, but was immediately destroyed because there's
-      // no onstream handler.
+      // The stream was created but immediately destroyed, either because there
+      // is no onstream handler or because the handler destroyed it. Nothing
+      // will consume the data, so discard it and return its credit.
       if (stream->is_destroyed()) [[unlikely]] {
+        ReturnConnectionCredit(datalen);
         return true;
       }
     } else {
@@ -431,6 +427,7 @@ class DefaultApplication final : public Session::Application {
     // The peer granted more flow control for this stream. Re-schedule
     // it so SendPendingData will resume writing.
     DCHECK_NOT_NULL(stream);
+    stream->UpdateWriteDesiredSize();  // the stream might be blocked on js side
     stream->Schedule(&stream_queue_);
   }
 

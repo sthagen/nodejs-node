@@ -235,8 +235,6 @@
       'src/histogram-inl.h',
       'src/js_stream.h',
       'src/json_utils.h',
-      'src/large_pages/node_large_page.cc',
-      'src/large_pages/node_large_page.h',
       'src/memory_tracker.h',
       'src/memory_tracker-inl.h',
       'src/module_wrap.h',
@@ -393,6 +391,7 @@
       'src/crypto/crypto_sig.cc',
       'src/crypto/crypto_timing.cc',
       'src/crypto/crypto_cipher.cc',
+      'src/crypto/crypto_client_hello.cc',
       'src/crypto/crypto_context.cc',
       'src/crypto/crypto_tls_certificates.cc',
       'src/crypto/crypto_ec.cc',
@@ -400,6 +399,7 @@
       'src/crypto/crypto_kem.cc',
       'src/crypto/crypto_hmac.cc',
       'src/crypto/crypto_kmac.cc',
+      'src/crypto/crypto_mac.cc',
       'src/crypto/crypto_turboshake.cc',
       'src/crypto/crypto_random.cc',
       'src/crypto/crypto_rsa.cc',
@@ -417,11 +417,13 @@
       'src/crypto/crypto_dh.h',
       'src/crypto/crypto_hmac.h',
       'src/crypto/crypto_kmac.h',
+      'src/crypto/crypto_mac.h',
       'src/crypto/crypto_turboshake.h',
       'src/crypto/crypto_rsa.h',
       'src/crypto/crypto_spkac.h',
       'src/crypto/crypto_util.h',
       'src/crypto/crypto_cipher.h',
+      'src/crypto/crypto_client_hello.h',
       'src/crypto/crypto_common.h',
       'src/crypto/crypto_dsa.h',
       'src/crypto/crypto_hash.h',
@@ -503,11 +505,6 @@
     'node_mksnapshot_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)node_mksnapshot<(EXECUTABLE_SUFFIX)',
     'node_js2c_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)node_js2c<(EXECUTABLE_SUFFIX)',
     'conditions': [
-      ['GENERATOR == "ninja"', {
-        'node_text_start_object_path': 'src/large_pages/node_text_start.node_text_start.o'
-      }, {
-        'node_text_start_object_path': 'node_text_start/src/large_pages/node_text_start.o'
-      }],
       [ 'node_shared=="true"', {
         'node_target_type%': 'shared_library',
         'node_lib_type': 'shared_library',
@@ -585,19 +582,6 @@
   },
 
   'targets': [
-    {
-      'target_name': 'node_text_start',
-      'type': 'none',
-      'conditions': [
-        [ 'OS in "linux freebsd solaris openharmony" and '
-          'target_arch=="x64"', {
-          'type': 'static_library',
-          'sources': [
-            'src/large_pages/node_text_start.S'
-          ]
-        }],
-      ]
-    },
     {
       'target_name': '<(node_core_target_name)',
       'type': 'executable',
@@ -769,14 +753,6 @@
             },
           },
         }],
-        [ 'OS in "linux freebsd openharmony" and '
-          'target_arch=="x64"', {
-          'dependencies': [ 'node_text_start' ],
-          'ldflags+': [
-            '<(obj_dir)/<(node_text_start_object_path)'
-          ]
-        }],
-
         ['node_fipsinstall=="true"', {
           'variables': {
             'openssl-cli': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)openssl-cli<(EXECUTABLE_SUFFIX)',
@@ -1012,11 +988,6 @@
           'defines': [
             'HAVE_DTLS=1',
           ],
-        }],
-        [ 'OS in "linux freebsd mac solaris openharmony" and '
-          'target_arch=="x64" and '
-          'node_target_type=="executable"', {
-          'defines': [ 'NODE_ENABLE_LARGE_CODE_PAGES=1' ],
         }],
         [ 'use_openssl_def==1', {
           # TODO(bnoordhuis) Make all platforms export the same list of symbols.

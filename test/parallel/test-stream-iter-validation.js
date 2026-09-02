@@ -99,16 +99,16 @@ assert.throws(() => duplex({ budget: 0 }), { code: 'ERR_OUT_OF_RANGE' });
   const [a, b] = duplex({ budget: Number.MAX_SAFE_INTEGER });
   assert.strictEqual(a.writer.canWrite, true);
   assert.strictEqual(b.writer.canWrite, true);
-  a.close();
-  b.close();
+  a.writer.endSync();
+  b.writer.endSync();
 }
 // Per-direction overrides
 {
   const [a, b] = duplex({ a: { budget: 16384 }, b: { budget: 32768 } });
   assert.strictEqual(a.writer.canWrite, true);
   assert.strictEqual(b.writer.canWrite, true);
-  a.close();
-  b.close();
+  a.writer.endSync();
+  b.writer.endSync();
 }
 
 assert.throws(() => duplex({ signal: {} }), { code: 'ERR_INVALID_ARG_TYPE' });
@@ -155,6 +155,15 @@ assert.throws(() => broadcast({ budget: 16383 }), { code: 'ERR_OUT_OF_RANGE' });
 
 assert.throws(() => broadcast({ signal: {} }), { code: 'ERR_INVALID_ARG_TYPE' });
 assert.throws(() => broadcast({ backpressure: 'bad' }), { code: 'ERR_INVALID_ARG_VALUE' });
+
+// Broadcast consumer options.signal must be AbortSignal and validation must
+// not leave a consumer registered.
+{
+  const { broadcast: bc } = broadcast();
+  assert.throws(() => bc.push({ signal: {} }),
+                { code: 'ERR_INVALID_ARG_TYPE' });
+  assert.strictEqual(bc.consumerCount, 0);
+}
 
 // BroadcastWriter options.signal must be AbortSignal
 {
@@ -211,6 +220,15 @@ assert.throws(() => share(from('a'), { budget: Number.MAX_SAFE_INTEGER + 1 }),
               { code: 'ERR_OUT_OF_RANGE' });
 assert.throws(() => share(from('a'), { signal: {} }), { code: 'ERR_INVALID_ARG_TYPE' });
 assert.throws(() => share(from('a'), { backpressure: 'bad' }), { code: 'ERR_INVALID_ARG_VALUE' });
+
+// Share consumer options.signal must be AbortSignal and validation must not
+// leave a consumer registered.
+{
+  const shared = share(from('a'));
+  assert.throws(() => shared.pull({ signal: {} }),
+                { code: 'ERR_INVALID_ARG_TYPE' });
+  assert.strictEqual(shared.consumerCount, 0);
+}
 
 // share() values < 16384 are rejected
 assert.throws(() => share(from('a'), { budget: 0 }), { code: 'ERR_OUT_OF_RANGE' });
@@ -379,8 +397,8 @@ async function testAsyncValidation() {
 // Duplex with valid options
 {
   const [a, b] = duplex({ budget: 16384 });
-  a.close();
-  b.close();
+  a.writer.endSync();
+  b.writer.endSync();
 }
 
 // Broadcast with valid options

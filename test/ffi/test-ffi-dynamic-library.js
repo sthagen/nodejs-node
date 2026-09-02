@@ -1,4 +1,4 @@
-// Flags: --experimental-ffi --expose-gc --allow-natives-syntax
+// Flags: --expose-gc --allow-natives-syntax
 'use strict';
 const common = require('../common');
 common.skipIfFFIMissing();
@@ -67,6 +67,27 @@ test('dlopen resolves functions from definitions', () => {
   }
 });
 
+test('FFI functions are not constructible', () => {
+  const { lib, functions } = ffi.dlopen(libraryPath, {
+    add_i32: fixtureSymbols.add_i32,
+    multiply_f64: fixtureSymbols.multiply_f64,
+  });
+
+  try {
+    assert.strictEqual(Object.hasOwn(functions.add_i32, 'prototype'), false);
+    assert.strictEqual(
+      Object.hasOwn(functions.multiply_f64, 'prototype'), false);
+    assert.throws(
+      () => Reflect.construct(functions.add_i32, [20, 22]),
+      TypeError);
+    assert.throws(
+      () => Reflect.construct(functions.multiply_f64, [6, 7]),
+      TypeError);
+  } finally {
+    lib.close();
+  }
+});
+
 test('DynamicLibrary exposes functions and symbols', () => {
   const lib = new ffi.DynamicLibrary(libraryPath);
 
@@ -100,6 +121,24 @@ test('DynamicLibrary exposes functions and symbols', () => {
     assert.strictEqual(lib.functions.add_i64.pointer, functions.add_i64.pointer);
   } finally {
     ffi.dlclose(lib);
+  }
+});
+
+test('DynamicLibrary getters reject incompatible receivers', () => {
+  const lib = new ffi.DynamicLibrary(libraryPath);
+
+  try {
+    const invalidGets = [
+      () => Reflect.get(lib, 'path', {}),
+      () => Reflect.get(lib, 'symbols', {}),
+      () => Reflect.get(ffi.DynamicLibrary.prototype, 'functions', {}),
+    ];
+
+    for (const invalidGet of invalidGets) {
+      assert.throws(invalidGet, TypeError);
+    }
+  } finally {
+    lib.close();
   }
 });
 
@@ -247,6 +286,8 @@ test('closed libraries reject subsequent operations', () => {
   assert.throws(() => functions.add_i32(1, 2), /Library is closed/);
   assert.throws(() => lib.getFunction('add_i32', fixtureSymbols.add_i32), /Library is closed/);
   assert.throws(() => lib.getSymbol('add_i32'), /Library is closed/);
+  assert.throws(() => lib.getFunctions({ add_i32: fixtureSymbols.add_i32 }), /Library is closed/);
+  assert.throws(() => lib.getSymbols(), /Library is closed/);
 });
 
 test('optimized fast calls reject calls after the library is closed', () => {
