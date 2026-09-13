@@ -217,6 +217,11 @@ Http2Options::Http2Options(Http2State* http2_state, SessionType type) {
         static_cast<size_t>(buffer[IDX_OPTIONS_MAX_SETTINGS]));
   }
 
+  if (flags & (1 << IDX_OPTIONS_CONNECTION_WINDOW_SIZE)) {
+    set_connection_window_size(
+        static_cast<int32_t>(buffer[IDX_OPTIONS_CONNECTION_WINDOW_SIZE]));
+  }
+
   if ((flags & (1 << IDX_OPTIONS_STREAM_RESET_BURST)) &&
       (flags & (1 << IDX_OPTIONS_STREAM_RESET_RATE))) {
     nghttp2_option_set_stream_reset_rate_limit(
@@ -612,15 +617,13 @@ Http2Session::Http2Session(Http2State* http2_state,
       &alloc_info), 0);
   session_.reset(session);
 
-  // Increase the default local connection window to improve throughput
-  // on high-latency connections. The default 64KB window limits throughput
-  // to window_size / RTT. With a 32MB connection window, throughput is
-  // significantly improved. See https://github.com/nodejs/node/issues/38426
+  // The default connection window is larger than the 64KB required by the
+  // spec to improve throughput on high-latency connections, where throughput
+  // is limited to window_size / RTT. User settings have to be applied here
+  // initially rather than updating later as windows cannot be shrunk after
+  // they've been advertised.
   CHECK_EQ(nghttp2_session_set_local_window_size(
-               session,
-               NGHTTP2_FLAG_NONE,
-               0,
-               DEFAULT_SETTINGS_LOCAL_CONNECTION_WINDOW_SIZE),
+               session, NGHTTP2_FLAG_NONE, 0, opts.connection_window_size()),
            0);
 
   outgoing_storage_.reserve(1024);
@@ -2261,6 +2264,7 @@ Http2Stream* Http2Stream::New(Http2Session* session,
   Local<Object> obj;
   if (!session->env()
            ->http2stream_constructor_template()
+           ->InstanceTemplate()
            ->NewInstance(session->env()->context())
            .ToLocal(&obj)) {
     return nullptr;
@@ -3611,37 +3615,48 @@ void Initialize(Local<Object> target,
   SetMethod(context, target, "packSettings", PackSettings);
   SetMethod(context, target, "setCallbackFunctions", SetCallbackFunctions);
 
-  Local<FunctionTemplate> ping = FunctionTemplate::New(env->isolate());
-  ping->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Http2Ping"));
-  ping->Inherit(AsyncWrap::GetConstructorTemplate(env));
-  Local<ObjectTemplate> pingt = ping->InstanceTemplate();
-  pingt->SetInternalFieldCount(Http2Ping::kInternalFieldCount);
-  env->set_http2ping_constructor_template(pingt);
+  if (env->http2ping_constructor_template().IsEmpty()) {
+    Local<FunctionTemplate> ping = FunctionTemplate::New(env->isolate());
+    ping->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Http2Ping"));
+    ping->Inherit(AsyncWrap::GetConstructorTemplate(env));
+    Local<ObjectTemplate> pingt = ping->InstanceTemplate();
+    pingt->SetInternalFieldCount(Http2Ping::kInternalFieldCount);
+    env->set_http2ping_constructor_template(pingt);
+  }
 
-  Local<FunctionTemplate> setting = FunctionTemplate::New(env->isolate());
-  setting->Inherit(AsyncWrap::GetConstructorTemplate(env));
-  Local<ObjectTemplate> settingt = setting->InstanceTemplate();
-  settingt->SetInternalFieldCount(Http2Settings::kInternalFieldCount);
-  env->set_http2settings_constructor_template(settingt);
+  if (env->http2settings_constructor_template().IsEmpty()) {
+    Local<FunctionTemplate> setting = FunctionTemplate::New(env->isolate());
+    setting->Inherit(AsyncWrap::GetConstructorTemplate(env));
+    Local<ObjectTemplate> settingt = setting->InstanceTemplate();
+    settingt->SetInternalFieldCount(Http2Settings::kInternalFieldCount);
+    env->set_http2settings_constructor_template(settingt);
+  }
 
-  Local<FunctionTemplate> stream = FunctionTemplate::New(env->isolate());
-  SetProtoMethod(isolate, stream, "id", Http2Stream::GetID);
-  SetProtoMethod(isolate, stream, "destroy", Http2Stream::Destroy);
-  SetProtoMethod(isolate, stream, "priority", Http2Stream::Priority);
-  SetProtoMethod(isolate, stream, "pushPromise", Http2Stream::PushPromise);
-  SetProtoMethod(isolate, stream, "info", Http2Stream::Info);
-  SetProtoMethod(isolate, stream, "trailers", Http2Stream::Trailers);
-  SetProtoMethod(
-      isolate, stream, "disableAutoTrailers", Http2Stream::DisableAutoTrailers);
-  SetProtoMethod(isolate, stream, "respond", Http2Stream::Respond);
-  SetProtoMethod(isolate, stream, "rstStream", Http2Stream::RstStream);
-  SetProtoMethod(isolate, stream, "refreshState", Http2Stream::RefreshState);
-  stream->Inherit(AsyncWrap::GetConstructorTemplate(env));
-  StreamBase::AddMethods(env, stream);
-  Local<ObjectTemplate> streamt = stream->InstanceTemplate();
-  streamt->SetInternalFieldCount(Http2Stream::kInternalFieldCount);
-  env->set_http2stream_constructor_template(streamt);
-  SetConstructorFunction(context, target, "Http2Stream", stream);
+  Local<FunctionTemplate> stream = env->http2stream_constructor_template();
+  if (stream.IsEmpty()) {
+    stream = FunctionTemplate::New(env->isolate());
+    SetProtoMethod(isolate, stream, "id", Http2Stream::GetID);
+    SetProtoMethod(isolate, stream, "destroy", Http2Stream::Destroy);
+    SetProtoMethod(isolate, stream, "priority", Http2Stream::Priority);
+    SetProtoMethod(isolate, stream, "pushPromise", Http2Stream::PushPromise);
+    SetProtoMethod(isolate, stream, "info", Http2Stream::Info);
+    SetProtoMethod(isolate, stream, "trailers", Http2Stream::Trailers);
+    SetProtoMethod(isolate,
+                   stream,
+                   "disableAutoTrailers",
+                   Http2Stream::DisableAutoTrailers);
+    SetProtoMethod(isolate, stream, "respond", Http2Stream::Respond);
+    SetProtoMethod(isolate, stream, "rstStream", Http2Stream::RstStream);
+    SetProtoMethod(isolate, stream, "refreshState", Http2Stream::RefreshState);
+    stream->Inherit(AsyncWrap::GetConstructorTemplate(env));
+    StreamBase::AddMethods(env, stream);
+    stream->InstanceTemplate()->SetInternalFieldCount(
+        Http2Stream::kInternalFieldCount);
+    stream->SetClassName(FIXED_ONE_BYTE_STRING(isolate, "Http2Stream"));
+    env->set_http2stream_constructor_template(stream);
+  }
+  SetConstructorFunction(
+      context, target, "Http2Stream", stream, SetConstructorFunctionFlag::NONE);
 
   Local<FunctionTemplate> session =
       NewFunctionTemplate(isolate, Http2Session::New);

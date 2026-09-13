@@ -1964,7 +1964,9 @@ added: v11.10.0
 ### `histogram.burnRate(sloTarget)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `sloTarget` {number} The SLO target as a fraction between 0 and 1
@@ -2019,7 +2021,9 @@ The number of samples recorded by the histogram.
 ### `histogram.ccdf(value)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `value` {number} The value to query.
@@ -2032,7 +2036,9 @@ will exceed `value`. Equivalent to `1 - histogram.cdf(value)`.
 ### `histogram.cdf(value)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `value` {number} The value to query.
@@ -2046,7 +2052,9 @@ than or equal to `value`. This is the inverse operation of
 ### `histogram.cliffsD(other)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {Histogram} The histogram to compare against.
@@ -2061,7 +2069,9 @@ opposite; 0 means no tendency in either direction.
 ### `histogram.cohensD(other)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {Histogram} The histogram to compare against.
@@ -2076,7 +2086,9 @@ Both histograms must have at least 2 recorded values; otherwise returns 0.
 ### `histogram.countAt(value)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `value` {number} The value to query.
@@ -2112,7 +2124,7 @@ loop delay threshold.
 ### `histogram.export()`
 
 <!-- YAML
-added: REPLACEME
+added: v24.21.0
 -->
 
 * Returns: {Uint8Array}
@@ -2161,7 +2173,9 @@ Returns `0` when EWMA is disabled or no values have been recorded.
 ### `histogram.ewmaStddev`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * Type: {number}
@@ -2173,7 +2187,9 @@ when EWMA is disabled or no values have been recorded.
 ### `histogram.ewmaErrorRate`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * Type: {number}
@@ -2186,7 +2202,9 @@ recorded.
 ### `histogram.ksTest(other)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {Histogram} The histogram to compare against.
@@ -2200,7 +2218,9 @@ detecting performance regressions by comparing before/after histograms.
 ### `histogram.kurtosis`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * Type: {number}
@@ -2213,7 +2233,9 @@ lighter tails.
 ### `histogram.linearBuckets(stepSize)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `stepSize` {number} The width of each linear bucket.
@@ -2225,7 +2247,9 @@ of `stepSize`. Useful for visualization and export.
 ### `histogram.logBuckets(firstBucket, base)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `firstBucket` {number} The value of the first bucket boundary.
@@ -2239,7 +2263,9 @@ Useful for visualization and export.
 ### `histogram.mannWhitneyTest(other)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {Histogram} The histogram to compare against.
@@ -2285,6 +2311,41 @@ added: v11.10.0
 * Type: {number}
 
 The mean of the recorded event loop delays.
+
+### `histogram.meanCI([options])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `options` {Object}
+  * `confidence` {number} The confidence level for the interval, between
+    0 and 1 (exclusive). **Default:** `0.95`.
+* Returns: {Object}
+  * `mean` {number} The mean estimate, equivalent to `histogram.mean`.
+  * `lower` {number} The lower bound of the confidence interval.
+  * `upper` {number} The upper bound of the confidence interval.
+
+Returns a two-sided confidence interval for the mean using Student's
+t-distribution and the sample standard error. A higher confidence level
+produces a wider interval. This interval assumes that samples are independent
+and approximately normally distributed, although the approximation is robust
+for sufficiently large samples.
+
+The result reflects the histogram's configured precision and is calculated
+from the values represented by its buckets. With fewer than two recorded
+values, `lower` and `upper` are `NaN`. When all recorded values are equal,
+`lower` and `upper` equal `mean`.
+
+```js
+const { createHistogram } = require('node:perf_hooks');
+
+const h = createHistogram();
+for (let i = 1; i <= 100; i++) h.record(i);
+
+const { mean, lower, upper } = h.meanCI();
+console.log(`mean=${mean}, 95% CI=[${lower}, ${upper}]`);
+```
 
 ### `histogram.min`
 
@@ -2335,7 +2396,9 @@ Returns the value at the given percentile.
 ### `histogram.percentileCI(percentile[, options])`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `percentile` {number} A percentile value in the range (0, 100].
@@ -2391,7 +2454,9 @@ Returns a `Map` object detailing the accumulated percentile distribution.
 ### `histogram.percentilesAt(percentiles)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `percentiles` {number\[]} An array of percentile values in the range (0, 100].
@@ -2401,6 +2466,82 @@ added: v26.8.0
 Returns the values at the specified percentiles, computed in a single
 efficient pass over the histogram data. More efficient than calling
 `histogram.percentile()` multiple times.
+
+### `histogram.qrde([options])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `options` {Object}
+  * `bins` {number} The number of equal-probability density bins to return.
+    Must be between 1 and 1000. Cannot be used with `probabilities`.
+    **Default:** `100`.
+  * `probabilities` {number\[]} Custom probability boundaries. The array must
+    contain between 2 and 1001 strictly increasing values, start with `0`, and
+    end with `1`. Cannot be used with `bins`.
+  * `dequantize` {string} Controls whether repeated bucket values are spread
+    deterministically over their equivalent-value ranges. May be `'none'`,
+    `'hdr'`, or `'all'`. **Default:** `'hdr'`.
+  * `cache` {boolean} When `true`, retains the expanded histogram snapshot for
+    reuse by subsequent calls with `cache: true`. The snapshot is invalidated
+    when the histogram is modified. **Default:** `false`.
+* Returns: {Promise} Fulfills with an {Object} containing:
+  * `probabilities` {Float64Array} The probability boundaries used by the
+    estimate.
+  * `quantiles` {Float64Array} The quantiles at the probability boundaries.
+  * `densities` {Float64Array} The density within each quantile interval.
+  * `count` {bigint} The number of values in the histogram snapshot.
+  * `bucketCount` {number} The number of occupied HDR buckets.
+  * `corrections` {number} The number of non-monotonic floating-point results
+    that were clamped to the preceding quantile.
+  * `dequantize` {string} The selected dequantization mode.
+
+Returns a quantile-respectful density estimate based on the Harrell-Davis
+quantile estimator. By default, `bins` generates equal probability boundaries.
+The `probabilities` option can instead focus the estimate on regions such as
+p90, p99, p99.9, and p99.99. The density for interval `i` contains probability
+mass `probabilities[i + 1] - probabilities[i]`. The histogram is snapshotted
+when the method is called. Snapshot expansion and the estimate are calculated
+in the libuv thread pool. Highly concentrated beta weights use a second-order
+asymptotic approximation to avoid numerical convergence loss at large sample
+counts.
+
+Setting `cache` to `true` avoids repeating snapshot capture and expansion when
+several estimates are requested from an unchanged histogram. The retained
+snapshot uses memory proportional to the number of occupied HDR buckets and is
+released when the histogram is next modified.
+
+QRDE temporarily uses approximately one additional HDR count array plus 32
+bytes per occupied bucket. With `cache: true`, the expanded 32-byte-per-bucket
+snapshot remains allocated. The following estimates use `lowest: 1` and
+`highest: Number.MAX_SAFE_INTEGER` and exclude allocator and JavaScript object
+overhead:
+
+| `figures` | Histogram | Maximum expanded snapshot | Peak cache-miss QRDE |
+| --------- | --------: | ------------------------: | -------------------: |
+| 1         |   6.3 KiB |                    25 KiB |               31 KiB |
+| 2         |    47 KiB |                   188 KiB |              235 KiB |
+| 3         |   352 KiB |                   1.4 MiB |              1.7 MiB |
+| 4         |   5.0 MiB |                    20 MiB |               25 MiB |
+| 5         |    37 MiB |                   148 MiB |              185 MiB |
+
+The maximum snapshot column assumes every representable bucket is occupied.
+Lower `highest` values reduce histogram and temporary copy sizes. Concurrent
+calls that miss the cache each require their own temporary copy and expanded
+snapshot.
+
+HDR histograms aggregate observations into equivalent-value buckets. The
+`'hdr'` dequantization mode models repeated values in buckets wider than one
+unit as a continuous uniform distribution over the bucket resolution. This
+reduces density artifacts introduced by HDR quantization while preserving
+repeated unit-resolution values as point masses. The `'all'` mode also
+dequantizes repeated unit-resolution values. Use `'none'` to calculate the
+grouped Harrell-Davis estimator using bucket midpoints directly.
+
+An empty histogram returns the requested `probabilities` but produces empty
+`quantiles` and `densities` arrays. A non-dequantized interval whose quantile
+boundaries are equal has an infinite density.
 
 ### `histogram.reset()`
 
@@ -2413,7 +2554,9 @@ Resets the collected histogram data.
 ### `histogram.skewness`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * Type: {number}
@@ -2436,7 +2579,9 @@ The standard deviation of the recorded event loop delays.
 ### `histogram.welchTest(other[, options])`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {Histogram} The histogram to compare against.
@@ -2552,7 +2697,9 @@ previous call to `recordDelta()` and records that amount in the histogram.
 ### `histogram.recordCorrected(val, expectedInterval)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `val` {number|bigint} The value to record.
@@ -2567,7 +2714,9 @@ latency.
 ### `histogram.subtract(other)`
 
 <!-- YAML
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `other` {RecordableHistogram}

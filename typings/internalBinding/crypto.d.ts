@@ -125,6 +125,8 @@ declare namespace InternalCryptoBinding {
       algorithm: object | undefined,
       usagesMask: number,
       extractable: boolean,
+      secondaryHandle?: KeyObjectHandle,
+      seedData?: ArrayBuffer | SharedArrayBuffer | ArrayBufferView,
     ): CryptoKey;
   }
   interface CryptoKeyPair {
@@ -605,6 +607,8 @@ declare namespace InternalCryptoBinding {
       algorithm: object | undefined,
       usagesMask: number,
       extractable: boolean,
+      secondaryHandle?: KeyObjectHandle,
+      seedData?: ArrayBuffer | SharedArrayBuffer | ArrayBufferView,
     ): CryptoKey;
   }
 
@@ -619,6 +623,8 @@ declare namespace InternalCryptoBinding {
     algorithm: object,
     usagesMask: number,
     handle: KeyObjectHandle,
+    secondaryHandle: KeyObjectHandle | undefined,
+    seedData: Buffer | undefined,
   ];
 
   type CreateNativeKeyObjectClassCallback =
@@ -780,6 +786,12 @@ declare namespace InternalCryptoBinding {
       X509Certificate: X509CertificateConstructor,
       InternalX509Certificate: InternalX509CertificateConstructor,
     ];
+
+  type PKCS12ParseResult = [
+    privateKey: KeyObjectHandle | null,
+    certificate: X509CertificateHandle | null,
+    additionalCertificates: X509CertificateHandle[],
+  ];
 
   interface CipherInfo {
     name: string;
@@ -1014,6 +1026,10 @@ export interface CryptoBinding {
     functionName?: InternalCryptoBinding.OptionalBufferSource,
     customization?: InternalCryptoBinding.OptionalBufferSource,
   ): string | InternalCryptoBinding.Buffer;
+  parsePKCS12(
+    bundle: InternalCryptoBinding.ByteSource,
+    passphrase?: InternalCryptoBinding.ByteSource,
+  ): InternalCryptoBinding.PKCS12ParseResult;
   parseX509(data: InternalCryptoBinding.ByteSource): InternalCryptoBinding.X509CertificateHandle;
   privateDecrypt: InternalCryptoBinding.PublicKeyCipher;
   privateEncrypt: InternalCryptoBinding.PublicKeyCipher;

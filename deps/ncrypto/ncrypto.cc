@@ -131,6 +131,31 @@ struct OpenSSLBufferDeleter {
 };
 using OpenSSLBufferPointer =
     std::unique_ptr<unsigned char, OpenSSLBufferDeleter>;
+
+struct RsaOtherPrimeParamNames {
+  const char* factor;
+  const char* exponent;
+  const char* coefficient;
+};
+
+#define RSA_OTHER_PRIME_PARAM_NAMES(prime, coefficient)                        \
+  {                                                                            \
+    OSSL_PKEY_PARAM_RSA_FACTOR #prime, OSSL_PKEY_PARAM_RSA_EXPONENT #prime,    \
+        OSSL_PKEY_PARAM_RSA_COEFFICIENT #coefficient                           \
+  }
+
+constexpr std::array<RsaOtherPrimeParamNames, 8> kRsaOtherPrimeParamNames = {{
+    RSA_OTHER_PRIME_PARAM_NAMES(3, 2),
+    RSA_OTHER_PRIME_PARAM_NAMES(4, 3),
+    RSA_OTHER_PRIME_PARAM_NAMES(5, 4),
+    RSA_OTHER_PRIME_PARAM_NAMES(6, 5),
+    RSA_OTHER_PRIME_PARAM_NAMES(7, 6),
+    RSA_OTHER_PRIME_PARAM_NAMES(8, 7),
+    RSA_OTHER_PRIME_PARAM_NAMES(9, 8),
+    RSA_OTHER_PRIME_PARAM_NAMES(10, 9),
+}};
+
+#undef RSA_OTHER_PRIME_PARAM_NAMES
 #endif
 
 static constexpr int kX509NameFlagsRFC2253WithinUtf8JSON =
@@ -3082,6 +3107,19 @@ EVPKeyPointer EVPKeyPointer::NewRSA(const Rsa& rsa) {
             bld.get(), OSSL_PKEY_PARAM_RSA_COEFFICIENT1, private_key.qi) != 1) {
       return {};
     }
+
+    const auto other_prime_infos = rsa.getOtherPrimeInfos();
+    if (other_prime_infos.size() > kRsaOtherPrimeParamNames.size()) return {};
+    for (size_t i = 0; i < other_prime_infos.size(); i++) {
+      const auto& info = other_prime_infos[i];
+      const auto& names = kRsaOtherPrimeParamNames[i];
+      if (info.r == nullptr || info.d == nullptr || info.t == nullptr ||
+          OSSL_PARAM_BLD_push_BN(bld.get(), names.factor, info.r) != 1 ||
+          OSSL_PARAM_BLD_push_BN(bld.get(), names.exponent, info.d) != 1 ||
+          OSSL_PARAM_BLD_push_BN(bld.get(), names.coefficient, info.t) != 1) {
+        return {};
+      }
+    }
     selection = EVP_PKEY_KEYPAIR;
   }
 
@@ -4092,11 +4130,7 @@ std::optional<uint32_t> EVPKeyPointer::getBytesOfRS() const {
 #endif
   } else if (id == EVP_PKEY_EC) {
 #if NCRYPTO_USE_OPENSSL3_PROVIDER
-    Ec ec(get());
-    if (!ec) return std::nullopt;
-    const EC_GROUP* group = ec.getGroup();
-    if (group == nullptr) return std::nullopt;
-    bits = EC_GROUP_order_bits(group);
+    bits = EVP_PKEY_bits(get());
 #else
     const EC_KEY* ec_key = EVP_PKEY_get0_EC_KEY(get());
     if (ec_key == nullptr) return std::nullopt;
@@ -5310,6 +5344,24 @@ bool ECPointPointer::mul(const EC_GROUP* group, const BIGNUM* priv_key) {
 
 // ============================================================================
 
+bool ECKeyPointer::checkPrivateKey() const {
+  const auto group = getGroup();
+  const auto priv = getPrivateKey();
+  const auto pub = getPublicKey();
+  if (group == nullptr || priv == nullptr || pub == nullptr) return false;
+
+  auto order = BignumPointer::New();
+  if (!order || !EC_GROUP_get_order(group, order.get(), nullptr) ||
+      BN_is_zero(priv) || BN_is_negative(priv) ||
+      BN_cmp(priv, order.get()) >= 0) {
+    return false;
+  }
+
+  auto expected = ECPointPointer::New(group);
+  return expected && expected.mul(group, priv) &&
+         EC_POINT_cmp(group, expected.get(), pub, nullptr) == 0;
+}
+
 #if NCRYPTO_USE_LEGACY_KEY_TYPES
 ECKeyPointer::ECKeyPointer() : key_(nullptr) {}
 
@@ -6135,6 +6187,11 @@ DataPointer CipherImpl(const EVPKeyPointer& key,
 }
 }  // namespace
 
+Rsa::OtherPrimeInfoPointer::OtherPrimeInfoPointer(BignumPointer&& r,
+                                                  BignumPointer&& d,
+                                                  BignumPointer&& t)
+    : r(r.release()), d(d.release()), t(t.release()) {}
+
 #if NCRYPTO_USE_OPENSSL3_PROVIDER
 namespace {
 int DigestAlgorithmIdentifierToNid(const unsigned char* data, size_t size) {
@@ -6363,6 +6420,19 @@ Rsa::Rsa(const EVP_PKEY* pkey) : Rsa() {
     return;
   }
 
+  for (const auto& names : kRsaOtherPrimeParamNames) {
+    OtherPrimeInfoPointer info;
+    if (!GetOptionalPKeyBnParam(pkey, names.factor, &info.r) ||
+        !GetOptionalPKeyBnParam(pkey, names.exponent, &info.d) ||
+        !GetOptionalPKeyBnParam(pkey, names.coefficient, &info.t)) {
+      return;
+    }
+
+    if (!info.r && !info.d && !info.t) break;
+    if (!info.r || !info.d || !info.t) return;
+    other_prime_infos_.push_back(std::move(info));
+  }
+
   if (type == EVP_PKEY_RSA_PSS) {
     MarkPopErrorOnReturn pop_errors;
     PssParams params;
@@ -6399,6 +6469,35 @@ const Rsa::PrivateKey Rsa::getPrivateKey() const {
   RSA_get0_crt_params(rsa_, &key.dp, &key.dq, &key.qi);
   return key;
 #endif
+}
+
+const Rsa::OtherPrimeInfos Rsa::getOtherPrimeInfos() const {
+  OtherPrimeInfos infos;
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  infos.reserve(other_prime_infos_.size());
+  for (const auto& info : other_prime_infos_) {
+    infos.push_back({info.r.get(), info.d.get(), info.t.get()});
+  }
+#elif NCRYPTO_USE_LEGACY_OPENSSL
+  if (rsa_ == nullptr) return infos;
+  const int count = RSA_get_multi_prime_extra_count(rsa_);
+  if (count <= 0) return infos;
+
+  std::vector<const BIGNUM*> factors(count);
+  std::vector<const BIGNUM*> exponents(count);
+  std::vector<const BIGNUM*> coefficients(count);
+  if (RSA_get0_multi_prime_factors(rsa_, factors.data()) != 1 ||
+      RSA_get0_multi_prime_crt_params(
+          rsa_, exponents.data(), coefficients.data()) != 1) {
+    return {};
+  }
+
+  infos.reserve(count);
+  for (int i = 0; i < count; i++) {
+    infos.push_back({factors[i], exponents[i], coefficients[i]});
+  }
+#endif
+  return infos;
 }
 
 const std::optional<Rsa::PssParams> Rsa::getPssParams() const {
@@ -6502,15 +6601,20 @@ bool Rsa::setPrivateKey(BignumPointer&& d,
                         BignumPointer&& p,
                         BignumPointer&& dp,
                         BignumPointer&& dq,
-                        BignumPointer&& qi) {
+                        BignumPointer&& qi,
+                        OtherPrimeInfoPointers&& other_prime_infos) {
 #if NCRYPTO_USE_OPENSSL3_PROVIDER
   if (!d || !q || !p || !dp || !dq || !qi) return false;
+  for (const auto& info : other_prime_infos) {
+    if (!info.r || !info.d || !info.t) return false;
+  }
   d_.reset(d.release());
   q_.reset(q.release());
   p_.reset(p.release());
   dp_.reset(dp.release());
   dq_.reset(dq.release());
   qi_.reset(qi.release());
+  other_prime_infos_ = std::move(other_prime_infos);
   rsa_ = n_ != nullptr && e_ != nullptr;
   return rsa_;
 #else
@@ -6532,6 +6636,37 @@ bool Rsa::setPrivateKey(BignumPointer&& d,
   dp.release();
   dq.release();
   qi.release();
+
+#if NCRYPTO_USE_LEGACY_OPENSSL
+  if (!other_prime_infos.empty()) {
+    std::vector<BIGNUM*> factors;
+    std::vector<BIGNUM*> exponents;
+    std::vector<BIGNUM*> coefficients;
+    factors.reserve(other_prime_infos.size());
+    exponents.reserve(other_prime_infos.size());
+    coefficients.reserve(other_prime_infos.size());
+    for (const auto& info : other_prime_infos) {
+      if (!info.r || !info.d || !info.t) return false;
+      factors.push_back(info.r.get());
+      exponents.push_back(info.d.get());
+      coefficients.push_back(info.t.get());
+    }
+    if (RSA_set0_multi_prime_params(const_cast<RSA*>(rsa_),
+                                    factors.data(),
+                                    exponents.data(),
+                                    coefficients.data(),
+                                    static_cast<int>(factors.size())) != 1) {
+      return false;
+    }
+    for (auto& info : other_prime_infos) {
+      info.r.release();
+      info.d.release();
+      info.t.release();
+    }
+  }
+#else
+  if (!other_prime_infos.empty()) return false;
+#endif
   return true;
 #endif
 }
@@ -6792,6 +6927,128 @@ point_conversion_form_t Ec::getPointConversionForm() const {
 
 int Ec::getCurve() const {
   return EC_GROUP_get_curve_name(getGroup());
+}
+
+DataPointer Ec::TryExportPublic(const EVPKeyPointer& key,
+                                point_conversion_form_t form) {
+  if (form != POINT_CONVERSION_UNCOMPRESSED) return {};
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  {
+    MarkPopErrorOnReturn pop_errors;
+    size_t length = 0;
+    if (EVP_PKEY_get_octet_string_param(
+            key.get(), OSSL_PKEY_PARAM_PUB_KEY, nullptr, 0, &length) == 1) {
+      auto bytes = DataPointer::Alloc(length);
+      if (bytes && length != 0 &&
+          EVP_PKEY_get_octet_string_param(key.get(),
+                                          OSSL_PKEY_PARAM_PUB_KEY,
+                                          bytes.get<unsigned char>(),
+                                          length,
+                                          &length) == 1 &&
+          (bytes.get<unsigned char>()[0] & ~1) == form) {
+        return bytes.resize(length);
+      }
+    }
+  }
+#endif
+  return {};
+}
+
+DataPointer Ec::ExportPrivate(const EVPKeyPointer& key) {
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  {
+    MarkPopErrorOnReturn pop_errors;
+    BignumPointer priv;
+    BignumPointer order;
+    if (GetPKeyBnParam(key.get(), OSSL_PKEY_PARAM_PRIV_KEY, &priv) &&
+        GetPKeyBnParam(key.get(), OSSL_PKEY_PARAM_EC_ORDER, &order)) {
+      return priv.encodePadded(order.byteLength());
+    }
+  }
+#endif
+  ECKeyPointer ec(key);
+  if (!ec || ec.getPrivateKey() == nullptr) return {};
+  auto order = BignumPointer::New();
+  if (!order || !EC_GROUP_get_order(ec.getGroup(), order.get(), nullptr))
+    return {};
+  return BignumPointer::EncodePadded(ec.getPrivateKey(), order.byteLength());
+}
+
+bool Ec::GetKeyComponents(const EVPKeyPointer& key,
+                          BignumPointer* x,
+                          BignumPointer* y,
+                          BignumPointer* priv,
+                          int* degree) {
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  const int nid = GetCurveId(key);
+  switch (nid) {
+    case NID_X9_62_prime256v1:
+    case NID_secp256k1:
+      *degree = 256;
+      break;
+    case NID_secp384r1:
+      *degree = 384;
+      break;
+    case NID_secp521r1:
+      *degree = 521;
+      break;
+    default:
+      *degree = 0;
+  }
+  if (*degree != 0) {
+    MarkPopErrorOnReturn pop_errors;
+    unsigned char x_bytes[66]{};
+    unsigned char y_bytes[66]{};
+    const size_t width = (*degree + 7) / 8;
+    OSSL_PARAM params[] = {
+        OSSL_PARAM_construct_BN(OSSL_PKEY_PARAM_EC_PUB_X, x_bytes, width),
+        OSSL_PARAM_construct_BN(OSSL_PKEY_PARAM_EC_PUB_Y, y_bytes, width),
+        OSSL_PARAM_construct_end(),
+    };
+    if (EVP_PKEY_get_params(key.get(), params) == 1 &&
+        OSSL_PARAM_modified(&params[0]) && OSSL_PARAM_modified(&params[1])) {
+      x->reset(BN_native2bn(x_bytes, width, nullptr));
+      y->reset(BN_native2bn(y_bytes, width, nullptr));
+      return *x && *y &&
+             (priv == nullptr ||
+              GetPKeyBnParam(key.get(), OSSL_PKEY_PARAM_PRIV_KEY, priv));
+    }
+  }
+#endif
+  ECKeyPointer ec(key);
+  if (!ec || ec.getPublicKey() == nullptr) return false;
+  *degree = EC_GROUP_get_degree(ec.getGroup());
+  x->reset(BN_new());
+  y->reset(BN_new());
+  if (!*x || !*y ||
+      EC_POINT_get_affine_coordinates(
+          ec.getGroup(), ec.getPublicKey(), x->get(), y->get(), nullptr) != 1) {
+    return false;
+  }
+  if (priv != nullptr) {
+    if (ec.getPrivateKey() == nullptr) return false;
+    priv->reset(BN_dup(ec.getPrivateKey()));
+    if (!*priv) return false;
+  }
+  return true;
+}
+
+int Ec::GetCurveId(const EVPKeyPointer& key) {
+#if NCRYPTO_USE_OPENSSL3_PROVIDER
+  char name[80];
+  size_t length = 0;
+  if (EVP_PKEY_get_utf8_string_param(
+          key.get(), OSSL_PKEY_PARAM_GROUP_NAME, name, sizeof(name), &length) !=
+      1) {
+    return NID_undef;
+  }
+  return GetCurveIdFromName(name);
+#else
+  const EC_KEY* ec = key;
+  if (ec == nullptr) return NID_undef;
+  const EC_GROUP* group = EC_KEY_get0_group(ec);
+  return group == nullptr ? NID_undef : EC_GROUP_get_curve_name(group);
+#endif
 }
 
 int Ec::GetCurveIdFromName(const char* name) {

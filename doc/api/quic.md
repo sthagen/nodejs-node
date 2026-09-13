@@ -1921,6 +1921,19 @@ Either `'application'` or `'transport'`. Indicates the namespace of
 added: v23.8.0
 -->
 
+### `stream.opened`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* Type: {Promise}
+
+A promise that is immediately fulfilled, if the stream fits within
+flow control limits or fulfilled when the pending stream is created.
+It rejects, if a pending stream is closed with an error before being
+created.
+
 ### `stream.closed`
 
 <!-- YAML
@@ -2779,8 +2792,8 @@ added: v23.8.0
 
 The endpoint maintains an internal cache of validated socket addresses as a
 performance optimization. This option sets the maximum number of addresses
-that are cached. This is an advanced option that users typically won't have
-need to specify.
+that are cached. The value must be greater than `0`. This is an advanced option
+that users typically won't have need to specify.
 
 #### `endpointOptions.disableStatelessReset`
 

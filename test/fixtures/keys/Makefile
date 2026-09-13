@@ -7,6 +7,7 @@ all: \
   ca4-cert.pem \
   ca5-cert.pem \
   ca6-cert.pem \
+  cert-without-key-fips.pfx \
   agent1-cert.pem \
   agent1-fips.pfx \
   agent1.pfx \
@@ -70,6 +71,7 @@ all: \
   rsa_spkac.spkac \
   rsa_spkac_invalid.spkac \
   rsa_private_2048.pem \
+  rsa_private_2048_3_primes.pem \
   rsa_private_4096.pem \
   rsa_public_2048.pem \
   rsa_public_4096.pem \
@@ -815,6 +817,18 @@ ec-fips.pfx: ec-cert.pem ec-key.pem
 		-out ec-fips.pfx \
 		-password pass:password
 
+# A bundle of certificates with no private key. See agent1-fips.pfx for why the
+# FIPS fixture uses PBMAC1.
+cert-without-key-fips.pfx: ca1-cert.pem
+	openssl pkcs12 -export \
+		-nokeys \
+		-certpbe AES-256-CBC \
+		-iter 2048 \
+		-pbmac1_pbkdf2 \
+		-in ca1-cert.pem \
+		-out cert-without-key-fips.pfx \
+		-password pass:password
+
 dh512.pem:
 	openssl dhparam -out dh512.pem 512
 
@@ -926,6 +940,13 @@ rsa_spkac_invalid.spkac: rsa_spkac.spkac
 
 rsa_private_2048.pem:
 	openssl genrsa -out rsa_private_2048.pem 2048
+
+rsa_private_2048_3_primes.pem:
+	openssl genpkey \
+		-algorithm RSA \
+		-pkeyopt rsa_keygen_bits:2048 \
+		-pkeyopt rsa_keygen_primes:3 \
+		-out rsa_private_2048_3_primes.pem
 
 rsa_private_4096.pem:
 	openssl genrsa -out rsa_private_4096.pem 4096

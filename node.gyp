@@ -15,10 +15,12 @@
     'node_lib_target_name%': 'libnode',
     'node_module_version%': '',
     'node_no_browser_globals%': 'false',
+    'node_shared_abseil%': 'false',
     'node_shared_brotli%': 'false',
     'node_shared_cares%': 'false',
     'node_shared_gtest%': 'false',
     'node_shared_hdr_histogram%': 'false',
+    'node_shared_highway%': 'false',
     'node_shared_http_parser%': 'false',
     'node_shared_libuv%': 'false',
     'node_shared_lief%': 'false',
@@ -26,6 +28,7 @@
     'node_shared_nbytes%': 'false',
     'node_shared_nghttp2%': 'false',
     'node_shared_openssl%': 'false',
+    'node_shared_perfetto%': 'false',
     'node_shared_sqlite%': 'false',
     'node_shared_ffi%': 'false',
     'node_shared_temporal_capi%': 'false',
@@ -73,7 +76,6 @@
       'deps/v8/tools/tickprocessor-driver.mjs',
       'deps/acorn/acorn/dist/acorn.js',
       'deps/acorn/acorn-walk/dist/walk.js',
-      'deps/minimatch/index.js',
       '<@(node_builtin_shareable_builtins)',
     ],
     'node_sources': [
@@ -100,6 +102,12 @@
       'src/encoding_binding.cc',
       'src/env.cc',
       'src/fs_event_wrap.cc',
+      'src/glob/glob_matcher.cc',
+      'src/glob/glob_unicode.cc',
+      'src/glob/glob_walker.cc',
+      'src/glob/node_glob.cc',
+      'src/glob/glob_parser.cc',
+      'src/glob/glob_program.cc',
       'src/handle_wrap.cc',
       'src/heap_utils.cc',
       'src/histogram.cc',
@@ -256,6 +264,13 @@
       'src/node_errors.h',
       'src/node_exit_code.h',
       'src/node_external_reference.h',
+      'src/glob/glob_ast.h',
+      'src/glob/glob_matcher.h',
+      'src/glob/glob_parser.h',
+      'src/glob/glob_program.h',
+      'src/glob/glob_unicode.h',
+      'src/glob/glob_walker.h',
+      'src/glob/node_glob.h',
       'src/node_file.h',
       'src/node_file-inl.h',
       'src/node_http_common.h',
@@ -409,6 +424,7 @@
       'src/crypto/crypto_hash.cc',
       'src/crypto/crypto_keys.cc',
       'src/crypto/crypto_keygen.cc',
+      'src/crypto/crypto_pkcs12.cc',
       'src/crypto/crypto_scrypt.cc',
       'src/crypto/crypto_tls.cc',
       'src/crypto/crypto_x509.cc',
@@ -429,6 +445,7 @@
       'src/crypto/crypto_hash.h',
       'src/crypto/crypto_keys.h',
       'src/crypto/crypto_keygen.h',
+      'src/crypto/crypto_pkcs12.h',
       'src/crypto/crypto_scrypt.h',
       'src/crypto/crypto_tls.h',
       'src/crypto/crypto_context.h',
@@ -901,7 +918,7 @@
         [ 'node_builtin_modules_path!=""', {
           'defines': [ 'NODE_BUILTIN_MODULES_PATH="<(node_builtin_modules_path)"' ],
         }],
-        [ 'node_use_bundled_v8!="false"', {
+        [ 'node_use_bundled_v8!="false" and node_shared_abseil=="false"', {
           'dependencies': [ 'tools/v8_gypfiles/abseil.gyp:abseil' ],
         }],
         [ 'node_shared_gtest=="false"', {
@@ -940,8 +957,12 @@
           'sources': [
             '<@(node_tracing_perfetto_sources)',
           ],
-          'dependencies': [
-            'deps/perfetto/perfetto.gyp:perfetto_sdk',
+          'conditions': [
+            ['node_shared_perfetto=="false"', {
+              'dependencies': [
+                'deps/perfetto/perfetto.gyp:perfetto_sdk',
+              ],
+            }],
           ],
         }, {
           'sources': [
@@ -1369,7 +1390,7 @@
         [ 'node_shared_gtest=="true"', {
           'libraries': [ '-lgtest_main' ],
         }],
-        [ 'node_use_bundled_v8!="false"', {
+        [ 'node_use_bundled_v8!="false" and node_shared_abseil=="false"', {
           'dependencies': [ 'tools/v8_gypfiles/abseil.gyp:abseil' ],
         }],
         [ 'node_shared_hdr_histogram=="false"', {
@@ -1399,7 +1420,7 @@
         }, {
           'sources!': [ '<@(node_cctest_quic_sources)' ],
         }],
-        [ 'v8_use_perfetto==1', {
+        [ 'v8_use_perfetto==1 and node_shared_perfetto=="false"', {
           'dependencies': [
             'deps/perfetto/perfetto.gyp:perfetto_sdk',
           ],
@@ -1729,7 +1750,7 @@
             'NODE_USE_NODE_CODE_CACHE=1',
           ],
         }],
-        [ 'v8_use_perfetto==1', {
+        [ 'v8_use_perfetto==1 and node_shared_perfetto=="false"', {
           'dependencies': [
             'deps/perfetto/perfetto.gyp:perfetto_sdk',
           ],

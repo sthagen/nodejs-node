@@ -404,7 +404,13 @@ class CustomAggregate {
         start_(env->isolate(), start),
         step_fn_(env->isolate(), step_fn),
         inverse_fn_(env->isolate(), inverse_fn),
-        result_fn_(env->isolate(), result_fn) {}
+        result_fn_(env->isolate(), result_fn) {
+    db_->user_defined_functions_.insert(this);
+  }
+
+  ~CustomAggregate() {
+    if (db_) db_->user_defined_functions_.erase(this);
+  }
 
   static void xStep(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
     xStepBase(ctx, argc, argv, &CustomAggregate::step_fn_);
@@ -635,9 +641,13 @@ class BackupJob : public ThreadPoolWork {
   }
 
   void AfterThreadPoolWork(int status) override {
-    HandleScope handle_scope(env()->isolate());
+    Isolate* isolate = env()->isolate();
+    HandleScope handle_scope(isolate);
+    Context::Scope context_scope(env()->context());
+    InternalCallbackScope callback_scope(
+        env(), Object::New(isolate), {0, 0}, InternalCallbackScope::kNoFlags);
     Local<Promise::Resolver> resolver =
-        Local<Promise::Resolver>::New(env()->isolate(), resolver_);
+        Local<Promise::Resolver>::New(isolate, resolver_);
 
     if (!(backup_status_ == SQLITE_OK || backup_status_ == SQLITE_DONE ||
           backup_status_ == SQLITE_BUSY || backup_status_ == SQLITE_LOCKED)) {
@@ -768,9 +778,13 @@ UserDefinedFunction::UserDefinedFunction(Environment* env,
     : env_(env),
       fn_(env->isolate(), fn),
       db_(std::move(db)),
-      use_bigint_args_(use_bigint_args) {}
+      use_bigint_args_(use_bigint_args) {
+  db_->user_defined_functions_.insert(this);
+}
 
-UserDefinedFunction::~UserDefinedFunction() {}
+UserDefinedFunction::~UserDefinedFunction() {
+  if (db_) db_->user_defined_functions_.erase(this);
+}
 
 void UserDefinedFunction::xFunc(sqlite3_context* ctx,
                                 int argc,
@@ -1067,6 +1081,8 @@ DatabaseSync::~DatabaseSync() {
 }
 
 void DatabaseSync::MemoryInfo(MemoryTracker* tracker) const {
+  tracker->TrackFieldWithSize("user_defined_functions",
+                              user_defined_functions_.size() * sizeof(void*));
   // TODO(tniessen): more accurately track the size of all fields
   tracker->TrackFieldWithSize(
       "open_config", sizeof(open_config_), "DatabaseOpenConfiguration");
@@ -1611,6 +1627,8 @@ void DatabaseSync::Close(const FunctionCallbackInfo<Value>& args) {
   int r = sqlite3_close_v2(db->connection_.get());
   CHECK_ERROR_OR_THROW(env->isolate(), db, r, SQLITE_OK, void());
   db->connection_.release();
+  // Backups can defer SQLite destruction until after the connection is closed.
+  db->user_defined_functions_.clear();
 }
 
 void DatabaseSync::Dispose(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -1737,6 +1755,10 @@ void DatabaseSync::Prepare(const FunctionCallbackInfo<Value>& args) {
       persistent = persistent_v->IsTrue();
     }
   }
+
+  // Reading the options bag above can run user JavaScript through a property
+  // getter, which may have closed the database since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
 
   Utf8Value sql(env->isolate(), args[0].As<String>());
   sqlite3_stmt* s = nullptr;
@@ -1925,8 +1947,21 @@ void DatabaseSync::CustomFunction(const FunctionCallbackInfo<Value>& args) {
     if (!fn->Get(env->context(), env->length_string()).ToLocal(&js_len)) {
       return;
     }
+
+    if (!js_len->IsInt32()) {
+      THROW_ERR_INVALID_ARG_TYPE(
+          env->isolate(),
+          "The \"function.length\" property must be an integer.");
+      return;
+    }
+
     argc = js_len.As<Int32>()->Value();
   }
+
+  // Reading the options bag and "function.length" above can run user
+  // JavaScript through a property getter, which may have closed the database
+  // since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
 
   UserDefinedFunction* user_data = new UserDefinedFunction(
       env, fn, BaseObjectWeakPtr<DatabaseSync>(db), use_bigint_args);
@@ -2013,27 +2048,17 @@ void DatabaseSync::Serialize(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  // V8 sandbox forbids external backing stores so allocate inside the
-  // sandbox and copy. Without sandbox wrap the output directly using
-  // sqlite3_free as the destructor to avoid the copy.
-#ifdef V8_ENABLE_SANDBOX
-  auto free_data = OnScopeLeave([&] { sqlite3_free(data); });
-  auto store = ArrayBuffer::NewBackingStore(
+  auto store = AdoptIntoBackingStore(
       env->isolate(),
+      data,
       size,
-      BackingStoreInitializationMode::kUninitialized,
-      BackingStoreOnFailureMode::kReturnNull);
+      [](void* ptr, size_t, void*) { sqlite3_free(ptr); },
+      nullptr);
   if (!store) {
     THROW_ERR_MEMORY_ALLOCATION_FAILED(env);
     return;
   }
-  memcpy(store->Data(), data, size);
   Local<ArrayBuffer> ab = ArrayBuffer::New(env->isolate(), std::move(store));
-#else
-  auto store = ArrayBuffer::NewBackingStore(
-      data, size, [](void* ptr, size_t, void*) { sqlite3_free(ptr); }, nullptr);
-  Local<ArrayBuffer> ab = ArrayBuffer::New(env->isolate(), std::move(store));
-#endif
 
   args.GetReturnValue().Set(Uint8Array::New(ab, 0, size));
 }
@@ -2090,6 +2115,10 @@ void DatabaseSync::Deserialize(const FunctionCallbackInfo<Value>& args) {
     }
   }
 
+  // Reading the options bag above can run user JavaScript through a property
+  // getter, which may have closed the database since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+
   // sqlite3_malloc64 is required because SQLITE_DESERIALIZE_FREEONCLOSE
   // transfers ownership to SQLite, which calls sqlite3_free() on close.
   // See: https://www.sqlite.org/c3ref/deserialize.html
@@ -2100,7 +2129,16 @@ void DatabaseSync::Deserialize(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  input->CopyContents(buf, byte_length);
+  // The same user JavaScript may also have shrunk or detached the backing
+  // store, in which case byte_length is stale and CopyContents() leaves the
+  // remainder of buf uninitialized. Handing that to SQLite would disclose it
+  // through serialize().
+  if (input->CopyContents(buf, byte_length) != byte_length) {
+    sqlite3_free(buf);
+    THROW_ERR_INVALID_STATE(
+        env, "The \"buffer\" argument was resized while reading \"options\"");
+    return;
+  }
 
   db->FinalizeStatements();
 
@@ -2238,16 +2276,36 @@ void DatabaseSync::AggregateFunction(const FunctionCallbackInfo<Value>& args) {
       return;
     }
 
+    if (!js_len->IsInt32()) {
+      THROW_ERR_INVALID_ARG_TYPE(
+          env->isolate(),
+          "The \"options.step.length\" property must be an integer.");
+      return;
+    }
+
     // Subtract 1 because the first argument is the aggregate value.
     argc = js_len.As<Int32>()->Value() - 1;
-    if (!inverseFunc.IsEmpty() &&
-        !inverseFunc->Get(env->context(), env->length_string())
-             .ToLocal(&js_len)) {
-      return;
+    if (!inverseFunc.IsEmpty()) {
+      if (!inverseFunc->Get(env->context(), env->length_string())
+               .ToLocal(&js_len)) {
+        return;
+      }
+
+      if (!js_len->IsInt32()) {
+        THROW_ERR_INVALID_ARG_TYPE(
+            env->isolate(),
+            "The \"options.inverse.length\" property must be an integer.");
+        return;
+      }
     }
 
     argc = std::max({argc, js_len.As<Int32>()->Value() - 1, 0});
   }
+
+  // Reading the options bag and the step/inverse "length" properties above can
+  // run user JavaScript through a property getter, which may have closed the
+  // database since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
 
   int text_rep = SQLITE_UTF8;
   if (direct_only) {
@@ -2277,10 +2335,15 @@ void DatabaseSync::AggregateFunction(const FunctionCallbackInfo<Value>& args) {
 }
 
 void DatabaseSync::CreateSession(const FunctionCallbackInfo<Value>& args) {
+  DatabaseSync* db;
+  ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
+  Environment* env = Environment::GetCurrent(args);
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
+
   std::string table;
   std::string db_name = "main";
 
-  Environment* env = Environment::GetCurrent(args);
   if (args.Length() > 0) {
     if (!args[0]->IsObject()) {
       THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
@@ -2331,10 +2394,9 @@ void DatabaseSync::CreateSession(const FunctionCallbackInfo<Value>& args) {
     }
   }
 
-  DatabaseSync* db;
-  ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
+  // Reading the options bag above can run user JavaScript through a property
+  // getter, which may have closed the database since it was checked.
   THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
-  THROW_AND_RETURN_IF_IN_AUTHORIZER(env, db);
 
   sqlite3_session* pSession;
   int r =
@@ -2460,6 +2522,11 @@ void Backup(const FunctionCallbackInfo<Value>& args) {
       progressFunc = progress_v.As<Function>();
     }
   }
+
+  // Reading the destination path and the options bag above can run user
+  // JavaScript through a property getter, which may have closed the database
+  // since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
 
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(env->context()).ToLocal(&resolver)) {
@@ -2604,6 +2671,10 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
     }
   }
 
+  // Reading the options bag above can run user JavaScript through a property
+  // getter, which may have closed the database since it was checked.
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+
   // Keep the database alive in case a callback drops all references to it,
   // which could otherwise let it be garbage-collected mid-callback.
   BaseObjectPtr<DatabaseSync> guard(db);
@@ -2614,12 +2685,11 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  // A callback may detach/modify the input buffer mid-apply, so copy it.
-  // With no callbacks, no JS runs during sqlite3changeset_apply(), so no
-  // copy is needed.
+  // SQLite may invoke JavaScript through explicit callbacks or user-defined
+  // SQL functions while applying the changeset. Copy the input so JavaScript
+  // cannot detach or modify the memory while SQLite is still reading it.
   std::unique_ptr<BackingStore> changeset;
-  if (buf.length() > 0 &&
-      (context.filterCallback || context.conflictCallback)) {
+  if (buf.length() > 0) {
     changeset = ArrayBuffer::NewBackingStore(
         env->isolate(),
         buf.length(),
@@ -3101,7 +3171,8 @@ bool StatementSync::BindValue(const Local<Value>& value, const int index) {
   // Dates could be supported by converting them to numbers. However, there
   // would not be a good way to read the values back from SQLite with the
   // original type. JS Boolean binds to 1 and 0 because SQLite maps true and
-  // false keywords to 1 and 0.
+  // false keywords to 1 and 0. JS undefined binds to NULL so that passing it
+  // explicitly matches omitting the parameter altogether.
   Isolate* isolate = env()->isolate();
   int r;
   if (value->IsNumber()) {
@@ -3125,7 +3196,7 @@ bool StatementSync::BindValue(const Local<Value>& value, const int index) {
                               SQLITE_TRANSIENT,
                               SQLITE_UTF8);
     }
-  } else if (value->IsNull()) {
+  } else if (value->IsNullOrUndefined()) {
     r = sqlite3_bind_null(statement_.get(), index);
   } else if (value->IsArrayBufferView() || value->IsArrayBuffer() ||
              value->IsSharedArrayBuffer()) {
@@ -4561,9 +4632,13 @@ static void Initialize(Local<Object> target,
   SetConstructorFunction(context,
                          target,
                          "StatementSync",
-                         StatementSync::GetConstructorTemplate(env));
-  SetConstructorFunction(
-      context, target, "Session", Session::GetConstructorTemplate(env));
+                         StatementSync::GetConstructorTemplate(env),
+                         SetConstructorFunctionFlag::NONE);
+  SetConstructorFunction(context,
+                         target,
+                         "Session",
+                         Session::GetConstructorTemplate(env),
+                         SetConstructorFunctionFlag::NONE);
 
   target->Set(context, env->constants_string(), constants).Check();
 

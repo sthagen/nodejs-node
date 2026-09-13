@@ -139,6 +139,8 @@ class EnvironmentOptions : public Options {
   std::string heap_snapshot_signal;
   std::string redirect_warnings;
   std::string diagnostic_dir;
+  std::string bench_isolation = "process";
+  std::string bench_name_pattern;
   std::string test_rerun_failures_path;
   std::string test_global_setup_path;
   std::string test_isolation = "process";
@@ -161,6 +163,8 @@ class EnvironmentOptions : public Options {
   std::vector<std::string> allow_fs_read;
   std::vector<std::string> allow_fs_write;
   std::vector<std::string> disable_warnings;
+  std::vector<std::string> bench_reporter;
+  std::vector<std::string> bench_reporter_destination;
   std::vector<std::string> env_file;
   std::vector<std::string> optional_env_file;
   std::vector<std::string> test_name_pattern;
@@ -179,6 +183,8 @@ class EnvironmentOptions : public Options {
   int64_t heap_snapshot_near_heap_limit = 0;
   uint64_t network_family_autoselection_attempt_timeout = 500;
   uint64_t max_http_header_size = 16 * 1024;
+  uint64_t bench_samples = 0;
+  uint64_t bench_warmup = 0;
   uint64_t test_runner_concurrency = 0;
   uint64_t test_runner_timeout = 0;
   uint64_t test_coverage_branches = 0;
@@ -200,6 +206,7 @@ class EnvironmentOptions : public Options {
   DEFINE_BOOL_FIELD(require_module) = true;
   DEFINE_BOOL_FIELD(enable_source_maps) = false;
   DEFINE_BOOL_FIELD(experimental_addon_modules) = true;
+  DEFINE_BOOL_FIELD(experimental_bench) = EXPERIMENTALS_DEFAULT_VALUE;
   DEFINE_BOOL_FIELD(experimental_eventsource) = EXPERIMENTALS_DEFAULT_VALUE;
   DEFINE_BOOL_FIELD(experimental_ffi) = HAVE_FFI;
   DEFINE_BOOL_FIELD(experimental_web_worker) = EXPERIMENTALS_DEFAULT_VALUE;
@@ -219,6 +226,7 @@ class EnvironmentOptions : public Options {
   DEFINE_BOOL_FIELD(permission) = false;
   DEFINE_BOOL_FIELD(permission_audit) = false;
   DEFINE_BOOL_FIELD(allow_addons) = false;
+  DEFINE_BOOL_FIELD(allow_fs_vfs) = false;
   DEFINE_BOOL_FIELD(allow_inspector) = false;
   DEFINE_BOOL_FIELD(allow_child_process) = false;
   DEFINE_BOOL_FIELD(allow_net) = false;
@@ -243,6 +251,10 @@ class EnvironmentOptions : public Options {
   DEFINE_BOOL_FIELD(preserve_symlinks_main) = false;
   DEFINE_BOOL_FIELD(prof_process) = false;
   DEFINE_BOOL_FIELD(has_env_file_string) = false;
+  DEFINE_BOOL_FIELD(bench_runner) = false;
+  DEFINE_BOOL_FIELD(has_bench_options) = false;
+  DEFINE_BOOL_FIELD(has_bench_samples) = false;
+  DEFINE_BOOL_FIELD(has_bench_warmup) = false;
   DEFINE_BOOL_FIELD(test_runner) = false;
   DEFINE_BOOL_FIELD(test_runner_coverage) = false;
   DEFINE_BOOL_FIELD(test_runner_force_exit) = false;
@@ -304,12 +316,22 @@ class EnvironmentOptions : public Options {
   void CheckOptions(std::vector<std::string>* errors,
                     std::vector<std::string>* argv) override;
 
+  // `--bench` and the other benchmark runner options are gated behind
+  // `--experimental-bench`, but the gate and the options it guards can come
+  // from different option sources, each of which is parsed in its own
+  // options_parser::Parse() pass. CheckOptions() runs at the end of every
+  // pass, so this constraint cannot be validated there: the gate may still
+  // arrive in a later pass. Callers must invoke this once all of their option
+  // sources have been parsed.
+  void CheckBenchOptions(std::vector<std::string>* errors) const;
+
  private:
   DebugOptions debug_options_;
 };
 
 class PerIsolateOptions : public Options {
  public:
+  bool worker_snapshot = true;  // --[no-]worker-snapshot
   PerIsolateOptions() = default;
   PerIsolateOptions(PerIsolateOptions&&) = default;
 
@@ -467,6 +489,7 @@ std::vector<std::string> MapAvailableNamespaces();
 // Define all namespace entries
 #define OPTION_NAMESPACE_LIST(V)                                               \
   V(kNoNamespace, "")                                                          \
+  V(kBenchRunnerNamespace, "bench")                                            \
   V(kTestRunnerNamespace, "test")                                              \
   V(kWatchNamespace, "watch")                                                  \
   V(kPermissionNamespace, "permission")
@@ -522,12 +545,12 @@ class OptionsParser {
       OptionEnvvarSettings env_setting = kDisallowedInEnvvar,
       bool default_is_true = false,
       OptionNamespaces namespace_id = OptionNamespaces::kNoNamespace);
-  void AddOption(
-      const char* name,
-      const char* help_text,
-      uint64_t Options::*field,
-      OptionEnvvarSettings env_setting = kDisallowedInEnvvar,
-      OptionNamespaces namespace_id = OptionNamespaces::kNoNamespace);
+  void AddOption(const char* name,
+                 const char* help_text,
+                 uint64_t Options::*field,
+                 OptionEnvvarSettings env_setting = kDisallowedInEnvvar,
+                 OptionNamespaces namespace_id = OptionNamespaces::kNoNamespace,
+                 bool strict = false);
   void AddOption(
       const char* name,
       const char* help_text,
@@ -693,6 +716,7 @@ class OptionsParser {
     std::string help_text;
     bool default_is_true = false;
     std::string namespace_id;
+    bool strict = false;
   };
 
   // An implied option is composed of the information on where to store a

@@ -5,6 +5,7 @@
   withSQLite ? true,
   withSSL ? true,
   withFFI ? true,
+  withPerfetto ? false,
   withTemporal ? false,
 }:
 {
@@ -22,8 +23,10 @@
     zlib
     zstd
     ;
+  abseil = pkgs.abseil-cpp;
   cares = pkgs.c-ares;
   hdr-histogram = pkgs.hdrhistogram_c;
+  highway = pkgs.libhwy;
   http-parser = pkgs.llhttp;
 }
 // (pkgs.lib.optionalAttrs withLief {
@@ -44,6 +47,9 @@
 // (pkgs.lib.optionalAttrs withSSL ({
   inherit (import ./openssl-matrix.nix { inherit pkgs; }) openssl;
 }))
+// (pkgs.lib.optionalAttrs withPerfetto {
+  perfetto = pkgs.perfetto.sdk;
+})
 // (pkgs.lib.optionalAttrs withTemporal {
   inherit (pkgs) temporal_capi;
 })

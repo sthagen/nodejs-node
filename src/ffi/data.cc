@@ -39,7 +39,7 @@ Maybe<size_t> GetValidatedSize(Environment* env,
                                Local<Value> value,
                                const char* label) {
   if (!value->IsNumber()) {
-    THROW_ERR_INVALID_ARG_VALUE(env, "The %s must be a number", label);
+    THROW_ERR_INVALID_ARG_TYPE(env, "The %s must be a number", label);
     return Nothing<size_t>();
   }
 
@@ -62,7 +62,7 @@ Maybe<uintptr_t> GetValidatedPointerAddress(Environment* env,
                                             Local<Value> value,
                                             const char* label) {
   if (!value->IsBigInt()) {
-    THROW_ERR_INVALID_ARG_VALUE(env, "The %s must be a bigint", label);
+    THROW_ERR_INVALID_ARG_TYPE(env, "The %s must be a bigint", label);
     return Nothing<uintptr_t>();
   }
 
@@ -163,8 +163,7 @@ Maybe<void> ValidateStringLength(Environment* env, size_t len) {
 Maybe<std::pair<uint8_t*, size_t>> GetValidatedPointerAndOffset(
     Environment* env, const FunctionCallbackInfo<Value>& args) {
   uintptr_t raw_ptr;
-  if (args.Length() < 1 ||
-      !GetValidatedPointerAddress(env, args[0], "pointer").To(&raw_ptr)) {
+  if (!GetValidatedPointerAddress(env, args[0], "pointer").To(&raw_ptr)) {
     return {};
   }
 
@@ -204,8 +203,7 @@ Maybe<PointerOffsetAndValue> GetValidatedPointerOffsetAndValue(
   size_t offset;
   Local<Value> value;
   uintptr_t raw_ptr;
-  if (args.Length() < 1 ||
-      !GetValidatedPointerAddress(env, args[0], "pointer").To(&raw_ptr)) {
+  if (!GetValidatedPointerAddress(env, args[0], "pointer").To(&raw_ptr)) {
     return {};
   }
 
@@ -535,6 +533,17 @@ void ToString(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(out);
 }
 
+// Foreign memory lies outside the V8 sandbox and cannot back an ArrayBuffer.
+static bool ZeroCopyUnavailable(Environment* env) {
+#ifdef V8_ENABLE_SANDBOX
+  THROW_ERR_OPERATION_FAILED(
+      env, "Zero-copy views are not available when the V8 sandbox is enabled");
+  return true;
+#else
+  return false;
+#endif
+}
+
 void ToBuffer(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   Isolate* isolate = env->isolate();
@@ -556,7 +565,7 @@ void ToBuffer(const FunctionCallbackInfo<Value>& args) {
   }
 
   size_t len;
-  if (args.Length() < 2 || !GetValidatedSize(env, args[1], "length").To(&len)) {
+  if (!GetValidatedSize(env, args[1], "length").To(&len)) {
     return;
   }
 
@@ -580,9 +589,12 @@ void ToBuffer(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+  bool copy = args.Length() < 3 || args[2]->IsUndefined() ||
+              args[2]->BooleanValue(isolate);
+  if (!copy && ZeroCopyUnavailable(env)) return;
+
   Local<Object> buf;
-  if (args.Length() < 3 || args[2]->IsUndefined() ||
-      args[2]->BooleanValue(isolate)) {
+  if (copy) {
     if (!Buffer::Copy(env, reinterpret_cast<char*>(ptr), len).ToLocal(&buf)) {
       return;
     }
@@ -618,7 +630,7 @@ void ToArrayBuffer(const FunctionCallbackInfo<Value>& args) {
   }
 
   size_t len;
-  if (args.Length() < 2 || !GetValidatedSize(env, args[1], "length").To(&len)) {
+  if (!GetValidatedSize(env, args[1], "length").To(&len)) {
     return;
   }
 
@@ -642,10 +654,12 @@ void ToArrayBuffer(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  Local<ArrayBuffer> ab;
+  bool copy = args.Length() < 3 || args[2]->IsUndefined() ||
+              args[2]->BooleanValue(isolate);
+  if (!copy && ZeroCopyUnavailable(env)) return;
 
-  if (args.Length() < 3 || args[2]->IsUndefined() ||
-      args[2]->BooleanValue(isolate)) {
+  Local<ArrayBuffer> ab;
+  if (copy) {
     std::unique_ptr<BackingStore> store =
         ArrayBuffer::NewBackingStore(isolate, len);
     memcpy(store->Data(), reinterpret_cast<void*>(ptr), len);
@@ -671,7 +685,8 @@ void ExportBytes(const FunctionCallbackInfo<Value>& args) {
   if (args.Length() < 1) {
     THROW_ERR_INVALID_ARG_TYPE(
         env,
-        "The first argument must be a Buffer, ArrayBuffer, or ArrayBufferView");
+        "The first argument must be a Buffer, ArrayBuffer, SharedArrayBuffer, "
+        "or ArrayBufferView");
     return;
   }
 
@@ -689,18 +704,18 @@ void ExportBytes(const FunctionCallbackInfo<Value>& args) {
   } else {
     THROW_ERR_INVALID_ARG_TYPE(
         env,
-        "The first argument must be a Buffer, ArrayBuffer, or ArrayBufferView");
+        "The first argument must be a Buffer, ArrayBuffer, SharedArrayBuffer, "
+        "or ArrayBufferView");
     return;
   }
 
   uintptr_t ptr;
-  if (args.Length() < 2 ||
-      !GetValidatedPointerAddress(env, args[1], "pointer").To(&ptr)) {
+  if (!GetValidatedPointerAddress(env, args[1], "pointer").To(&ptr)) {
     return;
   }
 
   size_t len;
-  if (args.Length() < 3 || !GetValidatedSize(env, args[2], "length").To(&len)) {
+  if (!GetValidatedSize(env, args[2], "length").To(&len)) {
     return;
   }
 

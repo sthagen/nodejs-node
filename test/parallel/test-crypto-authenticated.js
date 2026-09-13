@@ -29,7 +29,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 const { inspect } = require('util');
 const fixtures = require('../common/fixtures');
-const { hasOpenSSL, hasFIPS } = require('../common/crypto');
+const { hasOpenSSL, hasFIPS, isBoringSSL } = require('../common/crypto');
 
 const isFipsEnabled = crypto.getFips() === 1;
 const fips3 = hasFIPS(3);
@@ -44,6 +44,10 @@ const TEST_CASES = require(fixtures.path('aead-vectors.js'));
 
 const errMessages = {
   auth: / auth/,
+  // OpenSSL 4.1 adds a provider error for AEAD tag mismatches.
+  // https://github.com/openssl/openssl/pull/32587
+  badDecrypt: hasOpenSSL(4, 1) ?
+    { code: 'ERR_OSSL_BAD_DECRYPT' } : /Unsupported state or unable to authenticate data/,
   state: / state/,
   FIPS: /not supported in FIPS mode/,
   length: /Invalid initialization vector/,
@@ -128,7 +132,8 @@ for (const test of TEST_CASES) {
         assert.strictEqual(msg, test.plain);
       } else {
         // Assert that final throws if input data could not be verified!
-        assert.throws(function() { decrypt.final('hex'); }, errMessages.auth);
+        assert.throws(function() { decrypt.final('hex'); },
+                      isCCM || isSIV ? errMessages.auth : errMessages.badDecrypt);
       }
     }
   }
@@ -358,7 +363,8 @@ for (const test of TEST_CASES) {
       decipher.update(ciphertext);
       assert.throws(() => {
         decipher.final();
-      }, /Unsupported state or unable to authenticate data/);
+      }, algo === 'aes-128-siv' ?
+        /Unsupported state or unable to authenticate data/ : errMessages.badDecrypt);
     }
   }
 }
@@ -834,7 +840,7 @@ if (fips3) {
     }), {
     code: 'ERR_OSSL_EVP_UNSUPPORTED',
   });
-} else if (!process.features.openssl_is_boringssl) {
+} else if (!isBoringSSL) {
   const key = Buffer.alloc(32);
   const iv = Buffer.alloc(12);
 
@@ -852,7 +858,7 @@ if (fips3) {
 
 // ChaCha20-Poly1305 should respect the authTagLength option and should not
 // require the authentication tag before calls to update() during decryption.
-if (!fips3 && !process.features.openssl_is_boringssl) {
+if (!fips3 && !isBoringSSL) {
   const key = Buffer.alloc(32);
   const iv = Buffer.alloc(12);
 
@@ -903,7 +909,7 @@ if (!fips3 && !process.features.openssl_is_boringssl) {
 // shorter tags as long as their length was valid according to NIST SP 800-38D.
 // For ChaCha20-Poly1305, we intentionally deviate from that because there are
 // no recommended or approved authentication tag lengths below 16 bytes.
-if (!fips3 && !process.features.openssl_is_boringssl) {
+if (!fips3 && !isBoringSSL) {
   const rfcTestCases = TEST_CASES.filter(({ algo, tampered }) => {
     return algo === 'chacha20-poly1305' && tampered === false;
   });
@@ -942,7 +948,7 @@ if (!fips3 && !process.features.openssl_is_boringssl) {
 }
 
 // https://github.com/nodejs/node/issues/45874
-if (!fips3 && !process.features.openssl_is_boringssl) {
+if (!fips3 && !isBoringSSL) {
   const rfcTestCases = TEST_CASES.filter(({ algo, tampered }) => {
     return algo === 'chacha20-poly1305' && tampered === false;
   });
@@ -969,7 +975,7 @@ if (!fips3 && !process.features.openssl_is_boringssl) {
 
   assert.throws(() => {
     decipher.final();
-  }, /Unsupported state or unable to authenticate data/);
+  }, errMessages.badDecrypt);
 } else {
   common.printSkipMessage('Skipping unsupported chacha20-poly1305 test');
 }

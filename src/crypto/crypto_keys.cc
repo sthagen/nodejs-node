@@ -386,21 +386,24 @@ bool KeyObjectData::ToEncodedPublicKey(
     Mutex::ScopedLock lock(mutex());
     const auto& pkey = GetAsymmetricKey();
     if (pkey.id() == EVP_PKEY_EC) {
+      auto form = static_cast<point_conversion_form_t>(config.ec_point_form);
+      auto bytes = ncrypto::Ec::TryExportPublic(pkey, form);
+      if (bytes)
+        return Buffer::Copy(env, bytes.get<const char>(), bytes.size())
+            .ToLocal(out);
       ECKeyPointer ec_key(pkey);
       if (!ec_key) {
         THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
         return false;
       }
-      // A provider-backed key need not expose its public point.
       if (ec_key.getPublicKey() == nullptr) {
         THROW_ERR_CRYPTO_OPERATION_FAILED(env,
                                           "Failed to export EC public key");
         return false;
       }
-      auto form = static_cast<point_conversion_form_t>(config.ec_point_form);
-      const auto group = ec_key.getGroup();
-      const auto point = ec_key.getPublicKey();
-      return ECPointToBuffer(env, group, point, form).ToLocal(out);
+      return ECPointToBuffer(
+                 env, ec_key.getGroup(), ec_key.getPublicKey(), form)
+          .ToLocal(out);
     }
     const int id = pkey.id();
     bool is_raw_supported = id == EVP_PKEY_ED25519 || id == EVP_PKEY_ED448 ||
@@ -441,25 +444,7 @@ bool KeyObjectData::ToEncodedPrivateKey(
     Mutex::ScopedLock lock(mutex());
     const auto& pkey = GetAsymmetricKey();
     if (pkey.id() == EVP_PKEY_EC) {
-      ECKeyPointer ec_key(pkey);
-      if (!ec_key) {
-        THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
-        return false;
-      }
-      const BIGNUM* private_key = ec_key.getPrivateKey();
-      if (private_key == nullptr) {
-        THROW_ERR_CRYPTO_OPERATION_FAILED(env,
-                                          "Failed to export EC private key");
-        return false;
-      }
-      const auto group = ec_key.getGroup();
-      auto order = BignumPointer::New();
-      if (!order || !EC_GROUP_get_order(group, order.get(), nullptr)) {
-        THROW_ERR_CRYPTO_OPERATION_FAILED(env,
-                                          "Failed to export EC private key");
-        return false;
-      }
-      auto buf = BignumPointer::EncodePadded(private_key, order.byteLength());
+      auto buf = ncrypto::Ec::ExportPrivate(pkey);
       if (!buf) {
         THROW_ERR_CRYPTO_OPERATION_FAILED(env,
                                           "Failed to export EC private key");
@@ -1581,24 +1566,27 @@ void KeyObjectHandle::ExportECPublicRaw(
     return THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
   }
 
-  ECKeyPointer ec_key(m_pkey);
-  if (!ec_key) return THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
-  // A provider-backed key need not expose its public point.
-  if (ec_key.getPublicKey() == nullptr) {
-    return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
-                                             "Failed to export EC public key");
-  }
-
   CHECK(args[0]->IsInt32());
   auto form =
       static_cast<point_conversion_form_t>(args[0].As<Int32>()->Value());
 
-  const auto group = ec_key.getGroup();
-  const auto point = ec_key.getPublicKey();
-
+  auto bytes = ncrypto::Ec::TryExportPublic(m_pkey, form);
+  if (bytes) {
+    args.GetReturnValue().Set(
+        Buffer::Copy(env, bytes.get<const char>(), bytes.size())
+            .FromMaybe(Local<Value>()));
+    return;
+  }
+  ECKeyPointer ec_key(m_pkey);
+  if (!ec_key) return THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
+  if (ec_key.getPublicKey() == nullptr) {
+    return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
+                                             "Failed to export EC public key");
+  }
   Local<Object> buf;
-  if (!ECPointToBuffer(env, group, point, form).ToLocal(&buf)) return;
-
+  if (!ECPointToBuffer(env, ec_key.getGroup(), ec_key.getPublicKey(), form)
+           .ToLocal(&buf))
+    return;
   args.GetReturnValue().Set(buf);
 }
 
@@ -1617,23 +1605,7 @@ void KeyObjectHandle::ExportECPrivateRaw(
     return THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
   }
 
-  ECKeyPointer ec_key(m_pkey);
-  if (!ec_key) return THROW_ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS(env);
-
-  const BIGNUM* private_key = ec_key.getPrivateKey();
-  if (private_key == nullptr) {
-    return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
-                                             "Failed to export EC private key");
-  }
-
-  const auto group = ec_key.getGroup();
-  auto order = BignumPointer::New();
-  if (!order || !EC_GROUP_get_order(group, order.get(), nullptr)) {
-    return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
-                                             "Failed to export EC private key");
-  }
-
-  auto buf = BignumPointer::EncodePadded(private_key, order.byteLength());
+  auto buf = ncrypto::Ec::ExportPrivate(m_pkey);
   if (!buf) {
     return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
                                              "Failed to export EC private key");
@@ -1736,12 +1708,13 @@ void NativeKeyObject::CreateNativeKeyObjectClass(
   Local<Value> callback = args[0];
   CHECK(callback->IsFunction());
 
-  Local<FunctionTemplate> t =
-      NewFunctionTemplate(isolate, NativeKeyObject::New);
-  t->InstanceTemplate()->SetInternalFieldCount(
-      NativeKeyObject::kInternalFieldCount);
-  CHECK(env->crypto_key_object_constructor_template().IsEmpty());
-  env->set_crypto_key_object_constructor_template(t);
+  Local<FunctionTemplate> t = env->crypto_key_object_constructor_template();
+  if (t.IsEmpty()) {
+    t = NewFunctionTemplate(isolate, NativeKeyObject::New);
+    t->InstanceTemplate()->SetInternalFieldCount(
+        NativeKeyObject::kInternalFieldCount);
+    env->set_crypto_key_object_constructor_template(t);
+  }
 
   Local<Value> ctor;
   if (!t->GetFunction(env->context()).ToLocal(&ctor))
@@ -1913,11 +1886,15 @@ MaybeLocal<Value> NativeCryptoKey::Create(Environment* env,
 
 void NativeCryptoKey::New(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
-  CHECK_EQ(args.Length(), 4);
+  CHECK_GE(args.Length(), 4);
+  CHECK_LE(args.Length(), 6);
   // args[0] is a KeyObjectHandle; we keep its KeyObjectData directly.
   // args[1] is the algorithm dictionary object.
   // args[2] is the usages mask.
   // args[3] is the extractable boolean.
+  // args[4], when present, is an optional secondary KeyObjectHandle for
+  // Hybrid KEM CryptoKeys.
+  // args[5], when present, is optional seed_data for Hybrid KEM CryptoKeys.
   //
   // args[1] is undefined only when called from
   // CryptoKeyTransferData::Deserialize for a partially-initialized
@@ -1931,7 +1908,24 @@ void NativeCryptoKey::New(const FunctionCallbackInfo<Value>& args) {
   KeyObjectHandle* handle = Unwrap<KeyObjectHandle>(args[0].As<Object>());
   CHECK_NOT_NULL(handle);
 
-  auto* native = new NativeCryptoKey(env, args.This(), handle->Data());
+  KeyObjectData secondary_data;
+  if (args.Length() >= 5 && !args[4]->IsUndefined()) {
+    CHECK(KeyObjectHandle::HasInstance(env, args[4]));
+    KeyObjectHandle* secondary_handle =
+        Unwrap<KeyObjectHandle>(args[4].As<Object>());
+    CHECK_NOT_NULL(secondary_handle);
+    secondary_data = secondary_handle->Data();
+  }
+
+  ByteSource seed_data;
+  if (args.Length() == 6 && !args[5]->IsUndefined()) {
+    CHECK(IsAnyBufferSource(args[5]));
+    ArrayBufferOrViewContents<char> buf(args[5]);
+    seed_data = buf.ToCopy();
+  }
+
+  auto* native = new NativeCryptoKey(
+      env, args.This(), handle->Data(), secondary_data, std::move(seed_data));
 
   if (!args[1]->IsUndefined()) {
     CHECK(args[1]->IsObject());
@@ -1952,12 +1946,13 @@ void NativeCryptoKey::CreateCryptoKeyClass(
   Local<Value> callback = args[0];
   CHECK(callback->IsFunction());
 
-  Local<FunctionTemplate> t =
-      NewFunctionTemplate(isolate, NativeCryptoKey::New);
-  t->InstanceTemplate()->SetInternalFieldCount(
-      NativeCryptoKey::kInternalFieldCount);
-  CHECK(env->crypto_cryptokey_constructor_template().IsEmpty());
-  env->set_crypto_cryptokey_constructor_template(t);
+  Local<FunctionTemplate> t = env->crypto_cryptokey_constructor_template();
+  if (t.IsEmpty()) {
+    t = NewFunctionTemplate(isolate, NativeCryptoKey::New);
+    t->InstanceTemplate()->SetInternalFieldCount(
+        NativeCryptoKey::kInternalFieldCount);
+    env->set_crypto_cryptokey_constructor_template(t);
+  }
 
   Local<Value> ctor;
   if (!t->GetFunction(env->context()).ToLocal(&ctor)) return;
@@ -1979,9 +1974,10 @@ void NativeCryptoKey::CreateCryptoKeyClass(
 }
 
 // Returns all of the key's internal slot values as a single Array:
-// [type enum, extractable, algorithm, usages mask, handle]. JS-side helpers
-// call this once per key to prime a per-instance cache, so subsequent
-// reads don't need to cross into C++ at all.
+// [type enum, extractable, algorithm, usages mask, handle, secondary handle,
+// seed data]. JS-side helpers call this once per key to prime a per-instance
+// cache, so subsequent reads don't need to cross into C++ at all. The
+// secondary handle and seed data slots are only used by Hybrid KEM CryptoKeys.
 void NativeCryptoKey::GetSlots(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CHECK_EQ(args.Length(), 1);
@@ -1998,15 +1994,38 @@ void NativeCryptoKey::GetSlots(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+  Isolate* isolate = env->isolate();
+  Local<Value> secondary_handle = Undefined(isolate);
+  if (native->secondary_handle_data_) {
+    Local<Object> secondary_handle_object;
+    if (!KeyObjectHandle::Create(env, native->secondary_handle_data_)
+             .ToLocal(&secondary_handle_object)) {
+      return;
+    }
+    secondary_handle = secondary_handle_object;
+  }
+
+  Local<Value> seed_data = Undefined(isolate);
+  if (native->seed_data_) {
+    Local<Object> buf;
+    if (!Buffer::Copy(
+             env, native->seed_data_.data<char>(), native->seed_data_.size())
+             .ToLocal(&buf)) {
+      return;
+    }
+    seed_data = buf;
+  }
+
   Local<Value> algorithm = obj->GetInternalField(kAlgorithmField).As<Value>();
   CHECK(algorithm->IsObject());
-  Isolate* isolate = env->isolate();
   Local<Value> slots[] = {
       Uint32::NewFromUnsigned(isolate, native->handle_data_.GetKeyType()),
       v8::Boolean::New(isolate, native->extractable_),
       algorithm,
       Uint32::NewFromUnsigned(isolate, native->usages_mask_),
       handle,
+      secondary_handle,
+      seed_data,
   };
   args.GetReturnValue().Set(Array::New(isolate, slots, arraysize(slots)));
 }
@@ -2022,8 +2041,12 @@ std::unique_ptr<worker::TransferData> NativeCryptoKey::CloneForMessaging()
   Local<Value> algorithm_v = obj->GetInternalField(kAlgorithmField).As<Value>();
   CHECK(algorithm_v->IsObject());
   v8::Global<Object> algorithm_copy(isolate, algorithm_v.As<Object>());
-  return std::make_unique<CryptoKeyTransferData>(
-      handle_data_, std::move(algorithm_copy), usages_mask_, extractable_);
+  return std::make_unique<CryptoKeyTransferData>(handle_data_,
+                                                 secondary_handle_data_,
+                                                 seed_data_.ToCopy(),
+                                                 std::move(algorithm_copy),
+                                                 usages_mask_,
+                                                 extractable_);
 }
 
 Maybe<void> NativeCryptoKey::FinalizeTransferRead(
@@ -2103,9 +2126,29 @@ BaseObjectPtr<BaseObject> NativeCryptoKey::CryptoKeyTransferData::Deserialize(
   Local<Object> handle;
   if (!KeyObjectHandle::Create(env, data_).ToLocal(&handle)) return {};
 
+  Isolate* isolate = env->isolate();
+  Local<Value> secondary_handle = Undefined(isolate);
+  if (secondary_data_) {
+    Local<Object> secondary_handle_object;
+    if (!KeyObjectHandle::Create(env, secondary_data_)
+             .ToLocal(&secondary_handle_object)) {
+      return {};
+    }
+    secondary_handle = secondary_handle_object;
+  }
+
+  Local<Value> seed_data = Undefined(isolate);
+  if (seed_data_) {
+    Local<Object> buf;
+    if (!Buffer::Copy(env, seed_data_.data<char>(), seed_data_.size())
+             .ToLocal(&buf)) {
+      return {};
+    }
+    seed_data = buf;
+  }
+
   // Make sure internal/crypto/keys has been loaded so that the
   // CryptoKey constructor is registered with the Environment.
-  Isolate* isolate = env->isolate();
   Local<Value> arg = env->internal_crypto_keys_string();
   if (env->builtin_module_require()
           ->Call(context, Null(isolate), 1, &arg)
@@ -2122,9 +2165,11 @@ BaseObjectPtr<BaseObject> NativeCryptoKey::CryptoKeyTransferData::Deserialize(
       Undefined(isolate),
       Undefined(isolate),
       Undefined(isolate),
+      secondary_handle,
+      seed_data,
   };
   Local<Value> cryptokey;
-  if (!cryptokey_ctor->NewInstance(context, 4, ctor_args).ToLocal(&cryptokey)) {
+  if (!cryptokey_ctor->NewInstance(context, 6, ctor_args).ToLocal(&cryptokey)) {
     return {};
   }
 
@@ -2134,11 +2179,19 @@ BaseObjectPtr<BaseObject> NativeCryptoKey::CryptoKeyTransferData::Deserialize(
 
 void NativeCryptoKey::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("handle_data", handle_data_);
+  if (secondary_handle_data_) {
+    tracker->TrackField("secondary_handle_data", secondary_handle_data_);
+  }
+  tracker->TrackFieldWithSize("seed_data", seed_data_.size());
 }
 
 void NativeCryptoKey::CryptoKeyTransferData::MemoryInfo(
     MemoryTracker* tracker) const {
   tracker->TrackField("data", data_);
+  if (secondary_data_) {
+    tracker->TrackField("secondary_data", secondary_data_);
+  }
+  tracker->TrackFieldWithSize("seed_data", seed_data_.size());
   tracker->TrackField("algorithm", algorithm_);
 }
 

@@ -134,9 +134,12 @@ void ECDH::GenerateKeys(const FunctionCallbackInfo<Value>& args) {
   ECDH* ecdh;
   ASSIGN_OR_RETURN_UNWRAP(&ecdh, args.This());
 
+  const uint64_t generation = ncrypto::getFipsStateGeneration();
+  ecdh->has_valid_key_pair_ = false;
   if (!ecdh->key_.generate()) {
     return THROW_ERR_CRYPTO_OPERATION_FAILED(env, "Failed to generate key");
   }
+  ecdh->MaybeCacheValidKeyPair(generation);
 }
 
 ECPointPointer ECDH::BufferToPoint(Environment* env,
@@ -307,6 +310,7 @@ void ECDH::SetPrivateKey(const FunctionCallbackInfo<Value>& args) {
 
   ecdh->key_ = std::move(new_key);
   ecdh->group_ = ecdh->key_.getGroup();
+  ecdh->has_valid_key_pair_ = false;
 }
 
 void ECDH::SetPublicKey(const FunctionCallbackInfo<Value>& args) {
@@ -325,6 +329,7 @@ void ECDH::SetPublicKey(const FunctionCallbackInfo<Value>& args) {
         "Failed to convert Buffer to EC_POINT");
   }
 
+  ecdh->has_valid_key_pair_ = false;
   if (!ecdh->key_.setPublicKey(pub)) {
     return THROW_ERR_CRYPTO_OPERATION_FAILED(env,
         "Failed to set EC_POINT as the public key");
@@ -345,9 +350,22 @@ bool ECDH::IsKeyValidForCurve(const BignumPointer& private_key) {
          private_key < order;
 }
 
+void ECDH::MaybeCacheValidKeyPair(uint64_t generation) {
+  has_valid_key_pair_ = generation == ncrypto::getFipsStateGeneration();
+  if (has_valid_key_pair_) valid_key_pair_generation_ = generation;
+}
+
 bool ECDH::IsKeyPairValid() {
+  const uint64_t generation = ncrypto::getFipsStateGeneration();
+  if (has_valid_key_pair_ && valid_key_pair_generation_ == generation) {
+    return true;
+  }
+  has_valid_key_pair_ = false;
+
   MarkPopErrorOnReturn mark_pop_error_on_return;
-  return key_.checkKey();
+  const bool is_valid = key_.checkKey();
+  if (is_valid) MaybeCacheValidKeyPair(generation);
+  return is_valid;
 }
 
 // Convert the input public key to compressed, uncompressed, or hybrid formats.
@@ -470,29 +488,20 @@ bool ExportJWKEcKey(Environment* env,
   const auto& m_pkey = key.GetAsymmetricKey();
   CHECK_EQ(m_pkey.id(), EVP_PKEY_EC);
 
-  ECKeyPointer ec(m_pkey);
-  if (!ec) {
-    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK EC key");
+  BignumPointer x;
+  BignumPointer y;
+  BignumPointer priv;
+  int degree_bits;
+  if (!Ec::GetKeyComponents(
+          m_pkey,
+          &x,
+          &y,
+          key.GetKeyType() == kKeyTypePrivate ? &priv : nullptr,
+          &degree_bits)) {
     return false;
   }
-  // A provider-backed key need not expose its public point.
-  if (ec.getPublicKey() == nullptr) return false;
-
-  const auto pub = ec.getPublicKey();
-  const auto group = ec.getGroup();
-
-  int degree_bits = EC_GROUP_get_degree(group);
   int degree_bytes =
       (degree_bits / CHAR_BIT) + (7 + (degree_bits % CHAR_BIT)) / 8;
-
-  auto x = BignumPointer::New();
-  auto y = BignumPointer::New();
-
-  if (!EC_POINT_get_affine_coordinates(group, pub, x.get(), y.get(), nullptr)) {
-    ThrowCryptoError(env, ERR_get_error(),
-                     "Failed to get elliptic-curve point coordinates");
-    return false;
-  }
 
   if (!target
            ->DefineOwnProperty(
@@ -517,7 +526,7 @@ bool ExportJWKEcKey(Environment* env,
   }
 
   Local<String> crv_name;
-  const int nid = EC_GROUP_get_curve_name(group);
+  const int nid = Ec::GetCurveId(m_pkey);
   switch (nid) {
     case NID_X9_62_prime256v1:
       crv_name = env->p256_string();
@@ -544,9 +553,8 @@ bool ExportJWKEcKey(Environment* env,
   }
 
   if (key.GetKeyType() == kKeyTypePrivate) {
-    auto pvt = ec.getPrivateKey();
-    if (pvt == nullptr) return false;
-    return SetEncodedValue(env, target, env->jwk_d_string(), pvt, degree_bytes)
+    return SetEncodedValue(
+               env, target, env->jwk_d_string(), priv.get(), degree_bytes)
         .IsJust();
   }
 
@@ -738,7 +746,7 @@ KeyObjectData ImportJWKEcKey(Environment* env, Local<Object> jwk) {
       return {};
     }
     // Verify that the public point matches the private scalar (d*G == (x,y)).
-    if (!ec.checkKey()) {
+    if (!ec.checkPrivateKey()) {
       THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK EC key");
       return {};
     }
@@ -746,7 +754,10 @@ KeyObjectData ImportJWKEcKey(Environment* env, Local<Object> jwk) {
 
   auto pkey = EVPKeyPointer::New();
   if (!pkey) return {};
-  CHECK(pkey.set(ec));
+  if (!pkey.set(ec)) {
+    THROW_ERR_CRYPTO_INVALID_JWK(env, "Invalid JWK EC key");
+    return {};
+  }
 
   return KeyObjectData::CreateAsymmetric(type, std::move(pkey));
 }
@@ -758,11 +769,7 @@ bool GetEcKeyDetail(Environment* env,
   const auto& m_pkey = key.GetAsymmetricKey();
   CHECK_EQ(m_pkey.id(), EVP_PKEY_EC);
 
-  ECKeyPointer ec(m_pkey);
-  if (!ec) return true;
-
-  const auto group = ec.getGroup();
-  int nid = EC_GROUP_get_curve_name(group);
+  int nid = Ec::GetCurveId(m_pkey);
   if (nid == NID_undef) return true;
 
   return target

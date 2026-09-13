@@ -101,7 +101,7 @@ exception.
 
 | Storage class | JavaScript to SQLite                                            | SQLite to JavaScript                  |
 | ------------- | --------------------------------------------------------------- | ------------------------------------- |
-| `NULL`        | {null}                                                          | {null}                                |
+| `NULL`        | {null} or {undefined}                                           | {null}                                |
 | `INTEGER`     | {number}, {bigint}, or {boolean}                                | {number} or {bigint} _(configurable)_ |
 | `REAL`        | {number}                                                        | {number}                              |
 | `TEXT`        | {string}                                                        | {string}                              |
@@ -112,6 +112,10 @@ Booleans are written as the `INTEGER` values `1` and `0`. Like any other
 values (`1n` and `0n`) when reading BigInts is enabled. Writing a {bigint} that
 does not fit in a signed 64-bit integer throws an `ERR_INVALID_ARG_VALUE`
 error.
+
+`undefined` is written as `NULL`, so passing it explicitly is equivalent to
+omitting a named parameter. `NULL` always reads back as {null}, never
+`undefined`.
 
 APIs that read values from SQLite have a configuration option that determines
 whether `INTEGER` values are converted to `number` or `bigint` in JavaScript,
@@ -243,7 +247,8 @@ Registers a new aggregate function with the SQLite database. This method is a wr
     JavaScript numbers. **Default:** `false`.
   * `varargs` {boolean} If `true`, `options.step` and `options.inverse` may be invoked with any number of
     arguments (between zero and [`SQLITE_MAX_FUNCTION_ARG`][]). If `false`,
-    `inverse` and `step` must be invoked with exactly `length` arguments.
+    `inverse` and `step` must be invoked with exactly `length` arguments, and
+    their `length` properties must be integers.
     **Default:** `false`.
   * `start` {number | string | null | Array | Object | Function} The identity
     value for the aggregation function. This value is used when the aggregation
@@ -430,7 +435,8 @@ added:
     JavaScript numbers. **Default:** `false`.
   * `varargs` {boolean} If `true`, `function` may be invoked with any number of
     arguments (between zero and [`SQLITE_MAX_FUNCTION_ARG`][]). If `false`,
-    `function` must be invoked with exactly `function.length` arguments.
+    `function` must be invoked with exactly `function.length` arguments, which
+    must be an integer.
     **Default:** `false`.
 * `fn` {Function} The JavaScript function to call when the SQLite function is
   invoked. The return value of this function should be a valid SQLite data type:
@@ -709,7 +715,9 @@ changes:
   - version: v26.8.0
     pr-url: https://github.com/nodejs/node/pull/62757
     description: Add the `persistent` option.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/65157
     description: Throw `ERR_INVALID_ARG_VALUE` if `sql` contains no statements.
 -->
@@ -1089,6 +1097,11 @@ Binding a key that does not name a parameter of the statement throws an
 `ERR_INVALID_STATE` error unless unknown named parameters are ignored. See
 [`statement.setAllowUnknownNamedParameters()`][].
 
+Parameters that are never bound are `NULL`, and binding `undefined` has the same
+effect, so `{ $a: undefined }` and `{}` are equivalent. Because `undefined` is
+not an object, passing it in place of `namedParameters` binds it as an anonymous
+parameter instead.
+
 See [Type conversion between JavaScript and SQLite][] for the values that can be
 bound. Binding any other value throws an `ERR_INVALID_ARG_TYPE` error.
 
@@ -1097,10 +1110,17 @@ bound. Binding any other value throws an `ERR_INVALID_ARG_TYPE` error.
 <!-- YAML
 added: v22.5.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
   - version:
@@ -1112,7 +1132,8 @@ changes:
 
 * `namedParameters` {Object} An optional object used to bind named parameters.
   The keys of this object are used to configure the mapping.
-* `...anonymousParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...anonymousParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Zero or more values to bind to anonymous parameters.
 * Returns: {Array} An array of objects. Each object corresponds to a row
   returned by executing the prepared statement. The keys and values of each
@@ -1185,10 +1206,17 @@ execution of this prepared statement. This property is a wrapper around
 <!-- YAML
 added: v22.5.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
   - version:
@@ -1200,7 +1228,8 @@ changes:
 
 * `namedParameters` {Object} An optional object used to bind named parameters.
   The keys of this object are used to configure the mapping.
-* `...anonymousParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...anonymousParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Zero or more values to bind to anonymous parameters.
 * Returns: {Object|undefined} An object corresponding to the first row returned
   by executing the prepared statement. The keys and values of the object
@@ -1220,10 +1249,17 @@ added:
   - v23.4.0
   - v22.13.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
   - version:
@@ -1235,7 +1271,8 @@ changes:
 
 * `namedParameters` {Object} An optional object used to bind named parameters.
   The keys of this object are used to configure the mapping.
-* `...anonymousParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...anonymousParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Zero or more values to bind to anonymous parameters.
 * Returns: {Iterator} An iterable iterator of objects. Each object corresponds to a row
   returned by executing the prepared statement. The keys and values of each
@@ -1264,10 +1301,17 @@ executions of the same prepared statement.
 <!-- YAML
 added: v22.5.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
   - version:
@@ -1279,7 +1323,8 @@ changes:
 
 * `namedParameters` {Object} An optional object used to bind named parameters.
   The keys of this object are used to configure the mapping.
-* `...anonymousParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...anonymousParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Zero or more values to bind to anonymous parameters.
 * Returns: {Object}
   * `changes` {number|bigint} The number of rows modified, inserted, or deleted
@@ -1448,17 +1493,25 @@ class execute synchronously.
 <!-- YAML
 added: v24.9.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
 -->
 
 * `stringElements` {string\[]} Template literal elements containing the SQL
   query.
-* `...boundParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...boundParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Parameter values to be bound to placeholders in the template string.
 * Returns: {Array} An array of objects representing the rows returned by the query.
 
@@ -1473,17 +1526,25 @@ called directly.
 <!-- YAML
 added: v24.9.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
 -->
 
 * `stringElements` {string\[]} Template literal elements containing the SQL
   query.
-* `...boundParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...boundParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Parameter values to be bound to placeholders in the template string.
 * Returns: {Object | undefined} An object representing the first row returned by
   the query, or `undefined` if no rows are returned.
@@ -1498,17 +1559,25 @@ called directly.
 <!-- YAML
 added: v24.9.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
 -->
 
 * `stringElements` {string\[]} Template literal elements containing the SQL
   query.
-* `...boundParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...boundParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Parameter values to be bound to placeholders in the template string.
 * Returns: {Iterator} An iterator that yields objects representing the rows returned by the query.
 
@@ -1522,17 +1591,25 @@ called directly.
 <!-- YAML
 added: v24.9.0
 changes:
-  - version: v26.8.0
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65709
+    description: Bind `undefined` to `NULL`.
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62001
     description: Add support for boolean values in bound parameters.
-  - version: v26.8.0
+  - version:
+     - v26.8.0
+     - v24.21.0
     pr-url: https://github.com/nodejs/node/pull/62061
     description: Add support for `ArrayBuffer` and `SharedArrayBuffer` objects in bound parameters.
 -->
 
 * `stringElements` {string\[]} Template literal elements containing the SQL
   query.
-* `...boundParameters` {null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
+* `...boundParameters`
+  {undefined|null|number|bigint|boolean|string|Buffer|TypedArray|DataView|ArrayBuffer|SharedArrayBuffer}
   Parameter values to be bound to placeholders in the template string.
 * Returns: {Object} An object containing information about the execution, including `changes` and `lastInsertRowid`.
 

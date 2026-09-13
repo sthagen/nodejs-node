@@ -45,7 +45,7 @@ jobs:
     name: '${{ matrix.system }}: dependencies diff'
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 2
           persist-credentials: false
@@ -54,7 +54,7 @@ jobs:
             tools/nix/
           sparse-checkout-cone-mode: false
 
-      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342  # v31.11.0
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24  # v31.11.1
         with:
           extra_nix_config: sandbox = true
 
@@ -103,17 +103,18 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: '*.nix'
           sparse-checkout-cone-mode: false
-      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342  # v31.11.0
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24  # v31.11.1
       - name: Lint Nix files
         run: |
-          nix-shell -I nixpkgs=./tools/nix/pkgs.nix -p 'nixfmt-tree' --run '
-            treefmt --quiet --ci
-          ' && EXIT_CODE="$?" || EXIT_CODE="$?"
+          NIX_LINTER=$(nix-instantiate --eval --raw -E '(import ./shell.nix {}).NIX_LINTER')
+          # Attempt to get it from cache, and fallback to building `devTools.nix` otherwise.
+          nix-store --realise "${NIX_LINTER%/bin/*}" || nix-build -I nixpkgs=tools/nix/pkgs.nix ./tools/nix/devTools.nix --no-out-link
+          "$NIX_LINTER" --quiet --ci && EXIT_CODE="$?" || EXIT_CODE="$?"
           if [ "$EXIT_CODE" != "0" ]
           then
             git --no-pager diff || true

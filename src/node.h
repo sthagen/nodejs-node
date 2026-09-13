@@ -880,6 +880,9 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> LoadEnvironment(
     const ModuleData* entry_point,
     EmbedderPreloadCallback preload = nullptr);
 
+// Runs `env`'s event loop until its handles have closed, with JavaScript
+// execution disallowed on the isolate; see doc/api/embedding.md if that loop
+// is shared with other Environments.
 NODE_EXTERN void FreeEnvironment(Environment* env);
 
 // Set a callback that is called when process.exit() is called from JS,
@@ -1004,6 +1007,9 @@ class NODE_EXTERN CommonEnvironmentSetup {
   // will be empty.
   // env_args will be passed through as arguments to CreateEnvironment(), after
   // `isolate_data` and `context`.
+  // `snapshot_data` has to stay alive as long as the setup created from it,
+  // and every setup in a process has to use the same snapshot: all isolates
+  // are created from the blob the first one used.
   template <typename... EnvironmentArgs>
   static std::unique_ptr<CommonEnvironmentSetup> Create(
       MultiIsolatePlatform* platform,

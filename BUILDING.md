@@ -241,7 +241,7 @@ tarball and/or browse the git repository checked out at the relevant tag.
 
 ### Prerequisites
 
-* [A supported version of Python][Python versions] for building and testing.
+* [A supported version of Python][Python versions] (excludes pre-release versions) for building and testing.
 * A Rust toolchain if [building Node.js with Temporal support](#building-nodejs-with-temporal-support).
 * Memory: at least 8GB of RAM is typically required when compiling with 4 parallel jobs (e.g: `make -j4`).
 
@@ -1059,7 +1059,7 @@ Node.js supports the [Temporal](https://github.com/tc39/proposal-temporal) APIs,
 linking statically or dynamically with a version of [temporal\_rs](https://github.com/boa-dev/temporal).
 Building it requires a Rust toolchain:
 
-* rustc >= 1.86 (with LLVM >= 19)
+* rustc >= 1.88 (with LLVM >= 19)
 * cargo >= 1.86
 
 Refer to [Install Rust](https://rust-lang.org/tools/install/) for instructions.

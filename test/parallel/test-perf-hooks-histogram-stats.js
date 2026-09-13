@@ -6,6 +6,85 @@ const assert = require('assert');
 const { createHistogram, importHistogram } = require('perf_hooks');
 
 // ---------------------------------------------------------------------------
+// meanCI([options]) — confidence interval for the mean
+// ---------------------------------------------------------------------------
+{
+  const empty = createHistogram();
+  const emptyCI = empty.meanCI();
+  assert.strictEqual(Object.getPrototypeOf(emptyCI), null);
+  assert.ok(Number.isNaN(emptyCI.mean));
+  assert.ok(Number.isNaN(emptyCI.lower));
+  assert.ok(Number.isNaN(emptyCI.upper));
+
+  // A confidence interval is undefined with fewer than two samples.
+  const one = createHistogram();
+  one.record(42);
+  const oneCI = one.meanCI();
+  assert.strictEqual(oneCI.mean, 42);
+  assert.ok(Number.isNaN(oneCI.lower));
+  assert.ok(Number.isNaN(oneCI.upper));
+
+  // This known sample has a 95% Student's t confidence interval of
+  // approximately [3.334149, 7.665851].
+  const h = createHistogram();
+  for (let i = 1; i <= 10; i++) h.record(i);
+  const ci95 = h.meanCI();
+  assert.strictEqual(ci95.mean, h.mean);
+  assert.ok(Math.abs(ci95.lower - 3.3341494103866087) < 1e-6);
+  assert.ok(Math.abs(ci95.upper - 7.665850589613392) < 1e-6);
+
+  // Higher confidence produces a wider interval.
+  const ci90 = h.meanCI({ confidence: 0.90 });
+  const ci99 = h.meanCI({ confidence: 0.99 });
+  assert.ok((ci99.upper - ci99.lower) > (ci90.upper - ci90.lower));
+
+  // Very low confidence levels retain precision near the center of the
+  // distribution. With two samples, the t-distribution has one degree of
+  // freedom and the expected interval width is tan(pi * confidence / 2).
+  const two = createHistogram();
+  two.record(1);
+  two.record(2);
+  const lowConfidence = 1e-9;
+  const narrowCI = two.meanCI({ confidence: lowConfidence });
+  const expectedWidth = Math.tan(Math.PI * lowConfidence / 2);
+  const actualWidth = narrowCI.upper - narrowCI.lower;
+  assert.ok(Math.abs(actualWidth - expectedWidth) / expectedWidth < 1e-4);
+
+  // Very high confidence levels are not truncated by the quantile search.
+  const extremeCI = two.meanCI({ confidence: 0.9999999 });
+  assert.ok(extremeCI.lower < -3_000_000);
+  assert.ok(extremeCI.upper > 3_000_000);
+
+  const highestCI = two.meanCI({
+    confidence: 1 - Number.EPSILON / 2,
+  });
+  assert.ok(Number.isFinite(highestCI.lower));
+  assert.ok(Number.isFinite(highestCI.upper));
+
+  // Constant values have no sampling uncertainty.
+  const constant = createHistogram();
+  for (let i = 0; i < 100; i++) constant.record(7);
+  assert.deepStrictEqual(constant.meanCI(), {
+    __proto__: null,
+    mean: 7,
+    lower: 7,
+    upper: 7,
+  });
+
+  // Validation.
+  assert.throws(() => h.meanCI({ confidence: 0 }),
+                { code: 'ERR_OUT_OF_RANGE' });
+  assert.throws(() => h.meanCI({ confidence: 1 }),
+                { code: 'ERR_OUT_OF_RANGE' });
+  assert.throws(() => h.meanCI({ confidence: NaN }),
+                { code: 'ERR_OUT_OF_RANGE' });
+  assert.throws(() => h.meanCI({ confidence: 'high' }),
+                { code: 'ERR_INVALID_ARG_TYPE' });
+  assert.throws(() => h.meanCI(null),
+                { code: 'ERR_INVALID_ARG_TYPE' });
+}
+
+// ---------------------------------------------------------------------------
 // welchTest(other) — Welch's t-test
 // ---------------------------------------------------------------------------
 {
@@ -574,6 +653,60 @@ const { createHistogram, importHistogram } = require('perf_hooks');
     0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
     0x0a, 0x82, 0x18, 0x64, 0x01,                 // 10 (counts) = [100, 1]
   ])), { code: 'ERR_INVALID_ARG_VALUE' });
+
+  // --- Normalization offset validation ---
+
+  // lowest=1, highest=100, figures=1 produces counts_len=64. An offset
+  // at or beyond counts_len leaves normalize_index() out of bounds after
+  // its single wrap adjustment and would corrupt memory on a later
+  // record(), so it must be rejected.
+  assert.throws(() => importHistogram(new Uint8Array([
+    0xa4,                                         // map(4)
+    0x02, 0x18, 0x64,                             // 2 (highest) = 100
+    0x03, 0x01,                                   // 3 (figures) = 1
+    0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
+    0x07, 0x18, 0x40,                             // 7 (normOffset) = 64
+  ])), { code: 'ERR_INVALID_ARG_VALUE' });
+  // Offset just beyond the accepted range.
+  assert.throws(() => importHistogram(new Uint8Array([
+    0xa4,                                         // map(4)
+    0x02, 0x18, 0x64,                             // 2 (highest) = 100
+    0x03, 0x01,                                   // 3 (figures) = 1
+    0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
+    0x07, 0x18, 0x65,                             // 7 (normOffset) = 101
+  ])), { code: 'ERR_INVALID_ARG_VALUE' });
+  // Offset that cannot be represented as int32_t (2**32). Without the
+  // representability check the static_cast would wrap to 0 and accept it.
+  assert.throws(() => importHistogram(new Uint8Array([
+    0xa4,                                         // map(4)
+    0x02, 0x18, 0x64,                             // 2 (highest) = 100
+    0x03, 0x01,                                   // 3 (figures) = 1
+    0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
+    0x07, 0x1b, 0x00, 0x00, 0x00, 0x01,           // 7 (normOffset) = 2**32
+    0x00, 0x00, 0x00, 0x00,
+  ])), { code: 'ERR_INVALID_ARG_VALUE' });
+
+  // Valid offsets within [0, counts_len) are still accepted: 0 and the
+  // highest valid offset (counts_len - 1).
+  const offsetZero = importHistogram(new Uint8Array([
+    0xa4,                                         // map(4)
+    0x02, 0x18, 0x64,                             // 2 (highest) = 100
+    0x03, 0x01,                                   // 3 (figures) = 1
+    0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
+    0x07, 0x00,                                   // 7 (normOffset) = 0
+  ]));
+  assert.strictEqual(offsetZero.count, 0);
+  const offsetMax = importHistogram(new Uint8Array([
+    0xa4,                                         // map(4)
+    0x02, 0x18, 0x64,                             // 2 (highest) = 100
+    0x03, 0x01,                                   // 3 (figures) = 1
+    0x09, 0x18, 0x40,                             // 9 (countsLen) = 64
+    0x07, 0x18, 0x3f,                             // 7 (normOffset) = 63
+  ]));
+  assert.strictEqual(offsetMax.count, 0);
+  // The imported histogram with the max valid offset is recordable.
+  offsetMax.record(1);
+  assert.strictEqual(offsetMax.count, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -586,6 +719,7 @@ const { createHistogram, importHistogram } = require('perf_hooks');
   const wrongThis = {};
 
   const methods = [
+    ['meanCI', []],
     ['welchTest', [h]],
     ['mannWhitneyTest', [h]],
     ['cohensD', [h]],
@@ -633,6 +767,7 @@ const { createHistogram, importHistogram } = require('perf_hooks');
   stub[kHandle] = null;
 
   assert.strictEqual(stub.welchTest(h), undefined);
+  assert.strictEqual(stub.meanCI(), undefined);
   assert.strictEqual(stub.mannWhitneyTest(h), undefined);
   assert.strictEqual(stub.percentileCI(50), undefined);
   assert.strictEqual(stub.burnRate(0.999), undefined);

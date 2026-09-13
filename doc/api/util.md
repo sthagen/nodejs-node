@@ -1691,6 +1691,17 @@ console.log(util.isDeepStrictEqual(foo, bar, true));
 See [`assert.deepStrictEqual()`][] for more information about deep strict
 equality.
 
+## `util.markPromiseAsHandled(promise)`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `promise` {promise} The promise to mark as handled
+
+Marks a promise as handled so that unhandled rejections are ignored and are not
+reported to the `'unhandledrejection'` event.
+
 ## Class: `util.MIMEType`
 
 <!-- YAML
@@ -1899,7 +1910,9 @@ console.log(JSON.stringify(myMIMES));
 ### `MIMEType.parse(string)`
 
 <!--
-added: v26.8.0
+added:
+ - v26.8.0
+ - v24.21.0
 -->
 
 * `string` {string} The input MIME to parse

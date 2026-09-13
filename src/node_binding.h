@@ -65,6 +65,7 @@ static_assert(static_cast<int>(NM_F_LINKED) ==
   V(encoding_binding)                                                          \
   V(fs)                                                                        \
   V(fs_dir)                                                                    \
+  V(glob)                                                                      \
   V(http_parser)                                                               \
   V(locks)                                                                     \
   V(messaging)                                                                 \
@@ -168,6 +169,7 @@ void CreateInternalBindingTemplates(IsolateData* isolate_data);
 void GetInternalBinding(const v8::FunctionCallbackInfo<v8::Value>& args);
 void GetLinkedBinding(const v8::FunctionCallbackInfo<v8::Value>& args);
 void DLOpen(const v8::FunctionCallbackInfo<v8::Value>& args);
+void DLOpenBinary(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 }  // namespace binding
 

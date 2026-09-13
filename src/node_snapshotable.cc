@@ -11,6 +11,7 @@
 #include "embedded_data.h"
 #include "encoding_binding.h"
 #include "env-inl.h"
+#include "glob/node_glob.h"
 #include "node_blob.h"
 #include "node_builtins.h"
 #include "node_contextify.h"
@@ -628,10 +629,6 @@ const SnapshotData* SnapshotData::FromEmbedderWrapper(
   return data != nullptr ? data->impl_ : nullptr;
 }
 
-EmbedderSnapshotData::Pointer SnapshotData::AsEmbedderWrapper() const {
-  return EmbedderSnapshotData::Pointer{new EmbedderSnapshotData(this, false)};
-}
-
 bool SnapshotData::FromFile(SnapshotData* out, FILE* in) {
   return FromBlob(out, ReadFileSync(in));
 }
@@ -701,7 +698,8 @@ bool SnapshotData::Check() const {
 
 SnapshotData::~SnapshotData() {
   if (data_ownership == DataOwnership::kOwned &&
-      v8_snapshot_blob_data.data != nullptr) {
+      v8_snapshot_blob_data.data != nullptr &&
+      !IsFirstSnapshotBlob(v8_snapshot_blob_data.data)) {
     delete[] v8_snapshot_blob_data.data;
   }
 }
@@ -861,7 +859,9 @@ static void ResetContextSettingsBeforeSnapshot(Local<Context> context) {
 
 const std::vector<intptr_t>& SnapshotBuilder::CollectExternalReferences() {
   static auto registry = std::make_unique<ExternalReferenceRegistry>();
-  return registry->external_references();
+  static const std::vector<intptr_t>& references =
+      registry->external_references();
+  return references;
 }
 
 void SnapshotBuilder::InitializeIsolateParams(const SnapshotData* data,

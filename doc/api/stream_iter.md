@@ -401,6 +401,12 @@ const { writer, readable } = push({
 A writer is any object conforming to the Writer interface. Only `write()` is
 required; all other methods are optional.
 
+Writer arguments use Web IDL conversion semantics. A non-`Uint8Array` chunk is
+converted to a `USVString` and then UTF-8 encoded. `writev()` and
+`writevSync()` accept any iterable object whose values can be converted to
+chunks. Writer option dictionaries treat `null` as an empty dictionary and
+ignore unknown members.
+
 Each async method has a synchronous `*Sync` counterpart designed for a
 try-fallback pattern: attempt the fast synchronous path first, and fall back
 to the async version only when the synchronous call indicates it could not
@@ -417,9 +423,13 @@ writer.fail(err);  // Always synchronous, no fallback needed
 
 * {boolean|null}
 
-Returns `true` if the next write is likely to be accepted (buffered data is
-below capacity), `false` if backpressure is active, or `null` if the writer
-is closed or the consumer has disconnected.
+Returns `true` if the slots buffer has physical capacity (buffered data is
+below the configured byte budget), `false` if the budget is exhausted, or
+`null` if the writer is closed or the consumer has disconnected.
+
+This reports physical capacity independently of the backpressure policy. With
+`'drop-oldest'` or `'drop-newest'`, writes still complete when this is `false`
+by evicting buffered data or discarding the incoming data, respectively.
 
 This is a hint, not a guarantee: the state can change between the check and
 the write. Use [`ondrain()`][] to wait for capacity rather than polling.
@@ -431,7 +441,11 @@ the write. Use [`ondrain()`][] to wait for capacity rather than polling.
     the pending `end()` call; it does not fail the writer itself.
 * Returns: {Promise} Fulfills with the total number of bytes written.
 
-Signals that no more data will be written and waits for buffered data to drain.
+Signals that no more data will be written. Writes already waiting for buffer
+space remain ordered before the end of the stream, while later writes fail. If
+data is outstanding, the returned promise fulfills after the consumer pulls
+`done: true` beyond the final batch. If no data is buffered or pending, the
+writer closes immediately.
 
 #### `writer.endSync()`
 
@@ -449,14 +463,21 @@ if (result < 0) {
 }
 ```
 
-#### `writer.fail(reason)`
+#### `writer.fail([reason])`
 
 * `reason` {any}
 
 Put the writer into a terminal error state. If the writer is already closed
 or errored, this is a no-op. Unlike `write()` and `end()`, `fail()` is
 unconditionally synchronous because failing a writer is a pure state
-transition with no async work to perform.
+transition with no async work to perform. The reason is stored and propagated
+without modification. If omitted, the reason is `undefined`.
+
+#### `writer[Symbol.asyncDispose]()`
+
+If the writer is open, calls `writer.fail()`. If the writer is closing after
+`end()` or `endSync()`, waits for buffered data to drain. If the writer is
+already closed or errored, resolves immediately.
 
 #### `writer.write(chunk[, options])`
 
@@ -478,7 +499,7 @@ Synchronous write. Does not block; returns `false` if backpressure is active.
 
 #### `writer.writev(chunks[, options])`
 
-* `chunks` {Uint8Array\[]|string\[]}
+* `chunks` {Iterable} of {Uint8Array|string} values
 * `options` {Object}
   * `signal` {AbortSignal} Cancel just this write operation. The signal cancels
     only the pending `writev()` call; it does not fail the writer itself.
@@ -488,7 +509,7 @@ Write multiple chunks as a single batch.
 
 #### `writer.writevSync(chunks)`
 
-* `chunks` {Uint8Array\[]|string\[]}
+* `chunks` {Iterable} of {Uint8Array|string} values
 * Returns: {boolean} `true` if the write was accepted, `false` if the
   buffer is full.
 
@@ -506,6 +527,12 @@ import { from, pull, bytes, Stream } from 'node:stream/iter';
 // Namespace access
 Stream.from('hello');
 ```
+
+Options dictionaries defined by the Iterable Streams API use Web IDL
+conversion semantics. `null` is treated as an empty dictionary, unknown
+members are ignored, and known members are converted to their declared types
+before the operation runs. Conversion failures use Node.js error codes such as
+`ERR_INVALID_ARG_TYPE`, `ERR_INVALID_ARG_VALUE`, and `ERR_OUT_OF_RANGE`.
 
 ```cjs
 // Named exports
@@ -533,7 +560,8 @@ added:
 
 Create an async byte stream from the given input. Strings are UTF-8 encoded.
 `ArrayBuffer` and `ArrayBufferView` values are wrapped as `Uint8Array`. Arrays
-and iterables in `input` are recursively flattened and normalized.
+and iterables in `input` are recursively flattened and normalized. Flattened
+values may be split across implementation-defined bounded batches.
 
 Objects implementing `Symbol.for('Stream.toAsyncStreamable')` or
 `Symbol.for('Stream.toStreamable')` are converted via those protocols. The
@@ -605,7 +633,8 @@ added:
 * `...transforms` {Function|Object} Zero or more transforms to apply.
 * `writer` {Object} Destination with `write(chunk)` method.
 * `options` {Object}
-  * `signal` {AbortSignal} Abort the pipeline.
+  * `signal` {AbortSignal} Abort the pipeline. Aborting fails the destination
+    writer unless `preventFail` is `true`.
   * `preventClose` {boolean} If `true`, do not call `writer.end()` when
     the source ends. **Default:** `false`.
   * `preventFail` {boolean} If `true`, do not call `writer.fail()` on
@@ -688,8 +717,10 @@ added:
   * `signal` {AbortSignal} Abort the pipeline.
 * Returns: {AsyncIterable} whose chunks fulfill with {Uint8Array\[]}
 
-Create a lazy async pipeline. Data is not read from `source` until the
-returned iterable is consumed. Transforms are applied in order.
+Create a lazy async pipeline. Source conversion and streamable protocol
+dispatch occur when `pull()` is called, but data is not read from `source`
+until the returned iterable is consumed. A signal that is already aborted is
+thrown synchronously after source conversion. Transforms are applied in order.
 
 ```mjs
 import { from, pull, text } from 'node:stream/iter';
@@ -759,7 +790,8 @@ added:
 * `...transforms` {Function|Object} Zero or more sync transforms.
 * Returns: {Iterable} whose chunks return {Uint8Array\[]}
 
-Synchronous version of [`pull()`][]. All transforms must be synchronous.
+Synchronous version of [`pull()`][]. Source conversion and streamable protocol
+dispatch occur when `pullSync()` is called. All transforms must be synchronous.
 
 ## Push streams
 
@@ -779,7 +811,9 @@ added:
     **Default:** `16384`.
   * `backpressure` {string} Backpressure policy: `'strict'`, `'unbounded'`,
     `'drop-oldest'`, or `'drop-newest'`. **Default:** `'strict'`.
-  * `signal` {AbortSignal} Abort the stream.
+  * `signal` {AbortSignal} Abort the stream. The signal remains active while
+    buffered data drains after `writer.end()`; aborting during that time fails
+    the writer and rejects the pending `end()` promise.
 * Returns: {Object}
   * `writer` {Writable} The writer side.
   * `readable` {AsyncIterable} whose chunks fulfill with {Uint8Array\[]}
@@ -839,7 +873,7 @@ added:
 
 * `options` {Object}
   * `budget` {number} Buffer size in bytes for both directions.
-    **Default:** `16384`.
+    Must be >= 16384. **Default:** `16384`.
   * `backpressure` {string} Policy for both directions.
     **Default:** `'strict'`.
   * `signal` {AbortSignal} Cancellation signal for both channels.
@@ -1089,9 +1123,13 @@ added:
 * `drainable` {Object} An object implementing the drainable protocol.
 * Returns: {Promise|null}
 
-Wait for a drainable writer's backpressure to clear. Returns `null` if
-the object does not implement the drainable protocol, or a promise that
-fulfills with `true` when the writer can accept more data.
+Wait for a drainable writer to regain physical buffer capacity. Returns `null`
+if the object does not implement the drainable protocol, or a promise that
+fulfills with `true` when buffered data falls below the byte budget.
+
+For writers using `'drop-oldest'` or `'drop-newest'`, this waits for physical
+capacity even though writes do not block. This allows producers to avoid data
+loss by waiting before writing.
 
 ```mjs
 import { push, ondrain, text } from 'node:stream/iter';
@@ -1300,9 +1338,10 @@ run().catch(console.error);
 
 #### `broadcast.cancel([reason])`
 
-* `reason` {Error}
+* `reason` {any}
 
-Cancel the broadcast. All consumers receive an error.
+Cancel the broadcast. If `reason` is provided, all consumers reject with that
+exact reason. If it is omitted, consumers complete normally.
 
 #### `broadcast.consumerCount`
 
@@ -1354,6 +1393,7 @@ added:
     **Default:** `65536`.
   * `backpressure` {string} `'strict'`, `'unbounded'`, `'drop-oldest'`, or
     `'drop-newest'`. **Default:** `'strict'`.
+  * `signal` {AbortSignal}
 * Returns: {Share}
 
 Create a pull-model multi-consumer shared stream. Unlike `broadcast()`, the
@@ -1409,9 +1449,10 @@ Create a {Share} from an existing source.
 
 #### `share.cancel([reason])`
 
-* `reason` {Error}
+* `reason` {any}
 
-Cancel the share. All consumers receive an error.
+Cancel the share. If `reason` is provided, all consumers reject with that exact
+reason. If it is omitted, consumers complete normally.
 
 #### `share.consumerCount`
 
@@ -1483,9 +1524,10 @@ The number of chunks currently buffered.
 
 #### `share.cancel([reason])`
 
-* `reason` {Error}
+* `reason` {any}
 
-Cancel the share. All consumers receive an error.
+Cancel the share. If `reason` is provided, all consumers throw that exact
+reason. If it is omitted, consumers complete normally.
 
 #### `share.consumerCount`
 
@@ -1609,6 +1651,11 @@ the synchronous Writer methods (`writeSync`, `writevSync`, `endSync`) always
 return `false` or `-1`, deferring to the async path. The per-write
 `options.signal` parameter from the Writer interface is also ignored.
 
+If `writer.fail(reason)` receives a non-Error reason, the classic Writable is
+destroyed with an `ERR_FALSY_VALUE_REJECTION` or `ERR_OPERATION_FAILED` error.
+Its `reason` property contains the original value, which remains the Writer's
+stored failure reason.
+
 The result is cached per instance and backpressure policy -- calling
 `fromWritable()` twice with the same stream and `backpressure` option returns
 the same Writer.
@@ -1666,6 +1713,11 @@ added:
 Creates a byte-mode [`stream.Readable`][] from the `source`
 (the native batch format used by the stream/iter API). Each `Uint8Array` in a
 yielded batch is pushed as a separate chunk into the Readable.
+
+Classic streams cannot represent arbitrary values as emitted errors. A
+non-Error reason is wrapped in an `ERR_FALSY_VALUE_REJECTION` or
+`ERR_OPERATION_FAILED` error whose `reason` property contains the original
+value.
 
 ```mjs
 import { createWriteStream } from 'node:fs';
@@ -1750,6 +1802,11 @@ first (`writeSync` / `writevSync`), falling back to the async method if the
 sync path returns `false`. Similarly, `_final()` tries `endSync()`
 before `end()`. When the sync path succeeds, the callback is deferred via
 `queueMicrotask` to preserve the async resolution contract.
+
+Classic stream callbacks cannot represent arbitrary values as errors. A
+non-Error reason is wrapped in an `ERR_FALSY_VALUE_REJECTION` or
+`ERR_OPERATION_FAILED` error before it is passed to the callback. The error's
+`reason` property contains the original value.
 
 The Writable's `highWaterMark` is set to `Number.MAX_SAFE_INTEGER` to
 effectively disable its internal buffering, allowing the underlying Writer

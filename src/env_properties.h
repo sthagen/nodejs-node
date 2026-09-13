@@ -240,12 +240,15 @@
   V(jwk_n_string, "n")                                                         \
   V(jwk_oct_string, "oct")                                                     \
   V(jwk_okp_string, "OKP")                                                     \
+  V(jwk_oth_string, "oth")                                                     \
   V(jwk_p_string, "p")                                                         \
   V(jwk_priv_string, "priv")                                                   \
   V(jwk_pub_string, "pub")                                                     \
   V(jwk_q_string, "q")                                                         \
   V(jwk_qi_string, "qi")                                                       \
+  V(jwk_r_string, "r")                                                         \
   V(jwk_rsa_string, "RSA")                                                     \
+  V(jwk_t_string, "t")                                                         \
   V(jwk_x_string, "x")                                                         \
   V(jwk_y_string, "y")                                                         \
   V(kill_signal_string, "killSignal")                                          \
@@ -404,6 +407,7 @@
   V(writable_string, "writable")                                               \
   V(write_host_object_string, "_writeHostObject")                              \
   V(write_queue_size_string, "writeQueueSize")                                 \
+  V(write_status_string, "writeStatus")                                        \
   V(zlib_string, "zlib")                                                       \
   V(zstd_string, "zstd")
 
@@ -436,6 +440,7 @@
   V(dtls_context_constructor_template, v8::FunctionTemplate)                   \
   V(dtls_endpoint_constructor_template, v8::FunctionTemplate)                  \
   V(dtls_session_constructor_template, v8::FunctionTemplate)                   \
+  V(glob_request_template, v8::FunctionTemplate)                               \
   V(fd_constructor_template, v8::ObjectTemplate)                               \
   V(fdclose_constructor_template, v8::ObjectTemplate)                          \
   V(ffi_dynamic_library_constructor_template, v8::FunctionTemplate)            \
@@ -449,7 +454,7 @@
   V(v8_heap_statistics_template, v8::DictionaryTemplate)                       \
   V(histogram_ctor_template, v8::FunctionTemplate)                             \
   V(http2settings_constructor_template, v8::ObjectTemplate)                    \
-  V(http2stream_constructor_template, v8::ObjectTemplate)                      \
+  V(http2stream_constructor_template, v8::FunctionTemplate)                    \
   V(http2ping_constructor_template, v8::ObjectTemplate)                        \
   V(i18n_converter_template, v8::ObjectTemplate)                               \
   V(intervalhistogram_constructor_template, v8::FunctionTemplate)              \
@@ -470,7 +475,7 @@
   V(pipe_constructor_template, v8::FunctionTemplate)                           \
   V(script_context_constructor_template, v8::FunctionTemplate)                 \
   V(secure_context_constructor_template, v8::FunctionTemplate)                 \
-  V(shutdown_wrap_template, v8::ObjectTemplate)                                \
+  V(shutdown_wrap_template, v8::FunctionTemplate)                              \
   V(soa_record_template, v8::DictionaryTemplate)                               \
   V(socketaddress_constructor_template, v8::FunctionTemplate)                  \
   V(space_stats_template, v8::DictionaryTemplate)                              \
@@ -489,7 +494,7 @@
   V(urlpatterncomponentresult_template, v8::DictionaryTemplate)                \
   V(urlpatterninit_template, v8::DictionaryTemplate)                           \
   V(urlpatternresult_template, v8::DictionaryTemplate)                         \
-  V(write_wrap_template, v8::ObjectTemplate)                                   \
+  V(write_wrap_template, v8::FunctionTemplate)                                 \
   V(worker_cpu_profile_taker_template, v8::ObjectTemplate)                     \
   V(worker_cpu_usage_taker_template, v8::ObjectTemplate)                       \
   V(worker_heap_profile_taker_template, v8::ObjectTemplate)                    \

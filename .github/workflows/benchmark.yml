@@ -69,16 +69,17 @@ jobs:
         include:
           - runner: ubuntu-24.04
             system: x86_64-linux
+            perfetto: true
           - runner: ubuntu-24.04-arm
             system: aarch64-linux
           - runner: macos-15-intel
             system: x86_64-darwin
           - runner: macos-latest
             system: aarch64-darwin
-    name: '${{ matrix.system }}: with shared libraries'
+    name: '${{ matrix.system }}: with shared libraries${{ matrix.perfetto && '' and perfetto'' || '''' }}'
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: ${{ inputs.repo || github.repository }}
           ref: refs/pull/${{ inputs.pr_id }}/merge
@@ -92,7 +93,7 @@ jobs:
         env:
           EXPECTED_SHA: ${{ inputs.commit }}
 
-      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342  # v31.11.0
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24  # v31.11.1
         with:
           extra_nix_config: sandbox = true
 
@@ -105,7 +106,8 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
           script: |
-            core.exportVariable('SCCACHE_GHA_VERSION', 'on');
+            core.exportVariable('SCCACHE_GHA_ENABLED', 'on');
+            core.exportVariable('SCCACHE_GHA_RW_MODE', 'READ_ONLY');
             core.exportVariable('ACTIONS_CACHE_SERVICE_V2', 'on');
             core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
@@ -115,14 +117,16 @@ jobs:
           nix-shell \
             -I nixpkgs=./tools/nix/pkgs.nix \
             --pure --keep TAR_DIR --keep FLAKY_TESTS \
-            --keep SCCACHE_GHA_ENABLED --keep ACTIONS_CACHE_SERVICE_V2 --keep ACTIONS_RESULTS_URL --keep ACTIONS_RUNTIME_TOKEN \
+            --keep SCCACHE_GHA_ENABLED --keep SCCACHE_GHA_RW_MODE \
+            --keep ACTIONS_CACHE_SERVICE_V2 --keep ACTIONS_RESULTS_URL --keep ACTIONS_RUNTIME_TOKEN \
             --arg useSeparateDerivationForV8 true \
+            --arg withPerfetto ${{ matrix.perfetto || false }} \
             --arg loadJSBuiltinsDynamically false \
-            --arg ccache "${NIX_SCCACHE:-null}" \
+            --arg ccache '(import <nixpkgs> {}).sccache' \
             --arg devTools '[]' \
             --arg benchmarkTools '[]' \
             --run '
-                make build-ci -j4 V=1
+              make build-ci -j4 V=1 && sccache --stop-server
             '
           mv out/Release/node base_node
 
@@ -130,19 +134,22 @@ jobs:
         run: git reset FETCH_HEAD --hard
 
       - name: Re-build Node.js on the merge commit
-        # ccache is disabled here to avoid polluting the cache. Local build outputs should make this build relatively quick anyway.
+        # Keep the compiler command unchanged for incremental builds, but never cache PR build outputs.
         run: |
           nix-shell \
             -I nixpkgs=./tools/nix/pkgs.nix \
-            --pure \
+            --pure --keep SCCACHE_LOCAL_RW_MODE \
             --arg useSeparateDerivationForV8 true \
+            --arg withPerfetto ${{ matrix.perfetto || false }} \
             --arg loadJSBuiltinsDynamically false \
-            --arg ccache 'null' \
+            --arg ccache '(import <nixpkgs> {}).sccache' \
             --arg devTools '[]' \
             --arg benchmarkTools '[]' \
             --run '
                 make build-ci -j4 V=1
             '
+        env:
+          SCCACHE_LOCAL_RW_MODE: READ_ONLY
 
       - name: Run benchmark
         run: |
@@ -195,7 +202,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
@@ -211,7 +218,7 @@ jobs:
           merge-multiple: true
           path: raw-results
 
-      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342  # v31.11.0
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24  # v31.11.1
         with:
           extra_nix_config: sandbox = true
 

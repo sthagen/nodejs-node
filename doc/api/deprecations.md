@@ -774,6 +774,9 @@ the API is not useful.
 
 <!-- YAML
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/65074
+    description: Runtime deprecation.
   - version:
     - v6.12.0
     - v4.8.6
@@ -784,9 +787,10 @@ changes:
     description: Documentation-only deprecation.
 -->
 
-Type: Documentation-only
+Type: Runtime
 
-The [`domain`][] module is deprecated and should not be used.
+The [`domain`][] module is deprecated and should not be used. Loading the
+module emits a runtime deprecation warning.
 
 ### DEP0033: `EventEmitter.listenerCount()`
 
@@ -4705,7 +4709,7 @@ successfully before the response closed.
 
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v26.8.2
     pr-url: https://github.com/nodejs/node/pull/64794
     description: Runtime deprecation.
 -->
@@ -4722,7 +4726,7 @@ calling or overriding `_listen2`.
 
 <!-- YAML
 changes:
-  - version: REPLACEME
+  - version: v26.8.2
     pr-url: https://github.com/nodejs/node/pull/64342
     description: Documentation-only deprecation.
 -->

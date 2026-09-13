@@ -263,6 +263,15 @@ void IsSea(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(IsSingleExecutable());
 }
 
+void IsVfsEnabled(const FunctionCallbackInfo<Value>& args) {
+  bool enabled = false;
+  if (IsSingleExecutable()) {
+    SeaResource sea_resource = FindSingleExecutableResource();
+    enabled = static_cast<bool>(sea_resource.flags & SeaFlags::kEnableVfs);
+  }
+  args.GetReturnValue().Set(enabled);
+}
+
 void IsExperimentalSeaWarningNeeded(const FunctionCallbackInfo<Value>& args) {
   bool is_building_sea =
       !per_process::cli_options->experimental_sea_config.empty();
@@ -447,6 +456,16 @@ std::optional<SeaConfig> ParseSingleExecutableConfig(
       if (use_code_cache_value) {
         result.flags |= SeaFlags::kUseCodeCache;
       }
+    } else if (key == "useVfs") {
+      bool use_vfs;
+      if (field.value().get_bool().get(use_vfs)) {
+        FPrintF(
+            stderr, "\"useVfs\" field of %s is not a Boolean\n", config_path);
+        return std::nullopt;
+      }
+      if (use_vfs) {
+        result.flags |= SeaFlags::kEnableVfs;
+      }
     } else if (key == "assets") {
       simdjson::ondemand::object assets_object;
       if (field.value().get_object().get(assets_object)) {
@@ -563,6 +582,19 @@ std::optional<SeaConfig> ParseSingleExecutableConfig(
             "\"mainFormat\": \"module\" is not supported when "
             "\"useSnapshot\" is true\n");
     return std::nullopt;
+  }
+
+  if (static_cast<bool>(result.flags & SeaFlags::kEnableVfs)) {
+    if (static_cast<bool>(result.flags & SeaFlags::kUseSnapshot)) {
+      FPrintF(stderr,
+              "\"useVfs\" is not supported when \"useSnapshot\" is true\n");
+      return std::nullopt;
+    }
+    if (static_cast<bool>(result.flags & SeaFlags::kUseCodeCache)) {
+      FPrintF(stderr,
+              "\"useVfs\" is not supported when \"useCodeCache\" is true\n");
+      return std::nullopt;
+    }
   }
 
   if (result.main_path.empty()) {
@@ -846,11 +878,13 @@ void GetAsset(const FunctionCallbackInfo<Value>& args) {
   }
   // We cast away the constness here, the JS land should ensure that
   // the data is not mutated.
-  std::unique_ptr<v8::BackingStore> store = ArrayBuffer::NewBackingStore(
+  std::unique_ptr<v8::BackingStore> store = AdoptIntoBackingStore(
+      args.GetIsolate(),
       const_cast<char*>(it->second.data()),
       it->second.size(),
       [](void*, size_t, void*) {},
       nullptr);
+  CHECK(store);
   Local<ArrayBuffer> ab = ArrayBuffer::New(args.GetIsolate(), std::move(store));
   args.GetReturnValue().Set(ab);
 }
@@ -924,7 +958,31 @@ void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,
                 void* priv) {
+  Environment* env = Environment::GetCurrent(context);
+  Isolate* isolate = env->isolate();
+
+  if (IsSingleExecutable()) {
+    SeaResource sea_resource = FindSingleExecutableResource();
+    // Expose the main script path recorded in the SEA config so the VFS
+    // integration can place the main script at the mount point root.
+    if (static_cast<bool>(sea_resource.flags & SeaFlags::kEnableVfs)) {
+      Local<String> code_path_str;
+      if (String::NewFromUtf8(isolate,
+                              sea_resource.code_path.data(),
+                              NewStringType::kNormal,
+                              sea_resource.code_path.length())
+              .ToLocal(&code_path_str)) {
+        target
+            ->Set(context,
+                  FIXED_ONE_BYTE_STRING(isolate, "mainCodePath"),
+                  code_path_str)
+            .Check();
+      }
+    }
+  }
+
   SetMethod(context, target, "isSea", IsSea);
+  SetMethod(context, target, "isVfsEnabled", IsVfsEnabled);
   SetMethod(context,
             target,
             "isExperimentalSeaWarningNeeded",
@@ -935,6 +993,7 @@ void Initialize(Local<Object> target,
 
 void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(IsSea);
+  registry->Register(IsVfsEnabled);
   registry->Register(IsExperimentalSeaWarningNeeded);
   registry->Register(GetAsset);
   registry->Register(GetAssetKeys);

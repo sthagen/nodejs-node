@@ -87,6 +87,7 @@ A pull request is _author ready_ when:
 * There is a CI run in progress or completed.
 * There is at least one collaborator approval.
 * There are no outstanding review comments.
+* There are no conflicts with the base branch.
 
 Please always add the `author ready` label to the pull request in that case.
 Please always remove it again as soon as the conditions are not met anymore.
@@ -489,6 +490,10 @@ Revert commits with `git revert <HASH>` or `git revert <FROM>..<TO>`. The
 generated commit message will not have a subsystem and might violate line length
 rules. That is OK. Append the reason for the revert and any `Refs` or `Fixes`
 metadata. Raise a pull request like any other change.
+
+Apply `dont-land-on-v?.x` labels to the revert pull request and to its
+corresponding original pull request,
+unless the original pull request has already been backported.
 
 ### Introducing new modules
 
