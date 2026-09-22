@@ -214,6 +214,17 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
 
   inline v8::Local<v8::String> async_wrap_provider(int index) const;
 
+  // Symbols used by the FFI fast-call API to key per-function metadata on raw
+  // FFI functions. Kept out of env_properties.h so they are created lazily at
+  // runtime, not while the startup snapshot is built (allocating Symbols during
+  // serialization advances the isolate's identity-hash RNG, which can shift the
+  // snapshot hashes for Object.prototype/Function.prototype and make a function
+  // map and a plain-object map collide in V8's NormalizedMapCache).
+  inline v8::Local<v8::Symbol> ffi_fast_arguments_symbol() const;
+  inline void set_ffi_fast_arguments_symbol(v8::Local<v8::Symbol> value);
+  inline v8::Local<v8::Symbol> ffi_fast_buffer_invoke_symbol() const;
+  inline void set_ffi_fast_buffer_invoke_symbol(v8::Local<v8::Symbol> value);
+
   size_t max_young_gen_size = 1;
   std::unordered_map<const char*, v8::Eternal<v8::String>> static_str_map;
 
@@ -253,6 +264,9 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
   v8::Eternal<v8::String> Name##_permission_string##_;
   PERMISSIONS(V)
 #undef V
+
+  v8::Eternal<v8::Symbol> ffi_fast_arguments_symbol_;
+  v8::Eternal<v8::Symbol> ffi_fast_buffer_invoke_symbol_;
 
   // Keep a list of all Persistent strings used for AsyncWrap Provider types.
   std::array<v8::Eternal<v8::String>, AsyncWrap::PROVIDERS_LENGTH>
@@ -640,6 +654,7 @@ struct SnapshotData {
   // The result of v8::SnapshotCreator::CreateBlob() during the snapshot
   // building process.
   v8::StartupData v8_snapshot_blob_data{nullptr, 0};
+  DataOwnership v8_snapshot_blob_data_ownership = DataOwnership::kOwned;
 
   IsolateDataSerializeInfo isolate_data_info;
   // TODO(joyeecheung): there should be a vector of env_info once we snapshot
@@ -659,7 +674,11 @@ struct SnapshotData {
   bool Check() const;
   static bool FromFile(SnapshotData* out, FILE* in);
   static bool FromBlob(SnapshotData* out, const std::vector<char>& in);
-  static bool FromBlob(SnapshotData* out, std::string_view in);
+  // If the V8 data is not owned, `in` must outlive `out`.
+  static bool FromBlob(
+      SnapshotData* out,
+      std::string_view in,
+      DataOwnership v8_snapshot_blob_data_ownership = DataOwnership::kOwned);
   static const SnapshotData* FromEmbedderWrapper(
       const EmbedderSnapshotData* data);
 
@@ -897,6 +916,7 @@ class Environment final : public MemoryRetainer {
   inline bool no_global_search_paths() const;
   inline bool should_start_debug_signal_handler() const;
   inline bool no_browser_globals() const;
+  inline bool no_addon_permission_for_linked_bindings() const;
   inline uint64_t thread_id() const;
   inline std::string_view thread_name() const;
   inline worker::Worker* worker_context() const;
@@ -957,6 +977,12 @@ class Environment final : public MemoryRetainer {
 #undef VS
 #undef VY
 #undef VP
+
+  // Runtime-created FFI fast-call API Symbols (see IsolateData).
+  inline v8::Local<v8::Symbol> ffi_fast_arguments_symbol() const;
+  inline void set_ffi_fast_arguments_symbol(v8::Local<v8::Symbol> value);
+  inline v8::Local<v8::Symbol> ffi_fast_buffer_invoke_symbol() const;
+  inline void set_ffi_fast_buffer_invoke_symbol(v8::Local<v8::Symbol> value);
 
 #define V(Name, label, _, __)                                                  \
   inline v8::Local<v8::String> Name##_permission_string() const;

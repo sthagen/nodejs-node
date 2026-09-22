@@ -35,10 +35,6 @@ test-performance-function: PASS, FLAKY
 # https://github.com/nodejs/node/issues/54346
 test-esm-loader-hooks-inspect-wait: PASS, FLAKY
 
-[$system==linux && $arch==s390x]
-# https://github.com/nodejs/node/issues/58353
-test-http2-debug: PASS, FLAKY
-
 [$system==macos]
 # https://github.com/nodejs/node/issues/42741
 test-http-server-headers-timeout-keepalive: PASS,FLAKY
@@ -152,3 +148,12 @@ test-cluster-primary-error: PASS, FLAKY
 [$arch==loong64]
 # https://github.com/nodejs/node/issues/51662
 test-http-correct-hostname: SKIP
+
+[$arch==riscv64]
+# Snapshot test works in some environments but not others for now on RISC-V
+test-snapshot-reproducible: PASS, FLAKY
+# styletext ones are failing in jenkins but pass standalone so something
+# odd is happening to the ttys when run via java. tty issue
+# https://github.com/nodejs/build/issues/4099#issuecomment-5070947806
+test-util-styletext: PASS, FLAKY
+test-util-styletext-hex: PASS, FLAKY

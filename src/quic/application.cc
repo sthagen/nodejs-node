@@ -207,9 +207,11 @@ Session::Application::ExtractSessionTicketAppData(
              : SessionTicket::AppData::Status::TICKET_USE;
 }
 
-void Session::Application::ReceiveStreamClose(Stream* stream,
+void Session::Application::ReceiveStreamClose(stream_id id,
+                                              Stream* stream,
                                               QuicError&& error) {
-  DCHECK_NOT_NULL(stream);
+  // Stream may be nullptr if our side is already gone
+  if (stream == nullptr) return;
   stream->Destroy(std::move(error));
 }
 
@@ -338,11 +340,6 @@ class DefaultApplication final : public Session::Application {
   }
 
   int GetStreamData(Session::StreamData* stream_data) override {
-    // Reset the state of stream_data before proceeding...
-    stream_data->id = -1;
-    stream_data->count = 0;
-    stream_data->fin = false;
-    stream_data->stream.reset();
     Debug(&session(), "Default application getting stream data");
     DCHECK_NOT_NULL(stream_data);
     // If the queue is empty, there aren't any streams with data yet

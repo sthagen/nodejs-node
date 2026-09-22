@@ -854,13 +854,17 @@ added:
   - v20.18.0
 -->
 
-* Returns: {Object}
+* Type: {Object}
   * `loopCount` {number} Number of event loop iterations.
   * `events` {number} Number of events that have been processed by the event handler.
   * `eventsWaiting` {number} Number of events that were waiting to be processed when the event provider was called.
 
 This is a wrapper to the `uv_metrics_info` function.
 It returns the current set of event loop metrics.
+
+The values are exact up to `Number.MAX_SAFE_INTEGER`. Use
+[`performanceNodeTiming.uvMetricsInfoBigInt`][] to obtain the full 64-bit
+values reported by libuv.
 
 It is recommended to use this property inside a function whose execution was
 scheduled using `setImmediate` to avoid collecting metrics before finishing all
@@ -879,6 +883,41 @@ import { performance } from 'node:perf_hooks';
 
 setImmediate(() => {
   console.log(performance.nodeTiming.uvMetricsInfo);
+});
+```
+
+### `performanceNodeTiming.uvMetricsInfoBigInt`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* Type: {Object}
+  * `loopCount` {bigint} Number of event loop iterations.
+  * `events` {bigint} Number of events that have been processed by the event handler.
+  * `eventsWaiting` {bigint} Number of events that were waiting to be processed when the event provider was called.
+
+The same as [`performanceNodeTiming.uvMetricsInfo`][], except that the values
+are {bigint}s carrying the full 64-bit range reported by libuv.
+
+Because `JSON.stringify()` cannot serialize {bigint} values, this property is
+not enumerable and is not included in the output of
+`performanceNodeTiming.toJSON()`. Copies of `performance.nodeTiming` made by
+spreading its enumerable properties, for example, remain serializable.
+
+```cjs
+const { performance } = require('node:perf_hooks');
+
+setImmediate(() => {
+  console.log(performance.nodeTiming.uvMetricsInfoBigInt);
+});
+```
+
+```mjs
+import { performance } from 'node:perf_hooks';
+
+setImmediate(() => {
+  console.log(performance.nodeTiming.uvMetricsInfoBigInt);
 });
 ```
 
@@ -1094,7 +1133,7 @@ before Node.js receives the first byte of the response from the server.
 ### `performanceResourceTiming.finalResponseHeadersStart`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Type: {number}
@@ -1106,7 +1145,7 @@ as opposed to an interim response.
 ### `performanceResourceTiming.firstInterimResponseStart`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Type: {number}
@@ -1122,7 +1161,7 @@ added:
   - v18.2.0
   - v16.17.0
 changes:
-  - version: REPLACEME
+  - version: v26.9.0
     pr-url: https://github.com/nodejs/node/pull/65017
     description: This property now returns `firstInterimResponseStart`
                  when it is non-zero.
@@ -1217,7 +1256,7 @@ content-codings.
 ### `performanceResourceTiming.renderBlockingStatus`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Type: {string}
@@ -1227,7 +1266,7 @@ The render blocking status of the resource. It is either `'blocking'` or `'non-b
 ### `performanceResourceTiming.contentType`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Type: {string}
@@ -1238,7 +1277,7 @@ string if it cannot be determined.
 ### `performanceResourceTiming.contentEncoding`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Type: {string}
@@ -1718,10 +1757,65 @@ added:
 
 Returns a {RecordableHistogram}.
 
+## `perf_hooks.createSlidingWindowHistogram(options)`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+* `options` {Object}
+  * `chunks` {number} The number of histogram chunks retained. Must be an
+    integer between `1` and `1024`.
+  * `chunkDuration` {number} The duration of each chunk in milliseconds. Must
+    be an integer between `1` and `18_446_744_073_709`. Exactly one of
+    `chunkDuration` and `recordsPerChunk` must be specified.
+  * `recordsPerChunk` {number} The number of calls to `record()` assigned to
+    each chunk. Must be an integer between `1` and `Number.MAX_SAFE_INTEGER`.
+    Exactly one of `chunkDuration` and `recordsPerChunk` must be specified.
+  * `lowest` {number|bigint} The lowest discernible value. Must be an integer
+    value greater than `0`. **Default:** `1`.
+  * `highest` {number|bigint} The highest recordable value. Must be an integer
+    value that is equal to or greater than two times `lowest`.
+    **Default:** `Number.MAX_SAFE_INTEGER`.
+  * `figures` {number} The number of accuracy digits. Must be an integer between
+    `1` and `5`. **Default:** `3`.
+* Returns: {SlidingWindowHistogram}
+
+Creates a {SlidingWindowHistogram} that retains the latest `chunks` histogram
+chunks. Rotation is lazy and does not create a timer. Time-based rotation is
+evaluated when `record()` or `snapshot()` is called. Count-based rotation is
+evaluated when `record()` is called.
+
+One histogram chunk is allocated during construction. Additional chunks are
+allocated lazily. The maximum native memory used by the window scales with
+`chunks` and with the `lowest`, `highest`, and `figures` histogram options.
+
+The window boundary has chunk-level precision. With `N` chunks of duration
+`D`, a recorded value is retained for between `(N - 1) * D` and `N * D`
+milliseconds. Once a count-based window is populated, it retains between
+`(N - 1) * C + 1` and `N * C` recording attempts, where `C` is
+`recordsPerChunk`. Recording attempts which exceed `highest` are included when
+determining count-based rotation.
+
+```js
+const { createSlidingWindowHistogram } = require('node:perf_hooks');
+
+const window = createSlidingWindowHistogram({
+  chunks: 6,
+  chunkDuration: 10_000,
+});
+
+window.record(20_000_000);
+
+// Materialize the current window as an independent Histogram.
+const snapshot = window.snapshot();
+console.log(snapshot.percentile(99));
+```
+
 ## `perf_hooks.importHistogram(data)`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * `data` {Uint8Array} A CBOR-encoded histogram previously produced by
@@ -2124,7 +2218,7 @@ loop delay threshold.
 ### `histogram.export()`
 
 <!-- YAML
-added: v24.21.0
+added: v26.9.0
 -->
 
 * Returns: {Uint8Array}
@@ -2315,7 +2409,7 @@ The mean of the recorded event loop delays.
 ### `histogram.meanCI([options])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * `options` {Object}
@@ -2470,7 +2564,7 @@ efficient pass over the histogram data. More efficient than calling
 ### `histogram.qrde([options])`
 
 <!-- YAML
-added: REPLACEME
+added: v26.10.0
 -->
 
 * `options` {Object}
@@ -2724,6 +2818,54 @@ added:
 Subtracts the values of `other` from this histogram. Both histograms should
 have compatible configurations. Bucket counts that would become negative
 are clamped to zero.
+
+## Class: `SlidingWindowHistogram`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+Records values into a lazily rotated ring of histogram chunks. Instances are
+created using [`perf_hooks.createSlidingWindowHistogram()`][] and cannot be
+constructed directly. A `SlidingWindowHistogram` does not extend {Histogram};
+call `snapshot()` to materialize the current window as a {Histogram}.
+
+`SlidingWindowHistogram` instances cannot be cloned or transferred through a
+{MessagePort}.
+
+### `slidingWindowHistogram.record(val)`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+* `val` {number|bigint} The amount to record.
+
+Records `val` in the current chunk. For a count-based window, every call that
+reaches the native histogram counts toward rotation, including values which
+exceed the configured `highest` value.
+
+### `slidingWindowHistogram.reset()`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+Invalidates all chunks in the current window. Allocated chunks are reset
+lazily when reused.
+
+### `slidingWindowHistogram.snapshot()`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+* Returns: {Histogram}
+
+Materializes the current window as a new, independent {Histogram}. Values
+recorded or expired after this method returns do not change the returned
+histogram. Materialization allocates one histogram and merges every retained
+chunk.
 
 ## Histogram analysis examples
 
@@ -3155,10 +3297,13 @@ dns.promises.resolve('localhost');
 [`'exit'`]: process.md#event-exit
 [`child_process.spawnSync()`]: child_process.md#child_processspawnsynccommand-args-options
 [`histogram.export()`]: #histogramexport
+[`perf_hooks.createSlidingWindowHistogram()`]: #perf_hookscreateslidingwindowhistogramoptions
 [`perf_hooks.eventLoopUtilization()`]: #perf_hookseventlooputilizationutilization1-utilization2
 [`perf_hooks.importHistogram()`]: #perf_hooksimporthistogramdata
 [`perf_hooks.monitorEventLoopDelay()`]: #perf_hooksmonitoreventloopdelayoptions
 [`perf_hooks.timerify()`]: #perf_hookstimerifyfn-options
+[`performanceNodeTiming.uvMetricsInfoBigInt`]: #performancenodetiminguvmetricsinfobigint
+[`performanceNodeTiming.uvMetricsInfo`]: #performancenodetiminguvmetricsinfo
 [`process.hrtime()`]: process.md#processhrtimetime
 [`timeOrigin`]: https://w3c.github.io/hr-time/#dom-performance-timeorigin
 [`window.performance.toJSON`]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/toJSON

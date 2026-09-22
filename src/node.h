@@ -210,8 +210,10 @@ enum Flags : uint32_t {
   kNoICU = 1 << 3,
   // Do not modify stdio file descriptor or TTY state.
   kNoStdioInitialization = 1 << 4,
-  // Do not register Node.js-specific signal handlers
-  // and reset other signal handlers to default state.
+  // Do not register Node.js-specific signal handlers, reset other signal
+  // handlers to default state, or replace the calling thread's signal mask
+  // (without this flag, POSIX builds with the inspector set it to block
+  // SIGUSR1 and nothing else).
   kNoDefaultSignalHandling = 1 << 5,
   // Do not perform V8 initialization.
   kNoInitializeV8 = 1 << 6,
@@ -649,7 +651,12 @@ enum Flags : uint64_t {
   // Controls whether the InspectorAgent created for this Environment waits for
   // Inspector frontend events during the Environment creation. It's used to
   // call node::Stop(env) on a Worker thread that is waiting for the events.
-  kNoWaitForInspectorFrontend = 1 << 11
+  kNoWaitForInspectorFrontend = 1 << 11,
+  // Set this flag to exempt process._linkedBinding() from the permission
+  // model's addon scope (--allow-addons): linked bindings are compiled into
+  // the executable by the embedder, unlike addons loaded from the file system
+  // through process.dlopen(), which stays gated. Inherited by worker threads.
+  kNoAddonPermissionForLinkedBindings = 1 << 12
 };
 }  // namespace EnvironmentFlags
 

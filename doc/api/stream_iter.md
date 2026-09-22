@@ -1374,7 +1374,8 @@ added:
 
 * `input` {AsyncIterable|Iterable|BroadcastChannel}
 * `options` {Object} Same as `broadcast()`.
-* Returns: {Object} `{ writer, broadcast }`
+* Returns: {BroadcastChannel|Object} A `broadcastProtocol` input returns its
+  {BroadcastChannel} directly. Other inputs return `{ writer, broadcast }`.
 
 Create a {BroadcastChannel} from an existing source. The source is consumed
 automatically and pushed to all subscribers.
@@ -1497,10 +1498,18 @@ added:
 * `options` {Object}
   * `budget` {number} Must be >= 16384.
     **Default:** `65536`.
-  * `backpressure` {string} **Default:** `'strict'`.
+  * `backpressure` {string} `'strict'`, `'drop-oldest'`, or `'drop-newest'`.
+    **Default:** `'strict'`.
 * Returns: {SyncShare}
 
 Synchronous version of [`share()`][].
+
+Because there is no way to wait in a synchronous context, `'unbounded'` is not
+supported and throws `ERR_INVALID_ARG_VALUE`. With `'drop-newest'`, a consumer
+that reaches the end of the buffer while the budget is exhausted discards a
+single entry from the source and then returns `{ done: true }` without a
+value; the consumer is not detached, so it can resume once the slowest
+consumer advances and releases budget.
 
 ### Class: `SyncShare`
 
@@ -1875,7 +1884,7 @@ class MessageBus {
 }
 
 const bus = new MessageBus();
-const { broadcast } = Broadcast.from(bus);
+const broadcast = Broadcast.from(bus);
 const consumer = broadcast.push();
 bus.send('hello');
 bus.close();
@@ -1911,7 +1920,7 @@ class MessageBus {
 }
 
 const bus = new MessageBus();
-const { broadcast } = Broadcast.from(bus);
+const broadcast = Broadcast.from(bus);
 const consumer = broadcast.push();
 bus.send('hello');
 bus.close();

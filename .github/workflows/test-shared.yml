@@ -36,6 +36,7 @@ on:
       - deps/uvwasi/**
       - deps/v8/third_party/abseil-cpp/**
       - deps/v8/third_party/highway/**
+      - deps/v8/third_party/simdutf/**
       - deps/zlib/**
       - deps/zstd/**
       - doc/**
@@ -92,6 +93,7 @@ on:
       - deps/uvwasi/**
       - deps/v8/third_party/abseil-cpp/**
       - deps/v8/third_party/highway/**
+      - deps/v8/third_party/simdutf/**
       - deps/zlib/**
       - deps/zstd/**
       - doc/**
@@ -159,7 +161,7 @@ jobs:
           - runner: macos-latest
             system: aarch64-darwin
     name: '${{ matrix.system }}: with shared libraries${{ matrix.perfetto && '' and perfetto'' || '''' }}'
-    uses: ./.github/workflows/build-shared.yml
+    uses: $/.github/workflows/build-shared.yml
     with:
       runner: ${{ matrix.runner }}
       with-sccache: ${{ github.base_ref == 'main' || github.ref_name == 'main' }}
@@ -206,7 +208,7 @@ jobs:
           [ "$(curl -ISsw "%{http_code}" -o /dev/null "https://nodejs.cachix.org/$(basename ${V8_STORE_PATH%-v8-*}).narinfo")" != "200" ] ||
             echo "ALREADY_CACHED=true" >> "$GITHUB_OUTPUT"
 
-      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71  # v17
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866  # v17
         if: ${{ steps.v8-drv.outputs.ALREADY_CACHED != 'true' }}
         with:
           name: nodejs
@@ -250,7 +252,7 @@ jobs:
       matrix:
         openssl: ${{ fromJSON(needs.build-aarch64-linux-v8.outputs.matrix) }}
     name: 'aarch64-linux: with shared ${{ matrix.openssl.name }}'
-    uses: ./.github/workflows/build-shared.yml
+    uses: $/.github/workflows/build-shared.yml
     with:
       runner: ubuntu-24.04-arm
       v8-nar: ${{ needs.build-aarch64-linux-v8.outputs.local-cache && 'libv8-aarch64-linux.nar' }}

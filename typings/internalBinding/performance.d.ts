@@ -76,6 +76,20 @@ declare namespace InternalPerformanceBinding {
     subtract(other: Histogram): number;
   }
 
+  class SlidingWindowHistogram {
+    constructor(
+      lowest: number | bigint,
+      highest: number | bigint,
+      figures: number,
+      chunks: number,
+      timeBased: boolean,
+      rotateAt: bigint,
+    );
+    record(value: number | bigint): void;
+    snapshot(): Histogram;
+    reset(): void;
+  }
+
   interface Constants {
     NODE_PERFORMANCE_GC_MAJOR: number;
     NODE_PERFORMANCE_GC_MINOR: number;
@@ -116,12 +130,13 @@ type PerformanceObserverCallback =
 
 export interface PerformanceBinding {
   Histogram: typeof InternalPerformanceBinding.Histogram;
+  SlidingWindowHistogram:
+    typeof InternalPerformanceBinding.SlidingWindowHistogram;
   constants: InternalPerformanceBinding.Constants;
   observerCounts: Uint32Array;
   milestones: Float64Array;
   setupObservers(callback: PerformanceObserverCallback): void;
-  installGarbageCollectionTracking(): void;
-  removeGarbageCollectionTracking(): void;
+  updateGarbageCollectionTracking(): void;
   notify(type: string, entry: unknown): void;
   loopIdleTime(): number;
   createELDHistogram(
@@ -129,6 +144,8 @@ export interface PerformanceBinding {
     samplePerIteration: boolean,
   ): InternalPerformanceBinding.ELDHistogram;
   markBootstrapComplete(): void;
-  uvMetricsInfo(): [number, number, number];
+  uvMetricsInfo(): void;
+  uvMetricsBuffer: Float64Array;
+  uvMetricsBigIntBuffer: BigUint64Array;
   now(): number;
 }

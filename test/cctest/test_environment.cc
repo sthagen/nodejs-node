@@ -343,9 +343,8 @@ TEST_F(EnvironmentTest, RemoveEnvironmentCleanupHookDuringCleanup) {
 TEST_F(EnvironmentTest, MultipleEnvironmentsPerIsolate) {
   const v8::HandleScope handle_scope(isolate_);
   const Argv argv;
-  // Only one of the Environments can have default flags and own the inspector.
   Env env1 {handle_scope, argv};
-  Env env2 {handle_scope, argv, node::EnvironmentFlags::kNoFlags};
+  Env env2{handle_scope, argv};
 
   AtExit(*env1, at_exit_callback1, nullptr);
   AtExit(*env2, at_exit_callback2, nullptr);
@@ -361,12 +360,15 @@ TEST_F(EnvironmentTest, WorkerInEnvironmentWithoutSnapshot) {
   const v8::HandleScope handle_scope(isolate_);
   const Argv argv;
   Env env{handle_scope, argv};
-  CHECK_NULL(isolate_data_->snapshot_data());
-  node::LoadEnvironment(*env,
-                        "const { Worker } = require('worker_threads');"
-                        "new Worker('process.exit(0)', { eval: true });")
-      .ToLocalChecked();
-  EXPECT_EQ(node::SpinEventLoop(*env).FromJust(), 0);
+  // When using certain experimental compile options, snapshot data may
+  // not exist. Skip in that case.
+  if (isolate_data_->snapshot_data()) {
+    node::LoadEnvironment(*env,
+                          "const { Worker } = require('worker_threads');"
+                          "new Worker('process.exit(0)', { eval: true });")
+        .ToLocalChecked();
+    EXPECT_EQ(node::SpinEventLoop(*env).FromJust(), 0);
+  }
 }
 
 TEST_F(EnvironmentTest, StopFromExitHandlerDoesNotLeakIntoNextEnvironment) {
@@ -430,6 +432,87 @@ TEST_F(EnvironmentTest, SharedIsolateDataLoadsBindingsTwice) {
   Env env2{handle_scope, argv, node::EnvironmentFlags::kNoCreateInspector};
   node::LoadEnvironment(*env2, script).ToLocalChecked();
   EXPECT_EQ(node::SpinEventLoop(*env2).FromJust(), 0);
+}
+
+#if HAVE_INSPECTOR
+TEST_F(EnvironmentTest, WorkerConnectToMainThreadWithoutInspector) {
+  const v8::HandleScope handle_scope(isolate_);
+  const Argv argv;
+  Env env{handle_scope, argv, node::EnvironmentFlags::kNoCreateInspector};
+  node::LoadEnvironment(
+      *env,
+      "const { Worker } = require('worker_threads');"
+      "const w = new Worker(`"
+      "  const { Session } = require('inspector');"
+      "  try { new Session().connectToMainThread(); }"
+      "  catch (e) { process.exit(e.code === 'ERR_INSPECTOR_NOT_AVAILABLE' ?"
+      "    0 : 2); }"
+      "  process.exit(3);"
+      "`, { eval: true });"
+      "w.on('exit', (code) => { process.exitCode = code; });")
+      .ToLocalChecked();
+  EXPECT_EQ(node::SpinEventLoop(*env).FromJust(), 0);
+}
+#endif  // HAVE_INSPECTOR
+
+static int cleanup_hook_runs = 0;
+static void CountingCleanupHook(void* arg) {
+  cleanup_hook_runs++;
+}
+
+TEST_F(EnvironmentTest, SameCleanupHookInTwoEnvironmentsOnOneIsolate) {
+  const v8::HandleScope handle_scope(isolate_);
+  const Argv argv;
+  cleanup_hook_runs = 0;
+  {
+    Env env1{handle_scope, argv};
+    {
+      Env env2{handle_scope, argv, node::EnvironmentFlags::kNoCreateInspector};
+      {
+        v8::Context::Scope context_scope(env1.context());
+        node::AddEnvironmentCleanupHook(isolate_, CountingCleanupHook, nullptr);
+      }
+      node::AddEnvironmentCleanupHook(isolate_, CountingCleanupHook, nullptr);
+    }
+    EXPECT_EQ(cleanup_hook_runs, 1);
+  }
+  EXPECT_EQ(cleanup_hook_runs, 2);
+}
+
+TEST_F(EnvironmentTest, RemoveCleanupHookOfOtherEnvironmentOnSameIsolate) {
+  const v8::HandleScope handle_scope(isolate_);
+  const Argv argv;
+  cleanup_hook_runs = 0;
+  int arg;
+  {
+    Env env1{handle_scope, argv};
+    node::AddEnvironmentCleanupHook(isolate_, CountingCleanupHook, &arg);
+    Env env2{handle_scope, argv, node::EnvironmentFlags::kNoCreateInspector};
+    // env2's context is current; the hook belongs to env1.
+    node::RemoveEnvironmentCleanupHook(isolate_, CountingCleanupHook, &arg);
+  }
+  EXPECT_EQ(cleanup_hook_runs, 0);
+}
+
+struct SelfRemovingHook {
+  v8::Isolate* isolate;
+  bool ran = false;
+  static void Run(void* arg) {
+    SelfRemovingHook* self = static_cast<SelfRemovingHook*>(arg);
+    self->ran = true;
+    node::RemoveEnvironmentCleanupHook(self->isolate, Run, arg);
+  }
+};
+
+TEST_F(EnvironmentTest, CleanupHookRemovesItselfWhileRunning) {
+  const v8::HandleScope handle_scope(isolate_);
+  const Argv argv;
+  SelfRemovingHook hook{isolate_};
+  {
+    Env env{handle_scope, argv};
+    node::AddEnvironmentCleanupHook(isolate_, SelfRemovingHook::Run, &hook);
+  }
+  EXPECT_TRUE(hook.ran);
 }
 
 TEST_F(EnvironmentTest, NoEnvironmentSanity) {

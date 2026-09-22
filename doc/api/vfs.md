@@ -93,6 +93,65 @@ const memoryVfs = vfs.create();
 const realVfs = vfs.create(new vfs.RealFSProvider('/tmp/vfs-root'));
 ```
 
+## `vfs.registerProvider(entry)`
+
+<!-- YAML
+added: v26.10.0
+-->
+
+* `entry` {Object}
+  * `name` {string} A short identifier, used in diagnostics.
+  * `canHandle` {Function} Called with the resolved path and its
+    [`fs.Stats`][]. Returns `true` if this provider should back the source.
+  * `create` {Function} Called with the resolved path and its [`fs.Stats`][].
+    Returns the {VirtualProvider} backing the source.
+
+Registers a provider that [`--vfs-mount`][] can select for a source it
+recognizes, so a file format Node.js has no built-in provider for can still be
+mounted.
+
+A source is claimed by the first provider whose `canHandle()` returns `true`.
+Registered providers are consulted before the built-in ones, newest
+registration first, and are offered directories as well as files, so a
+registered provider can back, wrap, or vet any source. If none claims the
+source, the built-in providers handle it: a directory with
+[`RealFSProvider`][], and a file whose bytes are a ZIP archive with
+[`ZipProvider`][].
+
+Providers must be registered before the mounts are created. Register from a
+module preloaded with [`--require`][] or [`--import`][]:
+
+```cjs
+// provider.js, preloaded with --require
+const fs = require('node:fs');
+const vfs = require('node:vfs');
+
+const MAGIC = Buffer.from('CUSTOMFMT');
+
+vfs.registerProvider({
+  name: 'customfmt',
+  canHandle(path, stats) {
+    if (!stats.isFile()) return false;
+    const head = Buffer.alloc(MAGIC.length);
+    const fd = fs.openSync(path, 'r');
+    try {
+      fs.readSync(fd, head, 0, MAGIC.length, 0);
+    } finally {
+      fs.closeSync(fd);
+    }
+    return head.equals(MAGIC);
+  },
+  create(path) {
+    return new MyCustomProvider(path);
+  },
+});
+```
+
+```console
+$ node --experimental-vfs --require ./provider.js \
+       --vfs-load archive.customfmt
+```
+
 ## Class: `VirtualFileSystem`
 
 <!-- YAML
@@ -117,7 +176,7 @@ added: v26.4.0
 ### `vfs.mount()`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * Returns: {string} The absolute mount point.
@@ -172,7 +231,7 @@ fs.existsSync(`${mountPoint}/data.txt`); // false
 ### `vfs.unmount()`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 Unmounts the virtual file system. After unmounting, virtual files
@@ -185,7 +244,7 @@ currently mounted has no effect.
 ### `vfs.mounted`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * {boolean}
@@ -195,7 +254,7 @@ added: REPLACEME
 ### `vfs.mountPoint`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * {string | null}
@@ -207,7 +266,7 @@ mounted.
 ### `vfs.mountPointURL`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * {string | null}
@@ -425,6 +484,12 @@ addon's bytes are read from the VFS and loaded from a private, self-cleaning
 temporary image instead. Addons on the real file system are unaffected and
 load directly.
 
+Shared libraries opened through [`ffi.dlopen()`][] (or
+[`new ffi.DynamicLibrary()`][]) work the same way: a library path inside a
+mounted VFS is detected, its bytes are read from the VFS, and the library is
+loaded from a private, self-cleaning image while `library.path` keeps
+reporting the virtual path. Libraries on the real file system load directly.
+
 ## Use with Single Executable Applications
 
 When running as a [Single Executable Application][] built with
@@ -452,6 +517,11 @@ is loaded from inside the mount through the ESM loader, and
 
 `"useVfs"` cannot be used together with `"useSnapshot"` or `"useCodeCache"`.
 The SEA configuration parser will error if either combination is detected.
+
+Instead of listing individual `"assets"`, the SEA configuration can point
+`"vfsArchive"` at a prebuilt ZIP archive; the mount is then backed by a
+[`ZipProvider`][] over the embedded archive, and each file is inflated when
+it is read. See [Serving the assets from a ZIP archive][] for details.
 
 See the [Single Executable Application][] documentation for more information
 on creating SEA builds with assets.
@@ -565,7 +635,7 @@ The resolved absolute path used as the root.
 ## Class: `ZipProvider`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 A provider that exposes the entries of a ZIP archive - either a
@@ -606,7 +676,7 @@ main();
 ### `new ZipProvider(source)`
 
 <!-- YAML
-added: REPLACEME
+added: v26.9.0
 -->
 
 * `source` {zlib.ZipBuffer|zlib.ZipFile} An already-open archive.
@@ -628,15 +698,21 @@ fields use synthetic but stable values:
 [CommonJS resolution algorithm]: modules.md#all-together
 [ES modules resolution algorithm]: esm.md#resolution-algorithm
 [Explicit Resource Management]: https://github.com/tc39/proposal-explicit-resource-management
+[Serving the assets from a ZIP archive]: single-executable-applications.md#serving-the-assets-from-a-zip-archive-with-vfsarchive
 [Single Executable Application]: single-executable-applications.md
+[`--import`]: cli.md#--importmodule
+[`--require`]: cli.md#-r---require-module
+[`--vfs-mount`]: cli.md#--vfs-mountsource
 [`MemoryProvider`]: #class-memoryprovider
 [`RealFSProvider`]: #class-realfsprovider
 [`VirtualFileSystem`]: #class-virtualfilesystem
 [`VirtualProvider`]: #class-virtualprovider
 [`ZipProvider`]: #class-zipprovider
+[`ffi.dlopen()`]: ffi.md#ffidlopenpath-definitions
 [`fs.BigIntStats`]: fs.md#class-fsstats
 [`fs.Stats`]: fs.md#class-fsstats
 [`import.meta.resolve()`]: esm.md#importmetaresolvespecifier
+[`new ffi.DynamicLibrary()`]: ffi.md#new-dynamiclibrarypath
 [`node:fs`]: fs.md
 [`require()`]: modules.md#requireid
 [`require.resolve()`]: modules.md#requireresolverequest-options
