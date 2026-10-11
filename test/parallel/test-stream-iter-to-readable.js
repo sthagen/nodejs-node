@@ -8,6 +8,7 @@ const common = require('../common');
 const assert = require('assert');
 const { Writable } = require('stream');
 const {
+  dump,
   from,
   fromSync,
   pull,
@@ -100,10 +101,8 @@ async function testErrorAsync() {
   const readable = toReadable(gen());
 
   await assert.rejects(async () => {
-    // eslint-disable-next-line no-unused-vars
-    for await (const chunk of readable) {
-      // Consume until error
-    }
+    // Consume until error
+    await dump(readable);
   }, { message: 'source failed' });
 }
 
@@ -155,6 +154,30 @@ async function testFalsyThenableCleanupError() {
   const result = await promise;
   assert.strictEqual(result.code, 'ERR_FALSY_VALUE_REJECTION');
   assert.strictEqual(result.reason, reason);
+}
+
+async function testSynchronousIteratorReturn() {
+  let returnCalled = false;
+  const source = {
+    __proto__: null,
+    [Symbol.asyncIterator]() {
+      return {
+        __proto__: null,
+        next() { return kNeverResolves; },
+        return() {
+          returnCalled = true;
+          return { __proto__: null, done: true };
+        },
+      };
+    },
+  };
+  const readable = toReadable(source);
+  const { promise, resolve } = Promise.withResolvers();
+  readable.once('close', resolve);
+
+  readable.destroy();
+  await promise;
+  assert.strictEqual(returnCalled, true);
 }
 
 async function testFalsyCleanupGetterErrors() {
@@ -399,10 +422,8 @@ async function testSignalAlreadyAborted() {
   const readable = toReadable(gen(), { signal: AbortSignal.abort() });
 
   await assert.rejects(async () => {
-    // eslint-disable-next-line no-unused-vars
-    for await (const chunk of readable) {
-      // Should not receive any data
-    }
+    // Should not receive any data
+    await dump(readable);
   }, { name: 'AbortError' });
   assert.ok(readable.destroyed);
 }
@@ -550,10 +571,8 @@ async function testErrorSync() {
   const readable = toReadableSync(gen());
 
   await assert.rejects(async () => {
-    // eslint-disable-next-line no-unused-vars
-    for await (const chunk of readable) {
-      // Consume until error
-    }
+    // Consume until error
+    await dump(readable);
   }, { message: 'sync source failed' });
 }
 
@@ -722,6 +741,7 @@ Promise.all([
   testErrorAsync(),
   testFalsyErrorAsync(),
   testFalsyThenableCleanupError(),
+  testSynchronousIteratorReturn(),
   testFalsyCleanupGetterErrors(),
   testEmptyAsync(),
   testEmptyBatchAsync(),

@@ -160,6 +160,8 @@ in this example, there are two run attempts, with two tests defined in `test.js`
 the first test succeeded on the first attempt, and the second test succeeded on the second attempt.
 
 When the `--test-rerun-failures` option is used, the test runner will only run tests that have not yet passed.
+A `todo` test that fails counts as not yet passed and is rerun, even though its failure does not
+cause the test run to fail.
 
 ```bash
 node --test-rerun-failures /path/to/state/file
@@ -885,10 +887,9 @@ test runner functionality:
 * `--experimental-test-tag-filter` - Filter expressions are validated by the parent
   process and re-emitted to child processes
 * `--watch` - Watch mode is handled at the parent level
-* `--experimental-default-config-file` - Config file loading is handled by the parent
 * `--test-reporter` - Reporting is managed by the parent process
 * `--test-reporter-destination` - Output destinations are controlled by the parent
-* `--experimental-config-file` - Config file paths are managed by the parent
+* `--config-file` - Config file paths are managed by the parent
 * `--test-randomize` - Randomization is managed by the parent process and
   propagated to child processes
 * `--test-random-seed` - Randomization seed is managed by the parent process and
@@ -4360,6 +4361,46 @@ test('test', (t) => {
 });
 ```
 
+#### `context.assert.callCount(fn, times[, message])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fn` {Function} A mock function created by the test runner's mocking API.
+* `times` {integer} The expected number of calls.
+* `message` {string} Optional error message.
+
+Asserts that the mock function `fn` has been called exactly `times` times.
+
+```js
+test('mock was called twice', (t) => {
+  const fn = t.mock.fn();
+  fn();
+  fn();
+  t.assert.callCount(fn, 2);
+});
+```
+
+#### `context.assert.called(fn[, message])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fn` {Function} A mock function created by the test runner's mocking API.
+* `message` {string} Optional error message.
+
+Asserts that the mock function `fn` has been called at least once.
+
+```js
+test('mock was called', (t) => {
+  const fn = t.mock.fn();
+  fn();
+  t.assert.called(fn);
+});
+```
+
 #### `context.assert.fileSnapshot(value, path[, options])`
 
 <!-- YAML
@@ -4398,6 +4439,52 @@ This function differs from `context.assert.snapshot()` in the following ways:
 
 These differences allow snapshot files to better support features such as syntax
 highlighting.
+
+#### `context.assert.lastCalledWith(fn[, ...args])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fn` {Function} A mock function created by the test runner's mocking API.
+* `...args` {any} The expected arguments.
+
+Asserts that the most recent call to the mock function `fn` received arguments
+deeply and strictly equal to `args`, using the same comparison as
+[`assert.deepStrictEqual()`][].
+
+```js
+test('mock was last called with arguments', (t) => {
+  const fn = t.mock.fn();
+  fn(1);
+  fn(2);
+  t.assert.lastCalledWith(fn, 2);
+});
+```
+
+#### `context.assert.nthCalledWith(fn, n[, ...args])`
+
+<!-- YAML
+added: REPLACEME
+-->
+
+* `fn` {Function} A mock function created by the test runner's mocking API.
+* `n` {integer} The 1-based index of the call to check.
+* `...args` {any} The expected arguments.
+
+Asserts that the `n`th call to the mock function `fn` received arguments
+deeply and strictly equal to `args`, using the same comparison as
+[`assert.deepStrictEqual()`][]. `n` starts at `1`, so
+`t.assert.nthCalledWith(fn, 1)` checks `fn.mock.calls[0]`.
+
+```js
+test('mock was called with arguments on the second call', (t) => {
+  const fn = t.mock.fn();
+  fn(1);
+  fn(2);
+  t.assert.nthCalledWith(fn, 2, 2);
+});
+```
 
 #### `context.assert.snapshot(value[, options])`
 
@@ -5037,6 +5124,7 @@ test.describe('my suite', (suite) => {
 [`SuiteContext`]: #class-suitecontext
 [`TestContext`]: #class-testcontext
 [`TracingChannel`]: diagnostics_channel.md#class-tracingchannel
+[`assert.deepStrictEqual()`]: assert.md#assertdeepstrictequalactual-expected-message
 [`assert.throws`]: assert.md#assertthrowsfn-error-message
 [`context.diagnostic`]: #contextdiagnosticmessage
 [`context.log`]: #contextlogmessage-data
@@ -5051,7 +5139,7 @@ test.describe('my suite', (suite) => {
 [`suite()`]: #suitename-options-fn
 [`test()`]: #testname-options-fn
 [code coverage]: #collecting-code-coverage
-[configuration files]: cli.md#--experimental-config-filepath---experimental-config-file
+[configuration files]: cli.md#--config-filepath---config-file
 [describe options]: #describename-options-fn
 [it options]: #testname-options-fn
 [module customization hooks]: module.md#customization-hooks

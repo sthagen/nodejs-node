@@ -132,6 +132,18 @@ test('ffi zero-copy views throw with the V8 sandbox', { skip: !common.hasV8Sandb
   }));
 });
 
+test('ffi toBuffer and toArrayBuffer require a boolean copy argument', () => {
+  withAllocations(common.mustCall((alloc) => {
+    const ptr = alloc(4);
+    const type = { code: 'ERR_INVALID_ARG_TYPE' };
+
+    for (const copy of [null, 0, '', 'false', 1, {}]) {
+      assert.throws(() => ffi.toBuffer(ptr, 4, copy), type);
+      assert.throws(() => ffi.toArrayBuffer(ptr, 4, copy), type);
+    }
+  }));
+});
+
 test('ffi getRawPointer returns raw addresses for byte sources', () => {
   const buffer = Buffer.from([1, 2, 3]);
   const arrayBuffer = new Uint8Array([4, 5, 6, 7]).buffer;
@@ -226,6 +238,11 @@ test('ffi exportString and exportBuffer copy data into native memory', () => {
     ffi.exportArrayBuffer(arrayBuffer, arrayBufferPtr, 4);
     assert.deepStrictEqual([...ffi.toBuffer(arrayBufferPtr, 4)], [8, 9, 10, 11]);
 
+    const taggedArrayBuffer = new Uint8Array([12, 13, 14, 15]).buffer;
+    Object.defineProperty(taggedArrayBuffer, Symbol.toStringTag, { value: 'Custom' });
+    ffi.exportArrayBuffer(taggedArrayBuffer, arrayBufferPtr, 4);
+    assert.deepStrictEqual([...ffi.toBuffer(arrayBufferPtr, 4)], [12, 13, 14, 15]);
+
     const viewPtr = alloc(8);
     const viewSource = new Uint16Array([0x0102, 0x0304, 0x0506]);
     const middleBytes = new Uint8Array(viewSource.buffer, 2, 2);
@@ -241,6 +258,14 @@ test('ffi exportString and exportBuffer copy data into native memory', () => {
 
 test('ffi toString returns null for a null pointer', () => {
   assert.strictEqual(ffi.toString(0n), null);
+});
+
+test('ffi accepts zero-length copies through a null pointer', () => {
+  assert.strictEqual(ffi.toBuffer(0n, 0).length, 0);
+  assert.strictEqual(ffi.toArrayBuffer(0n, 0).byteLength, 0);
+  assert.strictEqual(ffi.exportBuffer(Buffer.alloc(0), 0n, 0), undefined);
+  assert.strictEqual(ffi.exportArrayBuffer(new ArrayBuffer(0), 0n, 0), undefined);
+  assert.strictEqual(ffi.exportArrayBufferView(new Uint8Array(0), 0n, 0), undefined);
 });
 
 test('ffi validates memory access arguments', () => {
@@ -298,6 +323,10 @@ test('ffi validates memory access arguments', () => {
     assert.throws(() => ffi.exportBuffer(Buffer.from([1]), ptr, -1), { code: 'ERR_OUT_OF_RANGE' });
     assert.throws(() => ffi.exportBuffer(Buffer.from([1, 2]), ptr, 1), { code: 'ERR_OUT_OF_RANGE' });
     assert.throws(() => ffi.exportArrayBuffer('bad', ptr, 4), { code: 'ERR_INVALID_ARG_TYPE' });
+    assert.throws(() => ffi.exportArrayBuffer({ [Symbol.toStringTag]: 'ArrayBuffer', byteLength: 1 }, ptr, 4), {
+      code: 'ERR_INVALID_ARG_TYPE',
+      message: /The "arrayBuffer" argument must be an instance of ArrayBuffer/,
+    });
     assert.throws(() => ffi.exportArrayBuffer(new ArrayBuffer(1), ptr, -1), { code: 'ERR_OUT_OF_RANGE' });
     assert.throws(() => ffi.exportArrayBuffer(new ArrayBuffer(2), ptr, 1), { code: 'ERR_OUT_OF_RANGE' });
     assert.throws(() => ffi.exportArrayBufferView('bad', ptr, 4), { code: 'ERR_INVALID_ARG_TYPE' });
@@ -322,13 +351,44 @@ test('ffi validates memory access arguments', () => {
 
     assert.throws(() => ffi.toBuffer(maxPointer, 8), /pointer and length exceed the platform address range/);
     assert.throws(() => ffi.toArrayBuffer(maxPointer, 8), /pointer and length exceed the platform address range/);
-    assert.throws(() => ffi.toBuffer(1n, bufferConstants.MAX_LENGTH + 1), { code: 'ERR_BUFFER_TOO_LARGE' });
-    assert.throws(() => ffi.toArrayBuffer(1n, bufferConstants.MAX_LENGTH + 1), { code: 'ERR_BUFFER_TOO_LARGE' });
+
+    // If MAX_LENGTH is Number.MAX_SAFE_INTEGER, MAX_LENGTH + 1 is an unsafe
+    // integer and is rejected before the buffer length is checked.
+    if (bufferConstants.MAX_LENGTH < Number.MAX_SAFE_INTEGER) {
+      assert.throws(() => ffi.toBuffer(1n, bufferConstants.MAX_LENGTH + 1), { code: 'ERR_BUFFER_TOO_LARGE' });
+      assert.throws(() => ffi.toArrayBuffer(1n, bufferConstants.MAX_LENGTH + 1), { code: 'ERR_BUFFER_TOO_LARGE' });
+    }
 
     if (process.arch === 'ia32' || process.arch === 'arm') {
       assert.throws(() => ffi.toBuffer(2n ** 32n, 0), /platform pointer range/);
     }
   }));
+});
+
+test('ffi rejects unsafe integers as an offset or length', () => {
+  withAllocations(common.mustCall((alloc) => {
+    const ptr = alloc(8);
+    const range = { code: 'ERR_OUT_OF_RANGE' };
+
+    // On 64-bit platforms SIZE_MAX rounds up to 2 ** 64 as a double.
+    for (const value of [Number.MAX_SAFE_INTEGER + 1, 2 ** 64]) {
+      assert.throws(() => ffi.getUint8(ptr, value), range);
+      assert.throws(() => ffi.setUint8(ptr, value, 42), range);
+      assert.throws(() => ffi.toBuffer(ptr, value), range);
+      assert.throws(() => ffi.toArrayBuffer(ptr, value), range);
+    }
+  }));
+});
+
+test('ffi toBuffer and toArrayBuffer throw when the copy cannot be allocated', {
+  skip: (bufferConstants.MAX_LENGTH < 2 ** 50 && 'requires a 64-bit buffer length limit') ||
+        (common.isASan && 'ASan aborts on huge allocations') ||
+        (common.isAIX && 'huge allocations may succeed on AIX and get the process killed'),
+}, () => {
+  // The allocation fails before the source pointer is read.
+  const error = { code: 'ERR_MEMORY_ALLOCATION_FAILED' };
+  assert.throws(() => ffi.toBuffer(1n, 2 ** 50), error);
+  assert.throws(() => ffi.toArrayBuffer(1n, 2 ** 50), error);
 });
 
 test('ffi memory helpers reject missing required arguments', () => {

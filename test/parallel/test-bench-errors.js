@@ -67,7 +67,7 @@ suiteCompletion.then(common.mustCall());
 const completions = [];
 const sampleNames = [];
 let summary;
-const stream = run();
+const stream = run({ warmup: 0 });
 stream.on('bench:complete', (result) => completions.push(result));
 stream.on('bench:sample', (sample) => sampleNames.push(sample.name));
 stream.on('bench:summary', (result) => { summary = result; });
@@ -81,6 +81,9 @@ stream.on('end', common.mustCall(() => {
     total: 17,
   });
   assert.strictEqual(summary.success, false);
+  // The failed run sets the exit code; reset it so the test itself passes.
+  assert.strictEqual(process.exitCode, 1);
+  process.exitCode = 0;
 
   const byName = new Map();
   for (const result of completions) {

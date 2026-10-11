@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -279,7 +280,14 @@ class InternalCallbackScope {
   bool pushed_ids_ = false;
   bool closed_ = false;
   v8::Global<v8::Value> prior_context_frame_;
+  std::optional<v8::Isolate::AllowJavascriptExecutionScope> allow_js_;
 };
+
+// Non-zero while an Environment on this thread is closing its handles with JS
+// disallowed isolate-wide; InternalCallbackScope re-allows it for the other
+// Environments whose callbacks run in those loop turns.
+// NOLINTNEXTLINE(runtime/thread_local)
+extern thread_local int handle_cleanup_depth;
 
 class DebugSealHandleScope {
  public:

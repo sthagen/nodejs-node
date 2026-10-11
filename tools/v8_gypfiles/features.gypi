@@ -238,9 +238,6 @@
     # Sets -DV8_ENABLE_SANDBOX.
     'v8_enable_sandbox%': 0,
 
-    # Enable leaptiering
-    'v8_enable_leaptiering%': 1,
-
     # Enable support for external code range relative to the pointer compression
     # cage.
     # Sets -DV8_EXTERNAL_CODE_SPACE.
@@ -294,6 +291,9 @@
     # ReadOnlySpace.
     'v8_enable_extensible_ro_snapshot%': 1,
 
+    # Use the encoding of undefined in double values.
+    'v8_enable_undefined_double%': 1,
+
     # Variables from v8.gni
 
     # Enable ECMAScript Internationalization API. Enabling this feature will
@@ -303,6 +303,11 @@
     # Enable Temporal API. Enabling this feature will
     # add a dependency on the temporal_rs library.
     'v8_enable_temporal_support%': 0,
+    # Enable Temporal even with system-icu.
+    # This will use an improved codepath which does not
+    # depend on internal ICU headers.
+    # This option can be on unconditionally.
+    'v8_enable_temporal_systemicu%': 1,
 
     # Lite mode disables a number of performance optimizations to reduce memory
     # at the cost of performance.
@@ -426,6 +431,9 @@
       ['v8_enable_temporal_support==1', {
         'defines': ['V8_TEMPORAL_SUPPORT',],
       }],
+       ['v8_enable_temporal_systemicu==1', {
+        'defines': ['V8_ENABLE_TEMPORAL_SYSTEMICU',],
+      }],
       # Refs: https://github.com/nodejs/node/pull/23801
       # ['v8_enable_handle_zapping==1', {
       #  'defines': ['ENABLE_HANDLE_ZAPPING',],
@@ -516,8 +524,8 @@
       ['v8_enable_extensible_ro_snapshot==1', {
         'defines': ['V8_ENABLE_EXTENSIBLE_RO_SNAPSHOT',],
       }],
-      ['v8_enable_leaptiering==1', {
-        'defines': ['V8_ENABLE_LEAPTIERING',],
+      ['v8_enable_undefined_double==1', {
+        'defines': ['V8_ENABLE_UNDEFINED_DOUBLE',],
       }],
       ['v8_enable_precise_zone_stats==1', {
         'defines': ['V8_ENABLE_PRECISE_ZONE_STATS',],
@@ -571,6 +579,9 @@
     'defines': [
       'V8_GYP_BUILD',
       'V8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=<(v8_typed_array_max_size_in_heap)',
+      # See deps/v8/src/objects/instance-types-gen.h and
+      # https://github.com/nodejs/build/issues/4350
+      'V8_USE_METAGEN_INSTANCE_TYPES=0',
     ],  # defines
   },  # target_defaults
 }

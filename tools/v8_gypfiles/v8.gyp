@@ -120,6 +120,7 @@
       'actions': [
         {
           'action_name': 'run_torque_action',
+          'msvs_quote_cmd': 0,
           'inputs': [  # Order matters.
             '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
             '<@(torque_files)',
@@ -130,21 +131,16 @@
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-debug-readers.cc",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-debug-readers.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-forward-declarations.h",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-verifiers.cc",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-verifiers.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/csa-types.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/debug-macros.cc",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/debug-macros.h",
+            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/debug-reader-classes-list.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/enum-verifiers.cc",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/exported-macros-assembler.cc",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/exported-macros-assembler.h",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/factory.cc",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/factory.inc",
+            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/instance-type-checker-lists.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/instance-types.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/interface-descriptors.inc",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/objects-body-descriptors-inl.inc",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/objects-printer.cc",
-            "<(SHARED_INTERMEDIATE_DIR)/torque-generated/visitor-lists.h",
             '<@(torque_outputs_csa_cc)',
             '<@(torque_outputs_csa_h)',
             '<@(torque_outputs_inl_inc)',
@@ -227,10 +223,6 @@
       'direct_dependent_settings': {
         'sources': [
           '<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-forward-declarations.h',
-          '<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-verifiers.cc',
-          '<(SHARED_INTERMEDIATE_DIR)/torque-generated/class-verifiers.h',
-          '<(SHARED_INTERMEDIATE_DIR)/torque-generated/factory.cc',
-          '<(SHARED_INTERMEDIATE_DIR)/torque-generated/objects-printer.cc',
           '<@(torque_outputs_inl_inc)',
           '<@(torque_outputs_cc)',
           '<@(torque_outputs_inc)',
@@ -1161,6 +1153,11 @@
                 '../../deps/crates/crates.gyp:temporal_capi',
               ],
             }],
+            ['v8_enable_i18n_support==0', {
+              'dependencies': [
+                '../../deps/crates/crates.gyp:temporal_zoneinfo64_data',
+              ],
+            }],
           ],
           'sources': [
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_enable_temporal_support.*?sources \\+= ")',
@@ -1381,13 +1378,7 @@
             ['icu_use_data_file_flag', {
               'defines': ['ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE'],
             }, {
-               'conditions': [
-                 ['OS=="win"', {
-                   'defines': ['ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_SHARED'],
-                 }, {
-                    'defines': ['ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_STATIC'],
-                  }],
-               ],
+              'defines': ['ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_STATIC'],
              }],
             ['OS=="win"', {
               'dependencies': [
@@ -1502,9 +1493,45 @@
 
       'dependencies': [
         'v8_headers',
+        'llvm-libc-headers',
       ],
 
       'conditions': [
+        ['v8_target_arch=="ia32" or v8_target_arch=="x64"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-x86.cc',
+          ],
+        }],
+        ['v8_target_arch=="arm" or v8_target_arch=="arm64"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-arm.cc',
+          ],
+        }],
+        ['v8_target_arch=="riscv64"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-riscv.cc',
+          ],
+        }],
+        ['v8_target_arch=="loong64"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-loong64.cc',
+          ],
+        }],
+        ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-mips64.cc',
+          ],
+        }],
+        ['v8_target_arch=="ppc64"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-ppc.cc',
+          ],
+        }],
+        ['v8_target_arch=="s390x"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/cpu/cpu-s390.cc',
+          ],
+        }],
         ['is_component_build', {
           'defines': ["BUILDING_V8_BASE_SHARED"],
         }],
@@ -1755,7 +1782,7 @@
         'v8_libbase',
       ],
       'sources': [
-        '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_libplatform.*?sources = ")',
+        '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_component.\\"v8_libplatform\\".*?sources = ")',
       ],
       'conditions': [
         ['component=="shared_library"', {
@@ -1766,10 +1793,10 @@
         }],
         ['v8_use_perfetto==1', {
           'sources!': [
-            '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_libplatform.*?v8_use_perfetto.*?sources \\-= ")',
+            '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_component.\\"v8_libplatform\\".*?v8_use_perfetto.*?sources \\-= ")',
           ],
           'sources': [
-            '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_libplatform.*?v8_use_perfetto.*?sources \\+= ")',
+            '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_component.\\"v8_libplatform\\".*?v8_use_perfetto.*?sources \\+= ")',
           ],
           'conditions': [
             ['node_shared_perfetto=="false"', {
@@ -2110,12 +2137,12 @@
       'toolsets': ['host', 'target'],
       'direct_dependent_settings': {
         'sources': [
-          '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_source_set.\\"cppgc_base.*?sources = ")',
+          '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_cluster_source_set.\\"cppgc_base.*?sources = ")',
         ],
         'conditions': [
           ['v8_use_perfetto==1', {
             'sources': [
-              '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_source_set.\\"cppgc_base.*?if .v8_use_perfetto.*?sources \\+= ")',
+              '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_cluster_source_set.\\"cppgc_base.*?if .v8_use_perfetto.*?sources \\+= ")',
             ],
           }],
         ],
@@ -2314,6 +2341,9 @@
           '<(V8_ROOT)/src/objects/casting-inl.h',
           '<(V8_ROOT)/src/objects/code.h',
           '<(V8_ROOT)/src/objects/code-inl.h',
+          '<(V8_ROOT)/src/objects/cpp-heap-external-object.h',
+          '<(V8_ROOT)/src/objects/cpp-heap-object-wrapper.h',
+          '<(V8_ROOT)/src/objects/cpp-heap-object-wrapper-inl.h',
           '<(V8_ROOT)/src/objects/data-handler.h',
           '<(V8_ROOT)/src/objects/data-handler-inl.h',
           '<(V8_ROOT)/src/objects/deoptimization-data.h',
@@ -2365,9 +2395,9 @@
           '<(V8_ROOT)/src/objects/oddball.h',
           '<(V8_ROOT)/src/objects/oddball-inl.h',
           '<(V8_ROOT)/src/objects/primitive-heap-object.h',
-          '<(V8_ROOT)/src/objects/primitive-heap-object-inl.h',
           '<(V8_ROOT)/src/objects/scope-info.h',
           '<(V8_ROOT)/src/objects/scope-info-inl.h',
+          '<(V8_ROOT)/src/objects/script.cc',
           '<(V8_ROOT)/src/objects/script.h',
           '<(V8_ROOT)/src/objects/script-inl.h',
           '<(V8_ROOT)/src/objects/shared-function-info.cc',
@@ -2381,6 +2411,7 @@
           '<(V8_ROOT)/src/objects/struct.h',
           '<(V8_ROOT)/src/objects/struct-inl.h',
           '<(V8_ROOT)/src/objects/tagged.h',
+          '<(V8_ROOT)/src/objects/union.h',
         ],
       },
       'actions': [
@@ -2481,5 +2512,18 @@
         ],
       },
     },  # fp16
+    {
+      'target_name': 'llvm-libc-headers',
+      'type': 'none',
+      'toolsets': ['host', 'target'],
+      'direct_dependent_settings': {
+        'include_dirs': [
+          '<(V8_ROOT)/third_party/llvm-libc/src',
+        ],
+        'defines': [
+          'LIBC_NAMESPACE=__llvm_libc_cr',
+        ],
+      },
+    }
   ],
 }

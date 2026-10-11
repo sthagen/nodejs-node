@@ -269,7 +269,9 @@ void SetIsolateMiscHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
   isolate->SetModifyCodeGenerationFromStringsCallback(
       modify_code_generation_from_strings_callback);
 
-  isolate->SetWasmStreamingCallback(wasm_web_api::StartStreamingCompilation);
+  if ((s.flags & SHOULD_NOT_SET_WASM_STREAMING_CALLBACK) == 0) {
+    isolate->SetWasmStreamingCallback(wasm_web_api::StartStreamingCompilation);
+  }
 
   Mutex::ScopedLock lock(node::per_process::cli_options_mutex);
   if (per_process::cli_options->get_per_isolate_options()
@@ -968,7 +970,7 @@ MaybeLocal<Object> InitializePrivateSymbols(Local<Context> context,
 
   Local<Object> private_symbols_object;
   if (!private_symbols->NewInstance(context).ToLocal(&private_symbols_object) ||
-      private_symbols_object->SetPrototypeV2(context, Null(isolate))
+      private_symbols_object->SetPrototype(context, Null(isolate))
           .IsNothing()) {
     return MaybeLocal<Object>();
   }
@@ -994,7 +996,7 @@ MaybeLocal<Object> InitializePerIsolateSymbols(Local<Context> context,
   Local<Object> per_isolate_symbols_object;
   if (!per_isolate_symbols->NewInstance(context).ToLocal(
           &per_isolate_symbols_object) ||
-      per_isolate_symbols_object->SetPrototypeV2(context, Null(isolate))
+      per_isolate_symbols_object->SetPrototype(context, Null(isolate))
           .IsNothing()) {
     return MaybeLocal<Object>();
   }
@@ -1046,6 +1048,7 @@ Maybe<void> InitializePrimordials(Local<Context> context,
   // in the first place. However, creating BuiltinLoader instances is
   // relatively cheap and all the scripts that we may want to run at
   // startup are always present in it.
+  // NOLINTNEXTLINE(runtime/thread_local)
   thread_local builtins::BuiltinLoader builtin_loader;
   // Primordials can always be just eagerly compiled.
   builtin_loader.SetEagerCompile();

@@ -360,7 +360,7 @@ static void DefineLazyPropertiesGetter(
   // When this getter is invoked in a vm context, the `Realm::GetCurrent(info)`
   // returns a nullptr and retrieve the creation context via `this` object and
   // get the creation Realm.
-  Local<Value> receiver_val = info.HolderV2();
+  Local<Value> receiver_val = info.Holder();
   if (!receiver_val->IsObject()) {
     THROW_ERR_INVALID_INVOCATION(isolate);
     return;
@@ -513,7 +513,7 @@ void Initialize(Local<Object> target,
 
   {
     const Local<Object> prototype =
-        SharedArrayBuffer::New(isolate, 0)->GetPrototypeV2().As<Object>();
+        SharedArrayBuffer::New(isolate, 0)->GetPrototype().As<Object>();
     const Local<Object> descriptor =
         prototype
             ->GetOwnPropertyDescriptor(

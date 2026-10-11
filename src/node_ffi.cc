@@ -9,6 +9,7 @@
 #include "env-inl.h"
 #include "ffi/data.h"
 #include "ffi/fast.h"
+#include "ffi/jit_memory.h"
 #include "ffi/types.h"
 #include "node_binding.h"
 #include "node_errors.h"
@@ -144,12 +145,14 @@ Maybe<void*> DynamicLibrary::ResolveSymbol(Environment* env,
 Maybe<DynamicLibrary::PreparedFunction> DynamicLibrary::PrepareFunction(
     Environment* env, const std::string& name, Local<Object> signature) {
   std::shared_ptr<FFIFunction> fn;
-  auto existing = functions_.find(name);
   FunctionSignature parsed;
 
   if (!ParseFunctionSignature(env, name, signature).To(&parsed)) {
     return {};
   }
+  // Look up the cache only after parsing: the signature's getters run user
+  // code that may close the library, which clears `functions_`.
+  auto existing = functions_.find(name);
   auto [return_type, args, return_type_name, arg_type_names] =
       std::move(parsed);
 
@@ -288,16 +291,22 @@ MaybeLocal<Function> DynamicLibrary::CreateFunction(
   // signature, fall back to SharedBuffer for supported scalar shapes, then to
   // the generic libffi invoker.
   std::shared_ptr<FFIFunction> fast_fn = CloneWithRawPointerArgNames(fn);
-  info->fast_metadata = CreateFastFFIMetadata(*fast_fn, &fn->closed, isolate);
+  if (!CreateFastFFIMetadata(*fast_fn, &fn->closed, isolate)
+           .MoveTo(&info->fast_metadata)) {
+    return {};
+  }
   bool use_fast_api = info->fast_metadata != nullptr;
   bool use_sb = !use_fast_api && IsSBEligibleSignature(*fn);
   bool has_ptr_args = use_sb && SignatureHasPointerArgs(*fn);
   // Signatures that need JS-side conversion or validation use a wrapper, as
   // do all fast signatures on platforms without a native library guard.
+  // Pointer arguments need the wrapper's range check because V8 truncates
+  // BigInts passed to Fast API uint64 parameters.
   bool needs_fast_argument_wrapper =
-      use_fast_api && (SignatureNeedsRawPointerConversions(*fn) ||
-                       SignatureNeedsFastIntegerValidation(*fn) ||
-                       !info->fast_metadata->guards_library);
+      use_fast_api &&
+      (SignatureNeedsRawPointerConversions(*fn) ||
+       SignatureNeedsFastIntegerValidation(*fn) ||
+       SignatureHasPointerArgs(*fn) || !info->fast_metadata->guards_library);
   // A single pointer-like parameter can get a separate Buffer-aware Fast API
   // entrypoint so Buffer calls avoid JS pointer extraction.
   bool needs_fast_buffer_invoke =
@@ -451,8 +460,10 @@ MaybeLocal<Function> DynamicLibrary::CreateFunction(
     // argument is Buffer/ArrayBuffer-backed memory.
     std::shared_ptr<FFIFunction> fast_buffer_fn =
         CloneWithFastBufferArgNames(fn);
-    info->fast_buffer_metadata =
-        CreateFastFFIMetadata(*fast_buffer_fn, &fn->closed, isolate);
+    if (!CreateFastFFIMetadata(*fast_buffer_fn, &fn->closed, isolate)
+             .MoveTo(&info->fast_buffer_metadata)) {
+      return {};
+    }
     if (info->fast_buffer_metadata != nullptr) {
       // Store the secondary invoker on the primary raw function under a hidden
       // Symbol. Keeping it separate avoids overloading SharedBuffer slow-path
@@ -602,7 +613,6 @@ void DynamicLibrary::InvokeFunction(const FunctionCallbackInfo<Value>& args) {
   std::vector<uint64_t> values(expected_args, 0);
   std::vector<void*> ffi_args(expected_args, nullptr);
   std::vector<std::string> strings;
-  strings.reserve(expected_args);
 
   for (unsigned int i = 0; i < expected_args; i++) {
     FFIArgumentCategory res;
@@ -624,6 +634,10 @@ void DynamicLibrary::InvokeFunction(const FunctionCallbackInfo<Value>& args) {
         return;
       }
 
+      if (strings.empty()) {
+        // Keep string pointers stable as subsequent arguments are converted.
+        strings.reserve(expected_args);
+      }
       strings.push_back(*str);
       values[i] = reinterpret_cast<uint64_t>(strings.back().c_str());
       ffi_args[i] = &values[i];
@@ -763,6 +777,16 @@ void DynamicLibrary::InvokeCallback(ffi_cif* cif,
   MaybeLocal<Value> result = callback->Call(
       context, Undefined(isolate), expected_args, callback_args.data());
 
+  // Termination (worker.terminate(), process.exit() in a Worker, or
+  // environment teardown) is not an exception thrown by the callback.
+  // Return a zeroed result and let the caller unwind.
+  if (try_catch.HasTerminated()) {
+    if (ret != nullptr && cb->return_type->size > 0) {
+      std::memset(ret, 0, GetFFIReturnValueStorageSize(cb->return_type));
+    }
+    return;
+  }
+
   // Handle exceptions by crashing (can't propagate across FFI boundary)
   if (try_catch.HasCaught()) {
     FPrintF(stderr, "Callbacks cannot throw an exception\n");
@@ -855,7 +879,7 @@ void DynamicLibrary::GetFunctions(const FunctionCallbackInfo<Value>& args) {
   }
 
   Local<Object> functions = Object::New(isolate);
-  if (!functions->SetPrototypeV2(context, Null(isolate)).FromMaybe(false)) {
+  if (!functions->SetPrototype(context, Null(isolate)).FromMaybe(false)) {
     return;
   }
 
@@ -1004,7 +1028,7 @@ void DynamicLibrary::GetSymbols(const FunctionCallbackInfo<Value>& args) {
   }
 
   Local<Object> symbols = Object::New(isolate);
-  if (!symbols->SetPrototypeV2(context, Null(isolate)).FromMaybe(false)) {
+  if (!symbols->SetPrototype(context, Null(isolate)).FromMaybe(false)) {
     return;
   }
   for (const auto& entry : lib->symbols_) {
@@ -1090,6 +1114,15 @@ void DynamicLibrary::RegisterCallback(const FunctionCallbackInfo<Value>& args) {
       ffi_closure_alloc(sizeof(ffi_closure), &callback->ptr));
 
   if (callback->closure == nullptr) {
+    // libffi may use platform-specific static trampolines, so only diagnose
+    // missing RX memory after its own closure allocation has failed.
+    if (!IsJitMemorySupported()) {
+      THROW_ERR_RX_MEMORY_NOT_SUPPORTED(
+          env,
+          "Executable memory is not supported in this environment, "
+          "but is required for FFI callbacks");
+      return;
+    }
     THROW_ERR_FFI_CALL_FAILED(env, "ffi_closure_alloc failed");
     return;
   }

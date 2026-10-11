@@ -350,6 +350,10 @@ Only one async iterator can be obtained per stream. The stream is also
 compatible with `node:stream/iter` utilities such as `Stream.bytes()`,
 `Stream.text()`, and `Stream.pipeTo()`.
 
+Consuming a stream is what returns flow-control credit to the peer, so a
+stream whose payload is not wanted should still be read to completion. Use
+`Stream.dump()` to read the stream without retaining any of it.
+
 ### Datagrams
 
 In addition to streams, QUIC supports unreliable datagrams ([RFC 9221][]) for
@@ -974,7 +978,8 @@ added: v23.8.0
 
 * `options` {Object}
   * `code` {bigint|number} The error code to include in the `CONNECTION_CLOSE`
-    frame sent to the peer. **Default:** `0` (no error).
+    frame sent to the peer. Must be a non-negative 62-bit unsigned varint
+    (`0n <= code <= 2n ** 62n - 1n`). **Default:** `0` (no error).
   * `type` {string} Either `'transport'` or `'application'`. Determines the
     error code namespace used in the `CONNECTION_CLOSE` frame. When `'transport'`
     (the default), the frame type is `0x1c` and the code is interpreted as a QUIC
@@ -1056,7 +1061,8 @@ added: v23.8.0
 * `error` {any}
 * `options` {Object}
   * `code` {bigint|number} The error code to include in the `CONNECTION_CLOSE`
-    frame sent to the peer. **Default:** `0`.
+    frame sent to the peer. Must be a non-negative 62-bit unsigned varint
+    (`0n <= code <= 2n ** 62n - 1n`). **Default:** `0`.
   * `type` {string} Either `'transport'` or `'application'`. **Default:**
     `'transport'`.
   * `reason` {string} An optional human-readable reason string included in

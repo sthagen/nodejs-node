@@ -217,10 +217,10 @@ assert.doesNotMatch(
   assert.strictEqual(
     util.inspect(dv),
     'DataView {\n' +
-    '      [byteLength]: 0,\n' +
-    '      [byteOffset]: undefined,\n' +
-    '      [buffer]: ArrayBuffer { (detached), [byteLength]: 0 }\n' +
-    '    }',
+    '  [byteLength]: 0,\n' +
+    '  [byteOffset]: undefined,\n' +
+    '  [buffer]: ArrayBuffer { (detached), [byteLength]: 0 }\n' +
+    '}',
   );
 }
 
@@ -2705,7 +2705,7 @@ assert.strictEqual(
   );
 }
 
-// Property getter throwing an error with getters that throws recursivly.
+// Property getter throwing an error with getters that throws recursively.
 {
   const recursivelyThrowingErrorDesc = {
     __proto__: null,

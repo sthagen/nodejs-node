@@ -119,7 +119,6 @@
       'src/js_native_api_v8_internals.h',
       'src/js_stream.cc',
       'src/json_utils.cc',
-      'src/js_udp_wrap.cc',
       'src/module_wrap.cc',
       'src/node.cc',
       'src/node_api.cc',
@@ -186,6 +185,7 @@
       'src/node_worker.cc',
       'src/node_zlib.cc',
       'src/path.cc',
+      'src/permission/env_permission.cc',
       'src/permission/fs_permission.cc',
       'src/permission/permission.cc',
       'src/pipe_wrap.cc',
@@ -321,6 +321,7 @@
       'src/node_worker.h',
       'src/path.h',
       'src/permission/boolean_permission.h',
+      'src/permission/env_permission.h',
       'src/permission/fs_permission.h',
       'src/permission/permission.h',
       'src/permission/permission_base.h',
@@ -410,7 +411,6 @@
       'src/crypto/crypto_context.cc',
       'src/crypto/crypto_tls_certificates.cc',
       'src/crypto/crypto_ec.cc',
-      'src/crypto/crypto_pqc.cc',
       'src/crypto/crypto_kem.cc',
       'src/crypto/crypto_hmac.cc',
       'src/crypto/crypto_kmac.cc',
@@ -451,7 +451,6 @@
       'src/crypto/crypto_context.h',
       'src/crypto/crypto_tls_certificates.h',
       'src/crypto/crypto_ec.h',
-      'src/crypto/crypto_pqc.h',
       'src/crypto/crypto_hkdf.h',
       'src/crypto/crypto_pbkdf2.h',
       'src/crypto/crypto_sig.h',
@@ -1413,11 +1412,7 @@
         }, {
           'sources!': [ '<@(node_cctest_openssl_sources)' ],
         }],
-        [ 'node_use_quic=="true"', {
-          'defines': [
-            'HAVE_QUIC=1',
-          ],
-        }, {
+        [ 'node_use_quic!="true"', {
           'sources!': [ '<@(node_cctest_quic_sources)' ],
         }],
         [ 'v8_use_perfetto==1 and node_shared_perfetto=="false"', {

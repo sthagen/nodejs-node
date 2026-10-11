@@ -13,11 +13,12 @@ on:
       - android-patches/**
       - benchmarks/**
       - codecov.yml
+      - deps/LIEF/**
       - deps/ada/**
       - deps/brotli/**
       - deps/cares/**
-      - deps/crates/**
       - deps/corepack/**
+      - deps/crates/**
       - deps/googletest/**
       - deps/histogram/**
       - deps/icu-small/**
@@ -70,11 +71,12 @@ on:
       - android-patches/**
       - benchmarks/**
       - codecov.yml
+      - deps/LIEF/**
       - deps/ada/**
       - deps/brotli/**
       - deps/cares/**
-      - deps/crates/**
       - deps/corepack/**
+      - deps/crates/**
       - deps/googletest/**
       - deps/histogram/**
       - deps/icu-small/**
@@ -133,7 +135,7 @@ jobs:
         run: |
           export DATESTRING=$(date "+%Y-%m-%d")
           export COMMIT=$(git rev-parse --short=10 "$GITHUB_SHA")
-          ./configure && make tar -j4 SKIP_XZ=1 SKIP_SHARED_DEPS=1
+          ./configure && make tar -j4 SKIP_XZ=1 SKIP_SHARED_DEPS=1 GZIP_COMPRESSION=6
         env:
           DISTTYPE: nightly
 
@@ -165,10 +167,7 @@ jobs:
     with:
       runner: ${{ matrix.runner }}
       with-sccache: ${{ github.base_ref == 'main' || github.ref_name == 'main' }}
-      extra-nix-flags: |
-        --arg useSeparateDerivationForV8 true \
-        ${{ matrix.perfetto && '--arg withPerfetto true \' || '\' }}
-        ${{ endsWith(matrix.system, '-darwin') && '--arg withAmaro false --arg withLief false --arg withSQLite false --arg withFFI false --arg extraConfigFlags ''["--without-inspector" "--without-node-options"]'' \' || '\' }}
+      extra-nix-flags: ${{ matrix.perfetto && '--arg withPerfetto true' || '' }}
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
@@ -200,7 +199,7 @@ jobs:
         id: v8-drv
         run: |
           V8_DRV=$(
-            nix-instantiate -E "builtins.filter (p: p.pname == ''v8'') (import $TAR_DIR/shell.nix { useSeparateDerivationForV8=true; }).buildInputs"
+            nix-instantiate -E "builtins.filter (p: p.pname == ''v8'') (import $TAR_DIR/tools/nix/ci-shell.nix {}).buildInputs"
           )
           V8_STORE_PATH=$(nix-store -q --outputs "$V8_DRV")
           echo "V8_DRV=$V8_DRV" >> "$GITHUB_OUTPUT"

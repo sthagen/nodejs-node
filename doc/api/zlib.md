@@ -788,6 +788,9 @@ It's possible to specify the expected total size of the uncompressed input via
 doesn't match at the end of the input, compression will fail with the code
 `ZSTD_error_srcSize_wrong`.
 
+[`zlib.zstdCompress()`][] defaults `opts.pledgedSrcSize` to the byte length of
+its input.
+
 #### Decompressor options
 
 These advanced options are available for controlling decompression:
@@ -2189,16 +2192,38 @@ Only applicable to deflate algorithm.
 
 <!-- YAML
 added: v0.7.0
+changes:
+  - version: v26.11.0
+    pr-url: https://github.com/nodejs/node/pull/66157
+    description: Brotli streams preserve parameters and dictionary on reset.
 -->
 
 For inflate and deflate streams, reset the compressor/decompressor to factory
 defaults.
 
+For Brotli streams, start a new compression or decompression session while
+preserving the configured parameters and dictionary.
+
 For Zstd streams, cancel the current frame and start a new session while
 preserving the configured parameters and dictionary. If `pledgedSrcSize` was
 configured for a Zstd compressor, it applies again to the next frame.
 
+Resetting a gzip stream after it has emitted output for an incomplete member
+causes the stream to error with `ERR_ZLIB_INCOMPLETE_FRAME`. Resetting at
+that point would discard the member state while the bytes already written out
+remain at the start of the output stream, leaving it undecodable. Call
+`.end()`, or start over with a new gzip stream, instead.
+zlib-wrapped deflate may still `reset()` after a flush; callers that reuse
+the compressor discard the first output. Raw deflate has no wrapper header,
+so `reset()` after a flush still concatenates.
+
 Calling `reset()` while a write is in progress throws an `Error`.
+
+Resetting an incomplete Zstd compression frame after it has emitted output
+causes the stream to error with `ERR_ZLIB_INCOMPLETE_FRAME`. Resetting at
+that point would discard the frame state while the bytes already written
+out remain at the start of the output stream, leaving it undecodable. Call
+`.end()`, or start over with a new stream, instead.
 
 ## Class: `ZstdOptions`
 
@@ -3050,6 +3075,11 @@ Decompress a chunk of data with [`Unzip`][].
 added:
   - v23.8.0
   - v22.15.0
+changes:
+  - version: v26.11.0
+    pr-url: https://github.com/nodejs/node/pull/66358
+    description: The `pledgedSrcSize` option defaults to the byte length of
+                 `buffer`.
 -->
 
 * `buffer` {Buffer|TypedArray|DataView|ArrayBuffer|string}
@@ -3424,6 +3454,7 @@ Create a Zstandard decompression transform.
 [`zlib.createZipArchive()`]: #zlibcreateziparchiveentries-options
 [`zlib.createZipArchiveSync()`]: #zlibcreateziparchivesyncentries-options
 [`zlib.getMaxZipContentSize()`]: #zlibgetmaxzipcontentsize
+[`zlib.zstdCompress()`]: #zlibzstdcompressbuffer-options-callback
 [convenience methods]: #convenience-methods
 [zlib documentation]: https://zlib.net/manual.html#Constants
 [zlib.createGzip example]: #zlib

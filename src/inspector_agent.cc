@@ -27,6 +27,7 @@
 #include "node_options-inl.h"
 #include "node_process-inl.h"
 #include "node_url.h"
+#include "node_watchdog.h"
 #include "permission/permission.h"
 #include "timer_wrap-inl.h"
 #include "util-inl.h"
@@ -511,15 +512,8 @@ bool IsFilePath(const std::string& path) {
 #endif  // __POSIX__
 
 void ThrowUninitializedInspectorError(Environment* env) {
-  HandleScope scope(env->isolate());
-
-  std::string_view msg =
-      "This Environment was initialized without a V8::Inspector";
-  Local<Value> exception;
-  if (ToV8Value(env->context(), msg, env->isolate()).ToLocal(&exception)) {
-    env->isolate()->ThrowException(exception);
-  }
-  // V8 will have scheduled a superseding error here.
+  THROW_ERR_INSPECTOR_NOT_AVAILABLE(
+      env, "This Environment was initialized without a V8::Inspector");
 }
 
 }  // namespace
@@ -980,6 +974,14 @@ std::unique_ptr<InspectorSession> Agent::ConnectToMainThread(
         parent_env_, "The parent thread's inspector is not available");
     return std::unique_ptr<InspectorSession>{};
   }
+  // A session connected to the main thread can pause it indefinitely.
+  if (ProcessTimeoutWatchdog::IsEnabled()) {
+    THROW_ERR_INSPECTOR_NOT_AVAILABLE(
+        parent_env_,
+        "Sessions cannot be connected to the main thread when "
+        "--process-timeout is used");
+    return std::unique_ptr<InspectorSession>{};
+  }
 
   CHECK_NOT_NULL(client_);
   auto thread_safe_delegate =
@@ -1188,6 +1190,15 @@ void Agent::RequestIoThreadStart() {
   // continuous JS code) and to wake up libuv thread (in case Node is waiting
   // for IO events)
   if (!options().allow_attaching_debugger) {
+    return;
+  }
+  // Activation via SIGUSR1 or process._debugProcess() has no caller to throw
+  // to, so print a warning instead.
+  if (ProcessTimeoutWatchdog::IsEnabled()) {
+    FPrintF(stderr,
+            "(node:%d) Warning: Ignoring the request to activate the "
+            "inspector because --process-timeout is used.\n",
+            uv_os_getpid());
     return;
   }
   parent_env_->RequestInterrupt([this](Environment*) {
